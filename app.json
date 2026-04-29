@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "Muster EMS Studio",
+    "slug": "muster-studio-termine",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#4a6655"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "de.musterstudio.termine"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#4a6655"
+      },
+      "package": "de.musterstudio.termine"
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}

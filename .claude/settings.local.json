@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx expo *)",
+      "Bash(npm install *)",
+      "Bash(npx jest *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(supabase functions *)",
+      "Bash(where supabase *)",
+      "Bash(npx supabase *)",
+      "Bash(./supabase.exe functions *)",
+      "Bash(./supabase.exe db *)",
+      "Bash(./supabase.exe migration *)",
+      "Bash(git reset *)",
+      "Bash(npx tsc *)",
+      "WebFetch(domain:www.deinemsstudio.com)",
+      "Bash(robocopy \"C:\\\\Users\\\\phili\\\\Desktop\\\\TermineApp\" \"C:\\\\Users\\\\phili\\\\Desktop\\\\FussballApp\" /E /XD node_modules .git /XF \"*.log\")"
+    ]
+  }
+}
