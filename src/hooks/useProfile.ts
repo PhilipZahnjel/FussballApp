@@ -19,20 +19,59 @@ export function useProfile() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    load();
+    let currentUserId: string | null = null;
+
+    // Initial load
+    load().then(() => {
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        currentUserId = user?.id ?? null;
+      });
+    });
+
+    // Reload whenever auth state changes (login / logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      currentUserId = session?.user?.id ?? null;
+      if (session?.user) {
+        loadForUser(session.user.id, session.user.email ?? null);
+      } else {
+        setProfile(null);
+        setLoading(false);
+      }
+    });
+
+    // Realtime: reload profile when admin changes permissions
+    const channel = supabase
+      .channel('profile-changes')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
+        if (currentUserId && payload.new.id === currentUserId) {
+          supabase.auth.getUser().then(({ data: { user } }) => {
+            if (user) loadForUser(user.id, user.email ?? null);
+          });
+        }
+      })
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+      supabase.removeChannel(channel);
+    };
   }, []);
+
+  const loadForUser = async (userId: string, email: string | null) => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    setProfile(data ? { ...data, email: email ?? data.email } as Profile : null);
+    setLoading(false);
+  };
 
   const load = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-    setProfile({ ...(data ?? {}), email: user.email ?? null } as Profile);
-    setLoading(false);
+    await loadForUser(user.id, user.email ?? null);
   };
 
-  return { profile, loading };
+  return { profile, loading, reload: load };
 }
