@@ -1,10 +1,7 @@
 import nodemailer from 'npm:nodemailer';
 
-const ALLOWED_ORIGINS = ['https://pmzdev.de', 'https://www.pmzdev.de'];
-
-function corsHeaders(origin: string | null) {
-  const allowed = ALLOWED_ORIGINS.includes(origin ?? '') ? origin! : ALLOWED_ORIGINS[0];
-  return { 'Access-Control-Allow-Origin': allowed, 'Access-Control-Allow-Headers': 'authorization, content-type, x-client-info, apikey' };
+function corsHeaders() {
+  return { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, x-client-info, apikey' };
 }
 
 const PROGRAM_NAMES: Record<string, string> = {
@@ -24,7 +21,7 @@ const transporter = nodemailer.createTransport({
 });
 
 Deno.serve(async (req) => {
-  const cors = corsHeaders(req.headers.get('Origin'));
+  const cors = corsHeaders();
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: cors });
   }
