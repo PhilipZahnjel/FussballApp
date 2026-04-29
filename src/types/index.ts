@@ -9,59 +9,43 @@ export type Appointment = {
   user_id?: string;
 };
 
-export type Tab = 'home' | 'termine' | 'buchen' | 'messungen' | 'profil';
-export type AdminTab = 'dashboard' | 'kunden' | 'kalender' | 'finanzen';
+export type Tab = 'home' | 'termine' | 'buchen' | 'profil';
+export type AdminTab = 'dashboard' | 'kunden' | 'kalender';
 
-export type SubscriptionPlan = {
-  id: string;
-  name: string;
-  ems_credits_per_month: number;
-  lymph_credits_per_month: number;
-  monthly_price: number;
-  extra_ems_price: number;
-  extra_lymph_price: number;
-  discounted_lymph_price: number;
-  is_active: boolean;
+export type PlayerLevel = 'anfaenger' | 'amateur' | 'profi' | 'experte';
+
+export const LEVEL_COLORS: Record<PlayerLevel, string> = {
+  anfaenger: '#4CAF50',
+  amateur:   '#FFC107',
+  profi:     '#FF9800',
+  experte:   '#F44336',
 };
 
-export type CustomerSubscription = {
+export const LEVEL_LABELS: Record<PlayerLevel, string> = {
+  anfaenger: 'Anfänger',
+  amateur:   'Amateur',
+  profi:     'Profi',
+  experte:   'Experte',
+};
+
+export type ProgramCategory = 'individual' | 'gruppe';
+
+export type CancellationToken = {
   id: string;
   user_id: string;
-  plan_id: string;
-  start_date: string;
-  end_date: string | null;
-  is_active: boolean;
-  plan?: SubscriptionPlan;
+  category: ProgramCategory;
+  issued_at: string;
+  expires_at: string;
+  used_at: string | null;
+  source_appointment_id: string | null;
 };
 
-export type CreditBalance = {
-  ems_balance: number;
-  lymph_balance: number;
-};
-
-export type Measurement = {
-  id: string;
-  measured_at: string;
-  weight: number | null;
-  height: number | null;
-  resting_pulse: number | null;
-  blood_pressure_sys: number | null;
-  blood_pressure_dia: number | null;
-  body_fat: number | null;
-  body_water: number | null;
-  fat_free_mass: number | null;
-  visceral_fat: number | null;
-  muscle_mass: number | null;
-  bone_mass: number | null;
-  circumference_chest: number | null;
-  circumference_hip: number | null;
-  circumference_waist: number | null;
-  circumference_arm_left: number | null;
-  circumference_arm_right: number | null;
-  circumference_leg_left: number | null;
-  circumference_leg_right: number | null;
-  bmr: number | null;
-  rmr: number | null;
-  active_metabolic_rate: number | null;
-  total_metabolic_rate: number | null;
+export type BookingPermissions = {
+  can_book_individual: boolean;
+  can_book_gruppe: boolean;
+  can_book_athletik: boolean;
+  can_book_torhueter_individual: boolean;
+  can_book_torhueter_gruppe: boolean;
+  quota_individual: number;
+  quota_gruppe: number;
 };

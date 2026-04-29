@@ -43,20 +43,18 @@ Deno.serve(async () => {
     if (!user?.email) continue;
 
     await transporter.sendMail({
-      from: `"EMS Studio" <${Deno.env.get('GMAIL_USER')}>`,
+      from: `"PK Fußballschule" <${Deno.env.get('GMAIL_USER')}>`,
       to: user.email,
-      subject: '⏰ Erinnerung – Dein EMS Termin morgen',
+      subject: '⏰ Erinnerung – Dein Training morgen',
       html: `
         <div style="font-family:sans-serif;max-width:480px;margin:auto">
           <h2 style="color:#3a7a52">Hallo ${profile?.full_name ?? ''},</h2>
-          <p>wir möchten dich an deinen Termin <strong>morgen</strong> erinnern.</p>
+          <p>wir möchten dich an dein Training <strong>morgen</strong> erinnern.</p>
           <table style="background:#f5f5f5;border-radius:10px;padding:16px 24px;width:100%">
-            <tr><td style="color:#666;padding:6px 0">Leistung</td><td><strong>EMS Training</strong></td></tr>
             <tr><td style="color:#666;padding:6px 0">Datum</td><td><strong>${appt.date}</strong></td></tr>
             <tr><td style="color:#666;padding:6px 0">Uhrzeit</td><td><strong>${appt.time} Uhr</strong></td></tr>
-            <tr><td style="color:#666;padding:6px 0">Dauer</td><td><strong>20 Minuten</strong></td></tr>
           </table>
-          <p style="color:#888;font-size:14px;margin-top:24px">Bis morgen!<br>Dein EMS Studio Team</p>
+          <p style="color:#888;font-size:14px;margin-top:24px">Bis morgen!<br>Dein PK Fußballschule Team</p>
         </div>
       `,
     });

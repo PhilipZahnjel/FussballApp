@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { PlayerLevel, BookingPermissions } from '../types';
 
 export type Profile = {
   full_name: string;
@@ -9,14 +10,9 @@ export type Profile = {
   email: string | null;
   birth_date: string | null;
   address: string | null;
-  iban: string | null;
-  bic: string | null;
-  account_holder: string | null;
-  bank_name: string | null;
   role: 'admin' | 'customer';
-  mandate_reference: string | null;
-  mandate_date: string | null;
-};
+  level: PlayerLevel | null;
+} & BookingPermissions;
 
 export function useProfile() {
   const [profile, setProfile] = useState<Profile | null>(null);

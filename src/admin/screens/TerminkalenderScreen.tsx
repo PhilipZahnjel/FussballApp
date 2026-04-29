@@ -6,7 +6,8 @@ import { SLOTS_MORNING, SLOTS_EVENING } from '../../constants/slots';
 import { isBookableDay } from '../../utils/bookingRules';
 
 const PROGRAM_COLORS: Record<string, string> = {
-  muscle: '#4A8FE8', lymph: '#3DBFA0', relax: '#F5A84A', metabolism: '#E87676',
+  individual: '#4A8FE8', gruppe: '#3DBFA0', athletik: '#F5A84A',
+  torhueter_individual: '#E87676', torhueter_gruppe: '#9B59B6',
 };
 
 const DE_DAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];

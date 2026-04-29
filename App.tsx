@@ -9,12 +9,12 @@ import { C } from './src/constants/colors';
 import { supabase } from './src/lib/supabase';
 import { Tab } from './src/types';
 import { useAppointments } from './src/hooks/useAppointments';
+import { useProfile } from './src/hooks/useProfile';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { TermineScreen } from './src/screens/TermineScreen';
 import { BuchenScreen } from './src/screens/BuchenScreen';
 import { ProfilScreen } from './src/screens/ProfilScreen';
-import { MessungenScreen } from './src/screens/MessungenScreen';
 import { BottomNav } from './src/components/BottomNav';
 import { AdminApp } from './src/admin/AdminApp';
 
@@ -24,7 +24,8 @@ export default function App() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [role, setRole] = useState<'admin' | 'customer' | null>(null);
   const [tab, setTab] = useState<Tab>('home');
-  const { appointments, myAppointments, addAppointment, cancelAppointment } = useAppointments();
+  const { profile } = useProfile();
+  const { appointments, myAppointments, activeTokens, addAppointment, cancelAppointment } = useAppointments(profile);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -84,12 +85,11 @@ export default function App() {
               <HomeScreen appointments={myAppointments} setTab={setTab} />
             )}
             {tab === 'termine' && (
-              <TermineScreen appointments={myAppointments} cancelAppointment={cancelAppointment} setTab={setTab} />
+              <TermineScreen appointments={myAppointments} cancelAppointment={cancelAppointment} activeTokens={activeTokens} setTab={setTab} />
             )}
             {tab === 'buchen' && (
-              <BuchenScreen key="buchen" appointments={appointments} myAppointments={myAppointments} addAppointment={(d, t, p) => addAppointment(d, t, p)} setTab={setTab} />
+              <BuchenScreen key="buchen" appointments={appointments} myAppointments={myAppointments} activeTokens={activeTokens} profile={profile} addAppointment={(d, t, p) => addAppointment(d, t, p)} setTab={setTab} />
             )}
-            {tab === 'messungen' && <MessungenScreen />}
             {tab === 'profil' && (
               <ProfilScreen onLogout={doLogout} />
             )}

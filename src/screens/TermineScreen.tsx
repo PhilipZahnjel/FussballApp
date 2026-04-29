@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { C } from '../constants/colors';
 import { Card } from '../components/Card';
 import { Btn } from '../components/Btn';
-import { Appointment, Tab } from '../types';
+import { Appointment, CancellationToken, Tab } from '../types';
 import { todayStr, fmtDate, DE_MONTHS, DE_DAYS_SHORT } from '../constants/i18n';
 import { PROGRAMS } from '../constants/programs';
 import { exportToCalendar } from '../utils/calendar';
@@ -12,14 +12,16 @@ import { exportToCalendar } from '../utils/calendar';
 interface Props {
   appointments: Appointment[];
   cancelAppointment: (id: string) => Promise<{ error: any }>;
+  activeTokens: CancellationToken[];
   setTab: (t: Tab) => void;
 }
 
 const PROGRAM_COLORS: Record<string, string> = {
-  muscle:     '#4A8FE8',
-  lymph:      '#3DBFA0',
-  relax:      '#F5A84A',
-  metabolism: '#E87676',
+  individual:           '#4A8FE8',
+  gruppe:               '#3DBFA0',
+  athletik:             '#F5A84A',
+  torhueter_individual: '#E87676',
+  torhueter_gruppe:     '#9B59B6',
 };
 
 function canCancelAppt(appt: Appointment): boolean {
@@ -44,7 +46,7 @@ function ApptCard({ appt, onCancel }: { appt: Appointment; onCancel: (id: string
         <View style={styles.apptContent}>
           <View style={styles.apptHeader}>
             <Text style={[styles.apptTitle, { color: appt.status === 'cancelled' ? C.textMid : programColor }]}>
-              {program?.name ?? 'EMS Training'}
+              {program?.name ?? 'Training'}
             </Text>
             {appt.status === 'cancelled' && (
               <View style={styles.cancelBadge}>
@@ -97,7 +99,7 @@ function ApptCard({ appt, onCancel }: { appt: Appointment; onCancel: (id: string
   );
 }
 
-export function TermineScreen({ appointments, cancelAppointment, setTab }: Props) {
+export function TermineScreen({ appointments, cancelAppointment, activeTokens, setTab }: Props) {
   const insets = useSafeAreaInsets();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(16)).current;
@@ -150,6 +152,20 @@ export function TermineScreen({ appointments, cancelAppointment, setTab }: Props
       <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
         <Text style={styles.screenTitle}>Meine Termine</Text>
         <Btn label="Neuen Termin buchen" onPress={() => setTab('buchen')} variant="primary" style={styles.bookBtn} />
+
+        {activeTokens.length > 0 && (
+          <View style={styles.tokenBanner}>
+            {activeTokens.map(token => (
+              <View key={token.id} style={styles.tokenRow}>
+                <Text style={styles.tokenIcon}>🎫</Text>
+                <Text style={styles.tokenText}>
+                  Nachholtermin verfügbar bis {fmtDate(token.expires_at.slice(0, 10))}
+                  {' · '}{token.category === 'individual' ? 'Individualtraining' : 'Gruppentraining'}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* ── Kalender ─────────────────────────────────────── */}
         <Card style={styles.calCard}>
@@ -268,7 +284,11 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { paddingHorizontal: 20 },
   screenTitle: { fontSize: 28, fontWeight: '800', color: '#fff', letterSpacing: -0.4, marginBottom: 20 },
-  bookBtn: { marginBottom: 20 },
+  bookBtn: { marginBottom: 12 },
+  tokenBanner: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: 12, marginBottom: 16, gap: 6 },
+  tokenRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  tokenIcon: { fontSize: 15 },
+  tokenText: { fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.9)', flex: 1 },
 
   // Kalender
   calCard: { marginBottom: 12, overflow: 'hidden' },

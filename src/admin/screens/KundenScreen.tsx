@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { CustomerProfile, AdminAppointment } from '../hooks/useAdminData';
+import { LEVEL_COLORS, LEVEL_LABELS, PlayerLevel } from '../../types';
 
 interface Props {
   customers: CustomerProfile[];
@@ -163,6 +164,13 @@ export function KundenScreen({ customers, allAppointments, loading, onSelectCust
               <View style={styles.info}>
                 <View style={styles.nameRow}>
                   <Text style={styles.name}>{c.full_name}</Text>
+                  {c.level && (
+                    <View style={[styles.levelBadge, { backgroundColor: LEVEL_COLORS[c.level as PlayerLevel] + '22', borderColor: LEVEL_COLORS[c.level as PlayerLevel] }]}>
+                      <Text style={[styles.levelBadgeText, { color: LEVEL_COLORS[c.level as PlayerLevel] }]}>
+                        {LEVEL_LABELS[c.level as PlayerLevel]}
+                      </Text>
+                    </View>
+                  )}
                   {!c.is_active && (
                     <View style={styles.inactiveBadge}>
                       <Text style={styles.inactiveBadgeText}>Inaktiv</Text>
@@ -216,6 +224,8 @@ const styles = StyleSheet.create({
   info: { flex: 1 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 3 },
   name: { fontSize: 15, fontWeight: '700', color: '#111827' },
+  levelBadge: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
+  levelBadgeText: { fontSize: 11, fontWeight: '700' },
   inactiveBadge: { backgroundColor: 'rgba(239,68,68,0.1)', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
   inactiveBadgeText: { fontSize: 11, fontWeight: '700', color: '#EF4444' },
   sub: { fontSize: 13, color: '#6B7280' },

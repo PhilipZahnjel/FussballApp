@@ -6,7 +6,6 @@ import { DashboardScreen } from './screens/DashboardScreen';
 import { KundenScreen } from './screens/KundenScreen';
 import { KundenDetailScreen } from './screens/KundenDetailScreen';
 import { TerminkalenderScreen } from './screens/TerminkalenderScreen';
-import { FinanzenScreen } from './screens/FinanzenScreen';
 
 interface Props {
   onLogout: () => void;
@@ -14,16 +13,14 @@ interface Props {
 
 const NAV: { id: AdminTab; label: string; icon: string }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-  { id: 'kunden', label: 'Kunden', icon: '👥' },
+  { id: 'kunden', label: 'Spieler', icon: '👥' },
   { id: 'kalender', label: 'Terminkalender', icon: '📅' },
-  { id: 'finanzen', label: 'Finanzen', icon: '💳' },
 ];
 
 const TAB_LABELS: Record<AdminTab, string> = {
   dashboard: 'Dashboard',
-  kunden: 'Kunden',
+  kunden: 'Spieler',
   kalender: 'Terminkalender',
-  finanzen: 'Finanzen',
 };
 
 export function AdminApp({ onLogout }: Props) {
@@ -34,15 +31,10 @@ export function AdminApp({ onLogout }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const {
-    customers, allAppointments, subscriptionPlans, loading, loadError,
+    customers, allAppointments, loading, loadError,
     cancelAppointment, addAppointmentForCustomer,
-    saveMandate, saveBankDetails, saveLymphDiscount, addCharge,
     createCustomer, deleteCustomer,
-    createPlan, updatePlan, deletePlan,
-    assignSubscription, removeSubscription, getCustomerDetails,
-    addManualCredit, runMonthlyBilling, getPendingCharges,
-    getMeasurements, addMeasurement,
-    consultationRequests, updateConsultationStatus,
+    saveCustomerLevel, saveBookingPermissions,
   } = useAdminData();
 
   const selectedCustomer = selectedCustomerId
@@ -58,7 +50,7 @@ export function AdminApp({ onLogout }: Props) {
   const sidebar = (
     <View style={styles.sidebar}>
       <View style={styles.sidebarTop}>
-        <Text style={styles.logoText}>EMS</Text>
+        <Text style={styles.logoText}>PK</Text>
         <Text style={styles.logoSub}>Admin</Text>
       </View>
 
@@ -96,9 +88,7 @@ export function AdminApp({ onLogout }: Props) {
         <DashboardScreen
           customers={customers}
           allAppointments={allAppointments}
-          consultationRequests={consultationRequests}
           loading={loading}
-          onUpdateConsultation={updateConsultationStatus}
         />
       )}
       {tab === 'kunden' && !selectedCustomer && (
@@ -114,24 +104,16 @@ export function AdminApp({ onLogout }: Props) {
         <KundenDetailScreen
           customer={selectedCustomer}
           appointments={allAppointments.filter(a => a.user_id === selectedCustomer.id)}
-          subscriptionPlans={subscriptionPlans}
           onBack={() => setSelectedCustomerId(null)}
           onCancelAppointment={cancelAppointment}
           onAddAppointment={addAppointmentForCustomer}
-          onSaveMandate={saveMandate}
-          onSaveBankDetails={saveBankDetails}
-          onSaveLymphDiscount={saveLymphDiscount}
+          onSaveLevel={saveCustomerLevel}
+          onSaveBookingPermissions={saveBookingPermissions}
           onDeleteCustomer={async (id) => {
             const { error } = await deleteCustomer(id);
             if (!error) setSelectedCustomerId(null);
             return { error };
           }}
-          onAssignSubscription={assignSubscription}
-          onRemoveSubscription={removeSubscription}
-          onGetCustomerDetails={getCustomerDetails}
-          onAddManualCredit={addManualCredit}
-          onGetMeasurements={getMeasurements}
-          onAddMeasurement={addMeasurement}
         />
       )}
       {tab === 'kalender' && (
@@ -141,19 +123,6 @@ export function AdminApp({ onLogout }: Props) {
           loading={loading}
           onCancelAppointment={cancelAppointment}
           onAddAppointment={addAppointmentForCustomer}
-        />
-      )}
-      {tab === 'finanzen' && (
-        <FinanzenScreen
-          customers={customers}
-          subscriptionPlans={subscriptionPlans}
-          loading={loading}
-          onAddCharge={addCharge}
-          onRunMonthlyBilling={runMonthlyBilling}
-          onGetPendingCharges={getPendingCharges}
-          onCreatePlan={createPlan}
-          onUpdatePlan={updatePlan}
-          onDeletePlan={deletePlan}
         />
       )}
     </>

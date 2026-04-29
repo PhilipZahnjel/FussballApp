@@ -1,33 +1,65 @@
+import { BookingPermissions, ProgramCategory } from '../types';
+import { PROGRAM_CATEGORY, PROGRAM_CAPACITY, ProgramId } from '../constants/programs';
+import { Appointment } from '../types';
+
 export type AppointmentSlim = { date: string; time: string; status: string; program: string };
 
-export function checkBookingConflict(
+// 1 Termin pro Tag — keine Ausnahmen
+export function checkDailyConflict(
   existing: AppointmentSlim[],
   newDate: string,
-  newProgram: string,
 ): { allowed: boolean; reason?: string } {
   const confirmed = existing.filter(a => a.date === newDate && a.status === 'confirmed');
   if (confirmed.length === 0) return { allowed: true };
-
-  const isLymphException =
-    newProgram === 'lymph' || confirmed.some(a => a.program === 'lymph');
-
-  if (isLymphException) return { allowed: true };
-
-  return {
-    allowed: false,
-    reason: 'Der Kunde hat an diesem Tag bereits einen Termin. Ausnahme gilt nur für Lymphdrainage.',
-  };
+  return { allowed: false, reason: 'Du hast an diesem Tag bereits einen Termin.' };
 }
 
-export function checkSlotCapacity(
-  allAppointments: AppointmentSlim[],
-  date: string,
-  time: string,
-): { full: boolean; booked: number; free: number } {
-  const booked = allAppointments.filter(
-    a => a.date === date && a.time === time && a.status === 'confirmed',
+// Prüft ob Kunde diesen Programmtyp buchen darf
+export function checkProgramPermission(
+  permissions: BookingPermissions,
+  programId: ProgramId,
+): { allowed: boolean; reason?: string } {
+  const flagMap: Record<ProgramId, keyof BookingPermissions> = {
+    individual:           'can_book_individual',
+    gruppe:               'can_book_gruppe',
+    athletik:             'can_book_athletik',
+    torhueter_individual: 'can_book_torhueter_individual',
+    torhueter_gruppe:     'can_book_torhueter_gruppe',
+  };
+  const flag = flagMap[programId];
+  if (!flag || !permissions[flag]) {
+    return { allowed: false, reason: 'Du bist für dieses Training nicht freigeschaltet.' };
+  }
+  return { allowed: true };
+}
+
+// Prüft ob monatliches Kontingent noch verfügbar (Token überschreibt Limit)
+export function checkMonthlyQuota(
+  myAppointments: Appointment[],
+  permissions: BookingPermissions,
+  programId: ProgramId,
+  targetMonth: string, // 'YYYY-MM'
+  hasValidToken: boolean,
+): { allowed: boolean; reason?: string } {
+  if (hasValidToken) return { allowed: true };
+
+  const category: ProgramCategory = PROGRAM_CATEGORY[programId] ?? 'individual';
+  const quota = category === 'individual' ? permissions.quota_individual : permissions.quota_gruppe;
+
+  const used = myAppointments.filter(a =>
+    a.status === 'confirmed' &&
+    a.date.startsWith(targetMonth) &&
+    PROGRAM_CATEGORY[a.program as ProgramId] === category,
   ).length;
-  return { full: booked >= 2, booked, free: Math.max(0, 2 - booked) };
+
+  if (used >= quota) {
+    const label = category === 'individual' ? 'Individual' : 'Gruppen';
+    return {
+      allowed: false,
+      reason: `Dein ${label}-Kontingent für diesen Monat (${quota}) ist aufgebraucht.`,
+    };
+  }
+  return { allowed: true };
 }
 
 export function isSlotInPast(slotTime: string, todayStr: string, selectedDate: string): boolean {

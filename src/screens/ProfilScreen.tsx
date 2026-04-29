@@ -9,7 +9,6 @@ import { GlassCard } from '../components/GlassCard';
 import { Card } from '../components/Card';
 import { Btn } from '../components/Btn';
 import { useProfile } from '../hooks/useProfile';
-import { useCredits } from '../hooks/useCredits';
 import { supabase } from '../lib/supabase';
 import { STUDIO } from '../constants/studio';
 
@@ -42,7 +41,6 @@ export function ProfilScreen({ onLogout }: Props) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(16)).current;
   const { profile, loading } = useProfile();
-  const credits = useCredits();
 
   const [pwOpen, setPwOpen] = useState(false);
   const [newPw, setNewPw] = useState('');
@@ -95,41 +93,6 @@ export function ProfilScreen({ onLogout }: Props) {
           {profile?.address ? <Text style={styles.userDetail}>{profile.address}</Text> : null}
         </GlassCard>
 
-        {/* Guthaben */}
-        <Card style={styles.infoCard}>
-          <View style={styles.cardSectionHeader}>
-            <Text style={styles.cardSectionLabel}>Mein Guthaben</Text>
-          </View>
-          {credits.subscription_name && (
-            <View style={[styles.infoRow, styles.infoRowBorder]}>
-              <Text style={styles.infoKey}>Abonnement</Text>
-              <Text style={styles.infoVal}>{credits.subscription_name}</Text>
-            </View>
-          )}
-          {credits.lymph_discount && (
-            <View style={[styles.infoRow, styles.infoRowBorder]}>
-              <Text style={styles.infoKey}>Lymphdrainage</Text>
-              <View style={styles.discountBadge}>
-                <Text style={styles.discountBadgeText}>Rabatt aktiv</Text>
-              </View>
-            </View>
-          )}
-          <View style={styles.creditsRow}>
-            <View style={[styles.creditBox, { borderColor: '#4A8FE8' }]}>
-              <Text style={[styles.creditNum, { color: credits.ems_balance < 0 ? '#EF4444' : '#4A8FE8' }]}>
-                {credits.loading ? '…' : credits.ems_balance}
-              </Text>
-              <Text style={styles.creditLbl}>EMS</Text>
-            </View>
-            <View style={[styles.creditBox, { borderColor: '#3DBFA0' }]}>
-              <Text style={[styles.creditNum, { color: credits.lymph_balance < 0 ? '#EF4444' : '#3DBFA0' }]}>
-                {credits.loading ? '…' : credits.lymph_balance}
-              </Text>
-              <Text style={styles.creditLbl}>Lymph</Text>
-            </View>
-          </View>
-        </Card>
-
         {/* Erreichbarkeit */}
         <SectionCard title="Erreichbarkeit">
           <InfoRow label="Mobil" value={profile?.phone ?? ''} />
@@ -181,17 +144,9 @@ export function ProfilScreen({ onLogout }: Props) {
           )}
         </SectionCard>
 
-        {/* Kontoverbindung */}
-        <SectionCard title="Kontoverbindung">
-          <InfoRow label="Kontoinhaber" value={profile?.account_holder ?? ''} />
-          <InfoRow label="IBAN" value={profile?.iban ?? ''} />
-          <InfoRow label="BIC" value={profile?.bic ?? ''} />
-          <InfoRow label="Bank" value={profile?.bank_name ?? ''} last />
-        </SectionCard>
-
         {/* Studio Kontakt */}
-        <SectionCard title="Studio Kontakt">
-          <InfoRow label="Studio" value={STUDIO.name} />
+        <SectionCard title="Kontakt">
+          <InfoRow label="Schule" value={STUDIO.name} />
           <InfoRow label="Adresse" value={STUDIO.address} />
           <InfoRow label="Telefon" value={STUDIO.phone} />
           <InfoRow label="E-Mail" value={STUDIO.email} />

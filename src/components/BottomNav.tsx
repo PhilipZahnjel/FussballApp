@@ -30,16 +30,6 @@ function TermineIcon({ active }: { active: boolean }) {
   );
 }
 
-function MessungenIcon({ active }: { active: boolean }) {
-  const c = active ? C.accentLight : 'rgba(255,255,255,0.4)';
-  return (
-    <View style={[styles.icon, { flexDirection: 'row', alignItems: 'flex-end', gap: 3, justifyContent: 'center' }]}>
-      {[10, 16, 12, 20, 14].map((h, i) => (
-        <View key={i} style={{ width: 3, height: h, backgroundColor: c, borderRadius: 2 }} />
-      ))}
-    </View>
-  );
-}
 
 function ProfilIcon({ active }: { active: boolean }) {
   const c = active ? C.accentLight : 'rgba(255,255,255,0.4)';
@@ -54,7 +44,6 @@ function ProfilIcon({ active }: { active: boolean }) {
 const MAIN_ITEMS: { id: Tab; label: string }[] = [
   { id: 'home', label: 'Home' },
   { id: 'termine', label: 'Termine' },
-  { id: 'messungen', label: 'Messungen' },
   { id: 'profil', label: 'Profil' },
 ];
 
@@ -91,7 +80,6 @@ export function BottomNav({ tab, setTab }: Props) {
           <TouchableOpacity key={id} style={styles.item} onPress={() => setTab(id)}>
             {id === 'home' && <HomeIcon active={active} />}
             {id === 'termine' && <TermineIcon active={active} />}
-            {id === 'messungen' && <MessungenIcon active={active} />}
             {id === 'profil' && <ProfilIcon active={active} />}
             <Text style={labelStyle}>{label}</Text>
           </TouchableOpacity>

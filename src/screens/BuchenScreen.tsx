@@ -8,14 +8,17 @@ import { C } from '../constants/colors';
 import { Card } from '../components/Card';
 import { GlassCard } from '../components/GlassCard';
 import { Btn } from '../components/Btn';
-import { Appointment, Tab } from '../types';
+import { Appointment, CancellationToken, Tab } from '../types';
 import { todayStr, fmtDate, fmtShort, DE_MONTHS, DE_DAYS_SHORT } from '../constants/i18n';
 import { SLOTS_MORNING, SLOTS_EVENING } from '../constants/slots';
-import { PROGRAMS } from '../constants/programs';
+import { PROGRAMS, PROGRAM_CATEGORY, ProgramId } from '../constants/programs';
+import { Profile } from '../hooks/useProfile';
 
 interface Props {
   appointments: Appointment[];
   myAppointments: Appointment[];
+  profile: Profile | null;
+  activeTokens: CancellationToken[];
   addAppointment: (date: string, time: string, program: string) => Promise<{ error: any }>;
   setTab: (t: Tab) => void;
 }
@@ -84,7 +87,19 @@ function SectionTitle({ t, sub }: { t: string; sub?: string }) {
   );
 }
 
-export function BuchenScreen({ appointments, myAppointments, addAppointment, setTab }: Props) {
+function isProgramAllowed(profile: Profile, programId: string): boolean {
+  const map: Record<string, keyof Profile> = {
+    individual: 'can_book_individual',
+    gruppe: 'can_book_gruppe',
+    athletik: 'can_book_athletik',
+    torhueter_individual: 'can_book_torhueter_individual',
+    torhueter_gruppe: 'can_book_torhueter_gruppe',
+  };
+  const key = map[programId];
+  return key ? !!profile[key] : false;
+}
+
+export function BuchenScreen({ appointments, myAppointments, profile, activeTokens, addAppointment, setTab }: Props) {
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState<Step>('program');
   const [selProgram, setSelProgram] = useState<string | null>(null);
@@ -98,40 +113,100 @@ export function BuchenScreen({ appointments, myAppointments, addAppointment, set
   const stepIdx = STEPS.indexOf(step);
   const currentProgram = PROGRAMS.find(p => p.id === selProgram);
 
+  const allowedPrograms = profile
+    ? PROGRAMS.filter(p => isProgramAllowed(profile, p.id))
+    : [];
+
+  const thisMonth = ts.slice(0, 7);
+  const usedIndividual = myAppointments.filter(
+    a => a.status === 'confirmed' && a.date.startsWith(thisMonth) && PROGRAM_CATEGORY[a.program as ProgramId] === 'individual'
+  ).length;
+  const usedGruppe = myAppointments.filter(
+    a => a.status === 'confirmed' && a.date.startsWith(thisMonth) && PROGRAM_CATEGORY[a.program as ProgramId] === 'gruppe'
+  ).length;
+
   // ── ProgramStep ───────────────────────────────────────────────
   function ProgramStep() {
+    const quotaIndividual = profile?.quota_individual ?? 0;
+    const quotaGruppe = profile?.quota_gruppe ?? 0;
+    const hasIndividualPrograms = allowedPrograms.some(p => PROGRAM_CATEGORY[p.id as ProgramId] === 'individual');
+    const hasGruppePrograms = allowedPrograms.some(p => PROGRAM_CATEGORY[p.id as ProgramId] === 'gruppe');
+    const tokenIndividual = activeTokens.find(t => t.category === 'individual');
+    const tokenGruppe = activeTokens.find(t => t.category === 'gruppe');
+
     return (
       <FadeUp>
-        <SectionTitle t="Programm wählen" sub="Welches Training passt zu dir heute?" />
-        {PROGRAMS.map(p => (
-          <TouchableOpacity
-            key={p.id}
-            onPress={() => { setSelProgram(p.id); setStep('date'); }}
-            activeOpacity={0.8}
-            style={styles.programCard}
-          >
-            <View style={[styles.programImagePlaceholder, { backgroundColor: p.color }]}>
-              <Text style={styles.programEmoji}>{p.emoji}</Text>
-            </View>
-            <View style={styles.programBody}>
-              <View style={styles.programTop}>
-                <Text style={styles.programName}>{p.name}</Text>
-                <View style={styles.programBadges}>
+        <SectionTitle t="Training buchen" sub="Wähle deine Trainingseinheit" />
+
+        {activeTokens.length > 0 && (
+          <View style={styles.tokenBanner}>
+            {tokenIndividual && (
+              <View style={styles.tokenRow}>
+                <Text style={styles.tokenIcon}>🎫</Text>
+                <Text style={styles.tokenText}>
+                  Nachholtermin Individual bis {fmtDate(tokenIndividual.expires_at.slice(0, 10))}
+                </Text>
+              </View>
+            )}
+            {tokenGruppe && (
+              <View style={styles.tokenRow}>
+                <Text style={styles.tokenIcon}>🎫</Text>
+                <Text style={styles.tokenText}>
+                  Nachholtermin Gruppe bis {fmtDate(tokenGruppe.expires_at.slice(0, 10))}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {(quotaIndividual > 0 || quotaGruppe > 0) && (
+          <View style={styles.quotaRow}>
+            {hasIndividualPrograms && quotaIndividual > 0 && (
+              <View style={styles.quotaChip}>
+                <Text style={styles.quotaText}>
+                  Individual: {Math.max(0, quotaIndividual - usedIndividual)}/{quotaIndividual} diesen Monat
+                </Text>
+              </View>
+            )}
+            {hasGruppePrograms && quotaGruppe > 0 && (
+              <View style={styles.quotaChip}>
+                <Text style={styles.quotaText}>
+                  Gruppe: {Math.max(0, quotaGruppe - usedGruppe)}/{quotaGruppe} diesen Monat
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {allowedPrograms.length === 0 ? (
+          <View style={styles.noPrograms}>
+            <Text style={styles.noProgramsIcon}>⚽</Text>
+            <Text style={styles.noProgramsTitle}>Keine Trainingseinheiten verfügbar</Text>
+            <Text style={styles.noProgramsText}>Wende dich an deinen Trainer, um Buchungsberechtigungen zu erhalten.</Text>
+          </View>
+        ) : (
+          allowedPrograms.map(p => (
+            <TouchableOpacity
+              key={p.id}
+              onPress={() => { setSelProgram(p.id); setStep('date'); }}
+              activeOpacity={0.8}
+              style={styles.programCard}
+            >
+              <View style={[styles.programImagePlaceholder, { backgroundColor: p.color }]}>
+                <Text style={styles.programEmoji}>{p.emoji}</Text>
+              </View>
+              <View style={styles.programBody}>
+                <View style={styles.programTop}>
+                  <Text style={styles.programName}>{p.name}</Text>
                   <View style={styles.durationBadge}>
                     <Text style={styles.durationText}>{p.duration} Min.</Text>
                   </View>
-                  {'price' in p && (
-                    <View style={styles.priceBadge}>
-                      <Text style={styles.priceOld}>{(p as any).originalPrice}</Text>
-                      <Text style={styles.priceNew}>{(p as any).price}</Text>
-                    </View>
-                  )}
                 </View>
+                <Text style={styles.programDesc}>{p.description}</Text>
               </View>
-              <Text style={styles.programDesc}>{p.description}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          ))
+        )}
       </FadeUp>
     );
   }
@@ -209,17 +284,18 @@ export function BuchenScreen({ appointments, myAppointments, addAppointment, set
     const nowStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     const isToday = selDate === ts;
 
+    const capacity = currentProgram?.capacity ?? 1;
     const SlotGroup = ({ label, slots }: { label: string; slots: string[] }) => (
       <View style={{ marginBottom: 20 }}>
         <Text style={styles.slotGroupLabel}>{label}</Text>
         <View style={styles.slotGrid}>
           {slots.map(t => {
-            const booked = appointments.filter(a => a.date === selDate && a.time === t && a.status === 'confirmed').length;
+            const booked = appointments.filter(a => a.date === selDate && a.time === t && a.program === selProgram && a.status === 'confirmed').length;
             const userBooked = myAppointments.some(a => a.date === selDate && a.time === t && a.status === 'confirmed');
             const isPast = isToday && t <= nowStr;
-            const full = booked >= 2 || userBooked || isPast;
+            const full = booked >= capacity || userBooked || isPast;
             const sel = selTime === t;
-            const free = 2 - booked;
+            const free = capacity - booked;
             return (
               <TouchableOpacity
                 key={t}
@@ -229,8 +305,8 @@ export function BuchenScreen({ appointments, myAppointments, addAppointment, set
                 style={[styles.slot, sel && styles.slotSelected, full && styles.slotFull]}
               >
                 <Text style={[styles.slotTime, full && styles.slotTimeDimmed]}>{t}</Text>
-                <Text style={[styles.slotSub, full && styles.slotSubDimmed, !full && booked === 1 && { color: '#FFD580' }]}>
-                  {isPast ? 'Vergangen' : userBooked ? 'Bereits gebucht' : full ? 'Ausgebucht' : free === 1 ? '1 Platz frei' : '2 Plätze frei'}
+                <Text style={[styles.slotSub, full && styles.slotSubDimmed, !full && free === 1 && { color: '#FFD580' }]}>
+                  {isPast ? 'Vergangen' : userBooked ? 'Bereits gebucht' : full ? 'Ausgebucht' : free === 1 ? '1 Platz frei' : `${free} Plätze frei`}
                 </Text>
               </TouchableOpacity>
             );
@@ -252,7 +328,8 @@ export function BuchenScreen({ appointments, myAppointments, addAppointment, set
 
   // ── ConfirmStep ───────────────────────────────────────────────
   function ConfirmStep() {
-    const booked = appointments.filter(a => a.date === selDate && a.time === selTime && a.status === 'confirmed').length;
+    const capacity = currentProgram?.capacity ?? 1;
+    const booked = appointments.filter(a => a.date === selDate && a.time === selTime && a.program === selProgram && a.status === 'confirmed').length;
     const doBook = async () => {
       setBookingError(null);
       const { error } = await addAppointment(selDate!, selTime!, selProgram!);
@@ -266,8 +343,8 @@ export function BuchenScreen({ appointments, myAppointments, addAppointment, set
       ['Programm', currentProgram?.name ?? ''],
       ['Datum', fmtDate(selDate!)],
       ['Uhrzeit', `${selTime} Uhr`],
-      ['Dauer', `${currentProgram?.duration ?? 20} Minuten`],
-      ['Kapazität', `${2 - booked} von 2 Plätzen frei`],
+      ['Dauer', `${currentProgram?.duration ?? 60} Minuten`],
+      ['Verfügbar', `${capacity - booked} von ${capacity} Plätzen frei`],
     ];
     return (
       <FadeUp>
@@ -328,7 +405,7 @@ export function BuchenScreen({ appointments, myAppointments, addAppointment, set
     >
       {step !== 'done' && (
         <>
-          <Text style={styles.bookingLabel}>EMS online buchen</Text>
+          <Text style={styles.bookingLabel}>Training buchen</Text>
           <View style={styles.progress}>
             {STEPS.map((s, i) => (
               <View key={s} style={[styles.progressBar, { backgroundColor: i <= stepIdx ? C.accentLight : 'rgba(255,255,255,0.2)' }]} />
@@ -356,6 +433,17 @@ const styles = StyleSheet.create({
   backLabel: { fontSize: 15, fontWeight: '600', color: C.accentLight },
   sectionTitle: { fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
   sectionSub: { fontSize: 15, color: C.textFaint, marginTop: 4 },
+  tokenBanner: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: 12, marginBottom: 14, gap: 6 },
+  tokenRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  tokenIcon: { fontSize: 15 },
+  tokenText: { fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.9)', flex: 1 },
+  quotaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
+  quotaChip: { backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
+  quotaText: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.8)' },
+  noPrograms: { alignItems: 'center', paddingTop: 40, paddingHorizontal: 20 },
+  noProgramsIcon: { fontSize: 48, marginBottom: 16 },
+  noProgramsTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 10, textAlign: 'center' },
+  noProgramsText: { fontSize: 14, color: C.textFaint, textAlign: 'center', lineHeight: 20 },
   programCard: {
     backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 16,
@@ -368,17 +456,14 @@ const styles = StyleSheet.create({
   programEmoji: { fontSize: 42 },
   programBody: { padding: 16 },
   programTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
-  programBadges: { flexDirection: 'row', gap: 8, alignItems: 'center', flexShrink: 0, marginLeft: 8 },
   durationBadge: {
-    backgroundColor: C.accentBg,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 4,
+    flexShrink: 0,
   },
-  durationText: { fontSize: 12, fontWeight: '700', color: '#fff' },
-  priceBadge: { flexDirection: 'row', gap: 4, alignItems: 'center' },
-  priceOld: { fontSize: 12, color: C.textFaint, textDecorationLine: 'line-through' },
-  priceNew: { fontSize: 14, fontWeight: '800', color: '#FFD580' },
+  durationText: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.85)' },
   programName: { fontSize: 16, fontWeight: '800', color: '#fff', flex: 1 },
   programDesc: { fontSize: 13, color: C.textFaint, lineHeight: 19 },
   monthNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingHorizontal: 18, borderBottomWidth: 1, borderBottomColor: C.cardBorder },

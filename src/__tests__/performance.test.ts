@@ -1,7 +1,5 @@
-import { checkBookingConflict, checkSlotCapacity, isBookableDay } from '../utils/bookingRules';
-import { validateIban } from '../utils/validation';
+import { checkDailyConflict, isBookableDay } from '../utils/bookingRules';
 
-// Generiert N Kunden mit je M Terminen
 function generateCustomers(count: number) {
   return Array.from({ length: count }, (_, i) => ({
     id: `cust-${i}`,
@@ -22,7 +20,7 @@ function generateAppointments(customerCount: number, apptPerCustomer: number) {
         date: `2026-05-${String(day).padStart(2, '0')}`,
         time: a % 2 === 0 ? '09:00' : '16:00',
         status: 'confirmed' as const,
-        program: 'muscle',
+        program: 'individual',
       });
     }
   }
@@ -54,19 +52,11 @@ describe('Performance: 500 Kunden', () => {
     expect(elapsed).toBeLessThan(10);
   });
 
-  test('Slot-Kapazitätsprüfung über alle Termine in < 15ms', () => {
-    const start = performance.now();
-    const result = checkSlotCapacity(appointments, '2026-05-01', '09:00');
-    const elapsed = performance.now() - start;
-    expect(result.booked).toBeGreaterThanOrEqual(0);
-    expect(elapsed).toBeLessThan(15);
-  });
-
   test('1000 Buchungskonflikte prüfen in < 50ms', () => {
     const customerAppts = appointments.filter(a => a.user_id === 'cust-0');
     const start = performance.now();
     for (let i = 0; i < 1000; i++) {
-      checkBookingConflict(customerAppts, '2026-05-01', 'muscle');
+      checkDailyConflict(customerAppts, '2026-05-01');
     }
     const elapsed = performance.now() - start;
     expect(elapsed).toBeLessThan(50);
@@ -88,52 +78,17 @@ describe('Performance: 500 Kunden', () => {
 
 describe('Grenzwerte', () => {
   test('1000 Kunden gleichzeitig filtern', () => {
-    const big = generateCustomers(1000); // Nummern 101–1100
+    const big = generateCustomers(1000);
     const start = performance.now();
-    // customer_number > 1000 → Nummern 1001–1100 = 100 Treffer
     const found = big.filter(c => c.customer_number > 1000);
     const elapsed = performance.now() - start;
     expect(found).toHaveLength(100);
     expect(elapsed).toBeLessThan(10);
   });
 
-  test('100 IBAN-Validierungen in < 20ms', () => {
-    const ibans = [
-      'DE89370400440532013000',
-      'AT611904300234573201',
-      'DE00000000000000000000', // ungültig
-    ];
-    const start = performance.now();
-    for (let i = 0; i < 100; i++) {
-      ibans.forEach(iban => validateIban(iban));
-    }
-    const elapsed = performance.now() - start;
-    expect(elapsed).toBeLessThan(20);
-  });
-
-  test('Slot voll nach genau 2 Buchungen', () => {
-    const full = generateAppointments(2, 1).map(a => ({
-      ...a,
-      date: '2026-05-04',
-      time: '09:00',
-    }));
-    expect(checkSlotCapacity(full, '2026-05-04', '09:00').full).toBe(true);
-  });
-
-  test('Slot nicht voll nach 1 Buchung', () => {
-    const one = generateAppointments(1, 1).map(a => ({
-      ...a,
-      date: '2026-05-04',
-      time: '09:00',
-    }));
-    expect(checkSlotCapacity(one, '2026-05-04', '09:00').full).toBe(false);
-  });
-
-  test('Lymph-Ausnahme funktioniert bei 100 gleichzeitigen Checks', () => {
-    const existing = [{ date: '2026-05-04', time: '09:00', status: 'confirmed', program: 'muscle' }];
-    for (let i = 0; i < 100; i++) {
-      expect(checkBookingConflict(existing, '2026-05-04', 'lymph').allowed).toBe(true);
-      expect(checkBookingConflict(existing, '2026-05-04', 'relax').allowed).toBe(false);
-    }
+  test('Tageskonflikt korrekt erkannt nach 1 Termin', () => {
+    const existing = [{ date: '2026-05-04', time: '09:00', status: 'confirmed', program: 'individual' }];
+    expect(checkDailyConflict(existing, '2026-05-04').allowed).toBe(false);
+    expect(checkDailyConflict(existing, '2026-05-05').allowed).toBe(true);
   });
 });

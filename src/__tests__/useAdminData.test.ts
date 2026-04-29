@@ -1,11 +1,10 @@
 /**
  * Integration-Tests für useAdminData Kernlogik.
- * Testet Supabase-Interaktionen und Fehlerbehandlung direkt ohne React-Rendering,
- * da jest-expo mit Node.js v24 inkompatibel ist.
+ * Testet Supabase-Interaktionen und Fehlerbehandlung direkt ohne React-Rendering.
  */
 
 import { supabase } from '../lib/supabase';
-import { checkBookingConflict } from '../utils/bookingRules';
+import { checkDailyConflict } from '../utils/bookingRules';
 
 jest.mock('../lib/supabase', () => {
   const chain = () => {
@@ -126,85 +125,34 @@ describe('createCustomer — Edge Function Integration', () => {
   });
 });
 
-// ── Buchungskonflikt Integration (Zusammenspiel) ─────────────────────────────
+// ── Buchungskonflikt ─────────────────────────────────────────────────────────
 
-describe('Buchungskonflikt — Zusammenspiel mit DB-Daten', () => {
-  const buildAppointments = (programs: string[]) =>
-    programs.map((program, i) => ({
+describe('checkDailyConflict — Zusammenspiel mit DB-Daten', () => {
+  const buildAppointments = (count: number) =>
+    Array.from({ length: count }, (_, i) => ({
       id: `appt-${i}`,
       date: '2026-06-15',
       time: '09:00',
       status: 'confirmed' as const,
-      program,
+      program: 'individual',
       user_id: 'cust-1',
     }));
 
-  test('normaler Ablauf: Kunde ohne Termin kann buchen', () => {
-    expect(checkBookingConflict([], '2026-06-15', 'muscle').allowed).toBe(true);
+  test('Kunde ohne Termin kann buchen', () => {
+    expect(checkDailyConflict([], '2026-06-15').allowed).toBe(true);
   });
 
-  test('Kunde mit muscle-Termin kann noch lymph buchen', () => {
-    expect(checkBookingConflict(buildAppointments(['muscle']), '2026-06-15', 'lymph').allowed).toBe(true);
-  });
-
-  test('Kunde mit lymph-Termin kann noch muscle buchen', () => {
-    expect(checkBookingConflict(buildAppointments(['lymph']), '2026-06-15', 'muscle').allowed).toBe(true);
-  });
-
-  test('Kunde mit muscle-Termin kann kein relax buchen', () => {
-    const r = checkBookingConflict(buildAppointments(['muscle']), '2026-06-15', 'relax');
+  test('Kunde mit Termin kann keinen weiteren Termin am gleichen Tag buchen', () => {
+    const r = checkDailyConflict(buildAppointments(1), '2026-06-15');
     expect(r.allowed).toBe(false);
     expect(r.reason).toBeDefined();
   });
 
   test('Mehrere Kunden gleichzeitig: Konflikte unabhängig geprüft', () => {
     const kunden = ['cust-1', 'cust-2', 'cust-3'];
-    const allAppts = kunden.flatMap(id =>
-      buildAppointments(['muscle']).map(a => ({ ...a, user_id: id }))
-    );
-
-    kunden.forEach(id => {
-      const eigene = allAppts.filter(a => a.user_id === id);
-      const r = checkBookingConflict(eigene, '2026-06-15', 'relax');
-      expect(r.allowed).toBe(false);
+    kunden.forEach(() => {
+      const eigene = buildAppointments(1);
+      expect(checkDailyConflict(eigene, '2026-06-15').allowed).toBe(false);
     });
-  });
-});
-
-// ── saveBankDetails — Supabase Update Integration ────────────────────────────
-
-describe('saveBankDetails — Datenbankinteraktion', () => {
-  beforeEach(() => jest.clearAllMocks());
-
-  test('führt UPDATE auf profiles Tabelle aus', async () => {
-    const eqMock = jest.fn(() => Promise.resolve({ data: null, error: null }));
-    const updateMock = jest.fn(() => ({ eq: eqMock }));
-    (mockSupabase.from as jest.Mock).mockReturnValueOnce({ update: updateMock });
-
-    const bankData = {
-      iban: 'DE89370400440532013000',
-      bic: 'COBADEFFXXX',
-      account_holder: 'Max Mustermann',
-      bank_name: 'Commerzbank',
-    };
-
-    mockSupabase.from('profiles').update(bankData);
-
-    expect(mockSupabase.from).toHaveBeenCalledWith('profiles');
-    expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({
-      iban: 'DE89370400440532013000',
-      bic: 'COBADEFFXXX',
-    }));
-  });
-
-  test('gibt Fehler zurück bei Datenbankfehler', async () => {
-    const eqMock = jest.fn(() => Promise.resolve({ data: null, error: { message: 'DB-Fehler' } }));
-    (mockSupabase.from as jest.Mock).mockReturnValueOnce({
-      update: jest.fn(() => ({ eq: eqMock })),
-    });
-
-    const chain = mockSupabase.from('profiles').update({});
-    const result = await (chain as any).eq('id', 'cust-1');
-    expect(result.error?.message).toBe('DB-Fehler');
   });
 });

@@ -7,7 +7,7 @@ import { Btn } from '../components/Btn';
 import { Appointment, Tab } from '../types';
 import { todayStr, fmtDate } from '../constants/i18n';
 import { useProfile } from '../hooks/useProfile';
-import { useMeasurements } from '../hooks/useMeasurements';
+import { PROGRAMS } from '../constants/programs';
 
 interface Props {
   appointments: Appointment[];
@@ -18,7 +18,6 @@ export function HomeScreen({ appointments, setTab }: Props) {
   const insets = useSafeAreaInsets();
   const { profile } = useProfile();
   const firstName = profile?.full_name?.split(' ')[0] ?? '';
-  const { latest } = useMeasurements();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(16)).current;
 
@@ -44,7 +43,7 @@ export function HomeScreen({ appointments, setTab }: Props) {
       <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
         {/* Header */}
         <View style={[styles.header, { paddingTop: insets.top + 28 }]}>
-          <Text style={styles.headerSub}>Muster EMS Studio · Musterstadt</Text>
+          <Text style={styles.headerSub}>PK Fußballschule</Text>
           <Text style={styles.headerTitle}>Guten Tag,{'\n'}{firstName}!</Text>
         </View>
 
@@ -53,7 +52,7 @@ export function HomeScreen({ appointments, setTab }: Props) {
           {next ? (
             <GlassCard style={styles.nextCard}>
               <Text style={styles.nextLabel}>Nächster Termin</Text>
-              <Text style={styles.nextTitle}>EMS Training</Text>
+              <Text style={styles.nextTitle}>{PROGRAMS.find(p => p.id === next.program)?.name ?? 'Training'}</Text>
               <Text style={styles.nextDate}>{fmtDate(next.date)}</Text>
               <View style={styles.nextMeta}>
                 <View style={styles.metaItem}>
@@ -66,7 +65,7 @@ export function HomeScreen({ appointments, setTab }: Props) {
             <GlassCard style={styles.emptyCard}>
               <Text style={styles.emptyEmoji}>📅</Text>
               <Text style={styles.emptyTitle}>Kein bevorstehender Termin</Text>
-              <Text style={styles.emptySub}>Buche jetzt deinen nächsten EMS-Termin</Text>
+              <Text style={styles.emptySub}>Buche jetzt deinen nächsten Trainingstermin</Text>
             </GlassCard>
           )}
         </View>
@@ -78,28 +77,6 @@ export function HomeScreen({ appointments, setTab }: Props) {
           <Btn label="Meine Termine anzeigen" onPress={() => setTab('termine')} variant="ghost" />
         </View>
 
-        {/* Letzte Messung */}
-        {latest && (
-          <View style={[styles.section, { marginTop: 16 }]}>
-            <Text style={styles.sectionLabel}>Letzte Messung</Text>
-            <GlassCard style={styles.measureCard}>
-              <View style={styles.measureGrid}>
-                {[
-                  ['Gewicht', latest.weight !== null ? `${latest.weight} kg` : '—'],
-                  ['Körperfett', latest.body_fat !== null ? `${latest.body_fat} %` : '—'],
-                  ['Muskelmasse', latest.muscle_mass !== null ? `${latest.muscle_mass} kg` : '—'],
-                  ['Grundumsatz', latest.bmr !== null ? `${latest.bmr} kcal` : '—'],
-                ].map(([k, v]) => (
-                  <View key={k} style={styles.measureItem}>
-                    <Text style={styles.measureVal}>{v}</Text>
-                    <Text style={styles.measureKey}>{k}</Text>
-                  </View>
-                ))}
-              </View>
-              <Btn label="Alle Messwerte" onPress={() => setTab('messungen')} variant="ghost" style={{ marginTop: 16 }} />
-            </GlassCard>
-          </View>
-        )}
       </Animated.View>
     </ScrollView>
   );
@@ -190,17 +167,4 @@ const styles = StyleSheet.create({
   btns: {
     paddingHorizontal: 20,
   },
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: C.textFaint,
-    textTransform: 'uppercase',
-    letterSpacing: 0.12,
-    marginBottom: 12,
-  },
-  measureCard: { padding: 20 },
-  measureGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
-  measureItem: { width: '45%' },
-  measureVal: { fontSize: 20, fontWeight: '800', color: '#fff', marginBottom: 2 },
-  measureKey: { fontSize: 12, color: C.textFaint, fontWeight: '600' },
 });
