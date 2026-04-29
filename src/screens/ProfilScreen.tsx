@@ -74,11 +74,10 @@ export function ProfilScreen({ onLogout }: Props) {
 
   return (
     <ScrollView
-      style={styles.flex}
+      style={[styles.flex, { backgroundColor: 'transparent' }]}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 20, paddingBottom: 24 }]}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
-      backgroundColor="transparent"
     >
       <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
         <Text style={styles.screenTitle}>Profil</Text>

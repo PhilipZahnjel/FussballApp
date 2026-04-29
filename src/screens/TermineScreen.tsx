@@ -40,7 +40,7 @@ function ApptCard({ appt, onCancel }: { appt: Appointment; onCancel: (id: string
   const programColor = PROGRAM_COLORS[appt.program] ?? C.accent;
 
   return (
-    <Card style={[styles.apptCard, dimmed && { opacity: 0.55 }]}>
+    <Card style={[styles.apptCard, dimmed ? { opacity: 0.55 } : undefined]}>
       <View style={styles.apptMain}>
         <View style={[styles.colorBar, { backgroundColor: appt.status === 'cancelled' ? '#ccc' : programColor }]} />
         <View style={styles.apptContent}>
@@ -144,10 +144,9 @@ export function TermineScreen({ appointments, cancelAppointment, activeTokens, s
 
   return (
     <ScrollView
-      style={styles.flex}
+      style={[styles.flex, { backgroundColor: 'transparent' }]}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 20, paddingBottom: 20 }]}
       showsVerticalScrollIndicator={false}
-      backgroundColor="transparent"
     >
       <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
         <Text style={styles.screenTitle}>Meine Termine</Text>

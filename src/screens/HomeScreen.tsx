@@ -35,10 +35,9 @@ export function HomeScreen({ appointments, setTab }: Props) {
 
   return (
     <ScrollView
-      style={styles.flex}
+      style={[styles.flex, { backgroundColor: 'transparent' }]}
       contentContainerStyle={{ paddingBottom: 16 }}
       showsVerticalScrollIndicator={false}
-      backgroundColor="transparent"
     >
       <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
         {/* Header */}

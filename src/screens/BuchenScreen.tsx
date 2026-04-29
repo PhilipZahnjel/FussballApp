@@ -397,11 +397,10 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
 
   return (
     <ScrollView
-      style={styles.flex}
+      style={[styles.flex, { backgroundColor: 'transparent' }]}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 28 }]}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
-      backgroundColor="transparent"
     >
       {step !== 'done' && (
         <>
