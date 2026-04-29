@@ -1,12 +1,12 @@
-# TermineApp – Claude Kontext
+# FussballApp – Claude Kontext
 
 ## Projekt
-EMS-Studio Buchungs-App. Kunden buchen Trainingstermine, Betreiber verwalten diese.
+PK Fußballschule Buchungs-App. Spieler buchen Trainingstermine, Trainer/Admin verwaltet diese.
 
 **Stack:** React Native · Expo · TypeScript · Supabase (PostgreSQL + Auth + Edge Functions)  
 **Plattformen:** iOS, Android, Web (Admin-UI primär Web/PC)  
-**Repo:** PhilipZahnjel/TermineApp — nach jeder Änderung committen und pushen.  
-**Supabase-Projekt:** `gajwglshmkcoznhqvvpg` (EU Central)
+**Repo:** PhilipZahnjel/FussballApp — nach jeder Änderung committen und pushen.  
+**Supabase-Projekt:** `mgdrbgtsaqhgrdsnpasv` (EU Central)
 
 ---
 
@@ -32,8 +32,11 @@ profiles: {
   customer_number (int, auto-increment ab 101),
   is_active (bool),
   role ('admin'|'customer'),
-  iban, bic, account_holder, bank_name,
-  mandate_reference, mandate_date (für SEPA)
+  level ('anfaenger'|'amateur'|'profi'|'experte' | NULL),
+  can_book_individual (bool), can_book_gruppe (bool),
+  can_book_athletik (bool), can_book_torhueter_individual (bool),
+  can_book_torhueter_gruppe (bool),
+  quota_individual (int 0-4), quota_gruppe (int 0-4)
 }
 
 appointments: {
@@ -41,12 +44,10 @@ appointments: {
   status ('confirmed'|'cancelled'), program, created_at
 }
 
-measurements: { id, user_id, measured_at, weight, height, ... }
-
-charges: {
-  id, user_id, amount, description, period (YYYY-MM),
-  status ('pending'|'collected'|'failed'),
-  created_at, collected_at
+cancellation_tokens: {
+  id, user_id, category ('individual'|'gruppe'),
+  issued_at, expires_at (issued_at + 1 Monat),
+  used_at (NULL = unbenutzt), source_appointment_id
 }
 ```
 
@@ -55,68 +56,81 @@ Admins dürfen alle Zeilen lesen/schreiben. Kunden nur eigene.
 
 ---
 
-## Buchungsregeln (kritisch — gilt für Kunden UND Admin)
-- Max. **1 bestätigter Termin pro Tag** pro Nutzer.
-- **Ausnahme:** Lymphdrainage (`program: 'lymph'`) darf zusätzlich gebucht werden.
-- Prüfung: client-seitig (State) **und** server-seitig (Supabase Query).
+## Buchungsregeln (kritisch — gilt für Kunden)
+- Max. **1 bestätigter Termin pro Tag** pro Nutzer (keine Ausnahmen).
 - Wochenenden (Sa + So) und deutsche Bundesfeiertage nicht buchbar.
-- Max. **2 Personen pro Slot**.
+- **Buchungsberechtigung:** Kunde kann nur Programme buchen, für die Admin das Flag gesetzt hat (`can_book_*`).
+- **Monatliches Kontingent:** Max. `quota_individual` Individual-Einheiten + `quota_gruppe` Gruppen-Einheiten pro Monat.
+- **Stornierungstoken:** Bei Stornierung wird ein Token ausgestellt (gleiche Kategorie, 1 Monat gültig). Token erlaubt zusätzliche Buchung außerhalb des Kontingents.
+- Slot-Kapazität per DB-Trigger (Individual: 1, Gruppe/Athletik/Torwart-Gruppe: 4).
+
+**Admin bucht ohne Einschränkungen** (`addAppointmentForCustomer` überspringt alle Checks).
 
 ---
 
-## Programme & Farben
-| ID | Name | Farbe |
+## Trainingstypen & Farben
+| ID | Name | Kapazität | Kategorie | Farbe |
+|---|---|---|---|---|
+| `individual` | Individualtraining | 1 | individual | `#4A8FE8` |
+| `gruppe` | Gruppentraining | 4 | gruppe | `#3DBFA0` |
+| `athletik` | Athletiktraining | 4 | gruppe | `#F5A84A` |
+| `torhueter_individual` | Torwart Individual | 1 | individual | `#E87676` |
+| `torhueter_gruppe` | Torwart Gruppe | 4 | gruppe | `#9B59B6` |
+
+---
+
+## Level-System
+| ID | Label | Farbe |
 |---|---|---|
-| `muscle` | EMS-Intensiv Muskelaufbau | `#4A8FE8` (Blau) |
-| `lymph` | Lymphdrainage | `#3DBFA0` (Türkis) |
-| `relax` | Relax | `#F5A84A` (Orange) |
-| `metabolism` | Stoffwechsel | `#E87676` (Koralle) |
+| `anfaenger` | Anfänger | `#4CAF50` (Grün) |
+| `amateur` | Amateur | `#FFC107` (Gelb) |
+| `profi` | Profi | `#FF9800` (Orange) |
+| `experte` | Experte | `#F44336` (Rot) |
+
+Level wird vom Admin im Kundenprofil gesetzt. Kunden sehen ihr Level nicht.
 
 ---
 
 ## Admin-UI (`src/admin/`)
 
 **Screens:**
-- `DashboardScreen` — Statistiken, nächste Termine aller Kunden
-- `KundenScreen` — Suchfeld + Kundenliste, "Neuen Kunden anlegen"-Formular
-- `KundenDetailScreen` — Profil, Bankverbindung bearbeiten, SEPA-Mandat, Termine buchen/stornieren
+- `DashboardScreen` — Statistiken, nächste 10 Termine aller Kunden
+- `KundenScreen` — Suchfeld + Kundenliste (mit Level-Badge), "Neuen Kunden anlegen"-Formular
+- `KundenDetailScreen` — Profil, Level-Chips, Buchungsberechtigungen (5 Toggles), Monatskontingent (0-4), Termine buchen/stornieren
 - `TerminkalenderScreen` — Wochenansicht aller Termine
-- `FinanzenScreen` — SEPA pain.008 XML-Export
 
 **Hook:** `useAdminData` in `src/admin/hooks/useAdminData.ts`  
-Funktionen: `cancelAppointment`, `addAppointmentForCustomer`, `saveMandate`, `saveBankDetails`, `addCharge`, `createCustomer`
-
-**SEPA-Util:** `src/admin/utils/sepa.ts` — generiert pain.008.003.02 XML, `downloadXml()` für Browser-Download.
+Funktionen: `cancelAppointment`, `addAppointmentForCustomer`, `createCustomer`, `deleteCustomer`, `saveCustomerLevel`, `saveBookingPermissions`
 
 ---
 
 ## Kundenerstellung (Edge Function)
 **Funktion:** `create-customer` (Supabase Edge Function, `verify_jwt: false`)  
 **Ablauf:** Admin füllt Formular → Edge Function erstellt Auth-User mit temporärem Passwort → Profil wird angelegt → Passwort wird **inline in der UI angezeigt** (kein E-Mail-Versand, kein `Alert.alert()`).  
-**Grund kein E-Mail:** Supabase Free Tier hat unzuverlässigen E-Mail-Versand.  
 **Aufruf:** `supabase.functions.invoke('create-customer', { body: params })`
 
 ---
 
 ## Hooks & State (Kunden-App)
-- `useAppointments` → `appointments` (alle, für Kapazität) + `myAppointments` (nur eigene, für UI)
-- `useProfile` → Profil inkl. `role`
-- `TermineScreen` bekommt `myAppointments` (nicht `appointments`!)
-- `BuchenScreen` bekommt beide
+- `useAppointments(profile)` → `appointments` (alle, für Kapazität) + `myAppointments` (nur eigene) + `activeTokens` (unbenutzte Tokens)
+- `useProfile` → Profil inkl. `role`, `level`, `can_book_*`, `quota_*`
+- `TermineScreen` bekommt `myAppointments` + `activeTokens`
+- `BuchenScreen` bekommt `appointments`, `myAppointments`, `profile`, `activeTokens`
 
 ---
 
 ## UI-Regeln
 - **Kein `Alert.alert()` für Web** — stattdessen inline UI-Komponenten (State + JSX)
 - Kein Hover-Effekt in Kalender-Komponenten (Touch-Bugs auf Mobile)
-- Vergangene Termine werden ausgegraut (`opacity: 0.5`, grauer Balken) — unabhängig von `status`
+- Vergangene Termine werden ausgegraut (`opacity: 0.5`) — unabhängig von `status`
 - Admin-Farben: Sidebar `#1C2133`, Hintergrund `#F4F6F9`, Akzent `#5A8C6A`
 - Kunden-Farben: Gradient `C.bgTop → C.bgBot`, Akzent `#5A8C6A`
 
 ---
 
 ## Bekannte Fallstricke
-- Demo-User **nie per SQL in `auth.users` anlegen** — fehlende Pflichtfelder (`instance_id`, `confirmation_token = ''`) brechen den Login
+- Demo-User **nie per SQL in `auth.users` anlegen** — fehlende Pflichtfelder brechen den Login
 - Edge Functions die selbst Auth prüfen: `verify_jwt: false` setzen
 - `supabase.functions.invoke()` verwenden, nie manuelles `fetch()` mit konstruierter URL
 - Admin-Layout muss aus dem 430px-Container heraus — eigener Render-Pfad in `App.tsx` vor `appContent`
+- `PROGRAM_CATEGORY[program as ProgramId]` für Kategorie-Bestimmung aus program-String
