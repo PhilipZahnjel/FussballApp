@@ -174,7 +174,7 @@ export function KundenDetailScreen({
       <View style={styles.pageHeader}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
-            {customer.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+            {(customer.full_name ?? '?').split(' ').map(n => n[0] ?? '').join('').slice(0, 2).toUpperCase() || '?'}
           </Text>
         </View>
         <View style={{ flex: 1 }}>

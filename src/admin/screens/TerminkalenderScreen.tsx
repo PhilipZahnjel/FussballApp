@@ -90,7 +90,7 @@ export function TerminkalenderScreen({ customers, allAppointments, loading, onCa
 
   const filteredCustomers = bookCustomerSearch.trim().length >= 1
     ? customers.filter(c =>
-        c.full_name.toLowerCase().includes(bookCustomerSearch.toLowerCase()) ||
+        (c.full_name ?? '').toLowerCase().includes(bookCustomerSearch.toLowerCase()) ||
         String(c.customer_number).includes(bookCustomerSearch)
       ).slice(0, 5)
     : [];

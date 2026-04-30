@@ -59,7 +59,7 @@ export function KundenScreen({ customers, allAppointments, loading, onSelectCust
     const q = query.toLowerCase().trim();
     if (!q) return customers;
     return customers.filter(c =>
-      c.full_name.toLowerCase().includes(q) ||
+      (c.full_name ?? '').toLowerCase().includes(q) ||
       (c.email ?? '').toLowerCase().includes(q) ||
       (c.phone ?? '').includes(q) ||
       String(c.customer_number).includes(q)
@@ -158,12 +158,12 @@ export function KundenScreen({ customers, allAppointments, loading, onSelectCust
             >
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>
-                  {c.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                  {(c.full_name ?? '?').split(' ').map(n => n[0] ?? '').join('').slice(0, 2).toUpperCase() || '?'}
                 </Text>
               </View>
               <View style={styles.info}>
                 <View style={styles.nameRow}>
-                  <Text style={styles.name}>{c.full_name}</Text>
+                  <Text style={styles.name}>{c.full_name ?? '—'}</Text>
                   {c.level && (
                     <View style={[styles.levelBadge, { backgroundColor: LEVEL_COLORS[c.level as PlayerLevel] + '22', borderColor: LEVEL_COLORS[c.level as PlayerLevel] }]}>
                       <Text style={[styles.levelBadgeText, { color: LEVEL_COLORS[c.level as PlayerLevel] }]}>
