@@ -82,7 +82,7 @@ export default function App() {
         <>
           <View style={styles.screens}>
             {tab === 'home' && (
-              <HomeScreen appointments={myAppointments} setTab={setTab} />
+              <HomeScreen appointments={myAppointments} profile={profile} setTab={setTab} />
             )}
             {tab === 'termine' && (
               <TermineScreen appointments={myAppointments} cancelAppointment={cancelAppointment} activeTokens={activeTokens} setTab={setTab} />

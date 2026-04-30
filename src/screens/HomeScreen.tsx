@@ -6,17 +6,17 @@ import { GlassCard } from '../components/GlassCard';
 import { Btn } from '../components/Btn';
 import { Appointment, Tab } from '../types';
 import { todayStr, fmtDate } from '../constants/i18n';
-import { useProfile } from '../hooks/useProfile';
+import { Profile } from '../hooks/useProfile';
 import { PROGRAMS } from '../constants/programs';
 
 interface Props {
   appointments: Appointment[];
+  profile: Profile | null;
   setTab: (t: Tab) => void;
 }
 
-export function HomeScreen({ appointments, setTab }: Props) {
+export function HomeScreen({ appointments, profile, setTab }: Props) {
   const insets = useSafeAreaInsets();
-  const { profile } = useProfile();
   const firstName = profile?.full_name?.split(' ')[0] ?? '';
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(16)).current;
