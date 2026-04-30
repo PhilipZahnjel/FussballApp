@@ -40,8 +40,9 @@ export function useProfile() {
     });
 
     // Realtime: reload profile when admin changes permissions
+    // Unique name per mount to avoid StrictMode double-invoke conflict
     const channel = supabase
-      .channel('profile-changes')
+      .channel(`profile-changes-${Date.now()}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
         if (currentUserId && payload.new.id === currentUserId) {
           supabase.auth.getUser().then(({ data: { user } }) => {
