@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { PlayerLevel, BookingPermissions } from '../../types';
+import { PlayerLevel, PlayerType, BookingPermissions } from '../../types';
 
 export type CustomerProfile = {
   id: string;
@@ -9,6 +9,9 @@ export type CustomerProfile = {
   phone: string;
   birth_date: string | null;
   address: string | null;
+  parent_name: string | null;
+  location: string | null;
+  player_type: PlayerType | null;
   customer_number: number;
   is_active: boolean;
   role: string;
@@ -22,6 +25,9 @@ export type AdminAppointment = {
   time: string;
   status: 'confirmed' | 'cancelled';
   program: string;
+  trainer_id?: string | null;
+  session_level?: string | null;
+  session_birth_year?: number | null;
 };
 
 export function useAdminData() {
@@ -88,6 +94,8 @@ export function useAdminData() {
     phone: string;
     birth_date: string;
     address: string;
+    parent_name: string;
+    player_type: PlayerType | null;
   }): Promise<{ error: string | null; tempPassword?: string; customerNumber?: number }> => {
     try {
       const { data, error } = await supabase.functions.invoke('create-customer', { body: params });
@@ -125,11 +133,17 @@ export function useAdminData() {
     return { error };
   };
 
+  const saveCustomerProfile = async (customerId: string, fields: Partial<Pick<CustomerProfile, 'player_type' | 'parent_name' | 'location' | 'birth_date' | 'phone' | 'address'>>) => {
+    const { error } = await supabase.from('profiles').update(fields).eq('id', customerId);
+    if (!error) setCustomers(prev => prev.map(c => c.id === customerId ? { ...c, ...fields } : c));
+    return { error };
+  };
+
   return {
     customers, allAppointments, loading, loadError,
     cancelAppointment, addAppointmentForCustomer,
     createCustomer, deleteCustomer,
-    saveCustomerLevel, saveBookingPermissions,
+    saveCustomerLevel, saveBookingPermissions, saveCustomerProfile,
     reload: load,
   };
 }

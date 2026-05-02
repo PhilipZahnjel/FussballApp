@@ -6,6 +6,7 @@ import { DashboardScreen } from './screens/DashboardScreen';
 import { KundenScreen } from './screens/KundenScreen';
 import { KundenDetailScreen } from './screens/KundenDetailScreen';
 import { TerminkalenderScreen } from './screens/TerminkalenderScreen';
+import { NotificationsScreen } from './screens/NotificationsScreen';
 
 interface Props {
   onLogout: () => void;
@@ -15,12 +16,14 @@ const NAV: { id: AdminTab; label: string; icon: string }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: '📊' },
   { id: 'kunden', label: 'Spieler', icon: '👥' },
   { id: 'kalender', label: 'Terminkalender', icon: '📅' },
+  { id: 'infos', label: 'Infos', icon: '📢' },
 ];
 
 const TAB_LABELS: Record<AdminTab, string> = {
   dashboard: 'Dashboard',
   kunden: 'Spieler',
   kalender: 'Terminkalender',
+  infos: 'Infos',
 };
 
 export function AdminApp({ onLogout }: Props) {
@@ -34,7 +37,7 @@ export function AdminApp({ onLogout }: Props) {
     customers, allAppointments, loading, loadError,
     cancelAppointment, addAppointmentForCustomer,
     createCustomer, deleteCustomer,
-    saveCustomerLevel, saveBookingPermissions,
+    saveCustomerLevel, saveBookingPermissions, saveCustomerProfile,
   } = useAdminData();
 
   const selectedCustomer = selectedCustomerId
@@ -89,6 +92,7 @@ export function AdminApp({ onLogout }: Props) {
           customers={customers}
           allAppointments={allAppointments}
           loading={loading}
+          onNavigate={navigate}
         />
       )}
       {tab === 'kunden' && !selectedCustomer && (
@@ -109,6 +113,7 @@ export function AdminApp({ onLogout }: Props) {
           onAddAppointment={addAppointmentForCustomer}
           onSaveLevel={saveCustomerLevel}
           onSaveBookingPermissions={saveBookingPermissions}
+          onSaveProfile={saveCustomerProfile}
           onDeleteCustomer={async (id) => {
             const { error } = await deleteCustomer(id);
             if (!error) setSelectedCustomerId(null);
@@ -124,6 +129,9 @@ export function AdminApp({ onLogout }: Props) {
           onCancelAppointment={cancelAppointment}
           onAddAppointment={addAppointmentForCustomer}
         />
+      )}
+      {tab === 'infos' && (
+        <NotificationsScreen />
       )}
     </>
   );
@@ -181,10 +189,10 @@ const styles = StyleSheet.create({
   logoSub: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.4)', marginTop: 2, letterSpacing: 1.5, textTransform: 'uppercase' },
   nav: { flex: 1, paddingTop: 12 },
   navItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingVertical: 13, marginHorizontal: 8, borderRadius: 10, marginBottom: 2 },
-  navItemActive: { backgroundColor: 'rgba(255,255,255,0.1)' },
+  navItemActive: { backgroundColor: 'rgba(74,127,212,0.2)' },
   navIcon: { fontSize: 17 },
   navLabel: { fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.5)' },
-  navLabelActive: { color: '#fff' },
+  navLabelActive: { color: '#90BFF5' },
   logoutBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 20, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.07)' },
   logoutIcon: { fontSize: 16, color: 'rgba(255,255,255,0.4)' },
   logoutText: { fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.4)' },

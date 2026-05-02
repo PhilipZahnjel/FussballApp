@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
       return json({ error: 'Nur Admins dürfen Kunden anlegen' }, 403);
     }
 
-    const { email, full_name, phone, birth_date, address } = await req.json();
+    const { email, full_name, phone, birth_date, address, parent_name, player_type } = await req.json();
     if (!email?.trim() || !full_name?.trim()) {
       return json({ error: 'E-Mail und Name sind Pflichtfelder' }, 400);
     }
@@ -78,6 +78,8 @@ Deno.serve(async (req) => {
         phone: phone?.trim() || null,
         birth_date: birth_date?.trim() || null,
         address: address?.trim() || null,
+        parent_name: parent_name?.trim() || null,
+        player_type: player_type || null,
         role: 'customer',
         is_active: true,
       })

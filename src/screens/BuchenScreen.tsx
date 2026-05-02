@@ -59,6 +59,9 @@ function SectionTitle({ t, sub }: { t: string; sub?: string }) {
   );
 }
 
+const TORWART_PROGRAMS = new Set(['torhueter_individual', 'torhueter_gruppe']);
+const FELD_PROGRAMS = new Set(['individual', 'gruppe', 'athletik']);
+
 function isProgramAllowed(profile: Profile, programId: string): boolean {
   const map: Record<string, keyof Profile> = {
     individual: 'can_book_individual',
@@ -68,7 +71,10 @@ function isProgramAllowed(profile: Profile, programId: string): boolean {
     torhueter_gruppe: 'can_book_torhueter_gruppe',
   };
   const key = map[programId];
-  return key ? !!profile[key] : false;
+  if (!key || !profile[key]) return false;
+  if (profile.player_type === 'torwart' && !TORWART_PROGRAMS.has(programId)) return false;
+  if (profile.player_type === 'feldspieler' && !FELD_PROGRAMS.has(programId)) return false;
+  return true;
 }
 
 export function BuchenScreen({ appointments, myAppointments, profile, activeTokens, addAppointment, setTab }: Props) {
@@ -108,7 +114,7 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
 
     return (
       <FadeUp>
-        <SectionTitle t="Training buchen" sub="Wähle deine Trainingseinheit" />
+        <SectionTitle t="Nachholtermin buchen" sub="Wähle deine Trainingseinheit" />
 
         {activeTokens.length > 0 && (
           <View style={styles.tokenBanner}>
@@ -376,7 +382,7 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
     >
       {step !== 'done' && (
         <>
-          <Text style={styles.bookingLabel}>Training buchen</Text>
+          <Text style={styles.bookingLabel}>Nachholtermin buchen</Text>
           <View style={styles.progress}>
             {STEPS.map((s, i) => (
               <View key={s} style={[styles.progressBar, { backgroundColor: i <= stepIdx ? C.accentLight : 'rgba(255,255,255,0.2)' }]} />

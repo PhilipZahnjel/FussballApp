@@ -15,14 +15,16 @@ import { HomeScreen } from './src/screens/HomeScreen';
 import { TermineScreen } from './src/screens/TermineScreen';
 import { BuchenScreen } from './src/screens/BuchenScreen';
 import { ProfilScreen } from './src/screens/ProfilScreen';
+import { InfosScreen } from './src/screens/InfosScreen';
 import { BottomNav } from './src/components/BottomNav';
 import { AdminApp } from './src/admin/AdminApp';
+import { TrainerApp } from './src/trainer/TrainerApp';
 
 const isWeb = Platform.OS === 'web';
 
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(false);
-  const [role, setRole] = useState<'admin' | 'customer' | null>(null);
+  const [role, setRole] = useState<'admin' | 'customer' | 'trainer' | null>(null);
   const [tab, setTab] = useState<Tab>('home');
   const { profile } = useProfile();
   const { appointments, myAppointments, activeTokens, addAppointment, cancelAppointment } = useAppointments(profile);
@@ -42,22 +44,29 @@ export default function App() {
 
   const fetchRole = async (userId: string) => {
     const { data } = await supabase.from('profiles').select('role').eq('id', userId).single();
-    setRole((data?.role as 'admin' | 'customer') ?? 'customer');
+    setRole((data?.role as 'admin' | 'customer' | 'trainer') ?? 'customer');
   };
-
-  const doLogin = useCallback(() => {}, []);
 
   const doLogout = useCallback(async () => {
     await supabase.auth.signOut();
     setTab('home');
   }, []);
 
-  // Admin: Vollbild ohne Mobile-Container
   if (loggedIn && role === 'admin') {
     return (
       <SafeAreaProvider>
         <View style={styles.adminRoot}>
           <AdminApp onLogout={doLogout} />
+        </View>
+      </SafeAreaProvider>
+    );
+  }
+
+  if (loggedIn && role === 'trainer') {
+    return (
+      <SafeAreaProvider>
+        <View style={styles.adminRoot}>
+          <TrainerApp onLogout={doLogout} />
         </View>
       </SafeAreaProvider>
     );
@@ -73,7 +82,7 @@ export default function App() {
       <StatusBar style="light" />
 
       {!loggedIn ? (
-        <LoginScreen onLogin={doLogin} />
+        <LoginScreen onLogin={() => {}} />
       ) : role === null ? (
         <View style={styles.loadingWrap}>
           <ActivityIndicator size="large" color="#fff" />
@@ -82,16 +91,37 @@ export default function App() {
         <>
           <View style={styles.screens}>
             {tab === 'home' && (
-              <HomeScreen appointments={myAppointments} profile={profile} setTab={setTab} />
+              <HomeScreen
+                appointments={myAppointments}
+                profile={profile}
+                activeTokens={activeTokens}
+                setTab={setTab}
+              />
             )}
             {tab === 'termine' && (
-              <TermineScreen appointments={myAppointments} cancelAppointment={cancelAppointment} activeTokens={activeTokens} setTab={setTab} />
+              <TermineScreen
+                appointments={myAppointments}
+                cancelAppointment={cancelAppointment}
+                activeTokens={activeTokens}
+                setTab={setTab}
+              />
             )}
             {tab === 'buchen' && (
-              <BuchenScreen key="buchen" appointments={appointments} myAppointments={myAppointments} activeTokens={activeTokens} profile={profile} addAppointment={(d, t, p) => addAppointment(d, t, p)} setTab={setTab} />
+              <BuchenScreen
+                key="buchen"
+                appointments={appointments}
+                myAppointments={myAppointments}
+                activeTokens={activeTokens}
+                profile={profile}
+                addAppointment={(d, t, p) => addAppointment(d, t, p)}
+                setTab={setTab}
+              />
+            )}
+            {tab === 'infos' && (
+              <InfosScreen />
             )}
             {tab === 'profil' && (
-              <ProfilScreen onLogout={doLogout} />
+              <ProfilScreen onLogout={doLogout} activeTokens={activeTokens} />
             )}
           </View>
           <BottomNav tab={tab} setTab={setTab} />

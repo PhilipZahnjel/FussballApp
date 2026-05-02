@@ -19,7 +19,7 @@ function HomeIcon({ active }: { active: boolean }) {
   );
 }
 
-function TermineIcon({ active }: { active: boolean }) {
+function ListIcon({ active }: { active: boolean }) {
   const c = active ? C.accentLight : 'rgba(255,255,255,0.4)';
   return (
     <View style={styles.icon}>
@@ -30,6 +30,26 @@ function TermineIcon({ active }: { active: boolean }) {
   );
 }
 
+function PlusIcon({ active }: { active: boolean }) {
+  const c = active ? C.accentLight : 'rgba(255,255,255,0.4)';
+  return (
+    <View style={[styles.icon, { alignItems: 'center', justifyContent: 'center' }]}>
+      <View style={[styles.plusH, { backgroundColor: c }]} />
+      <View style={[styles.plusV, { backgroundColor: c }]} />
+    </View>
+  );
+}
+
+function InfoIcon({ active }: { active: boolean }) {
+  const c = active ? C.accentLight : 'rgba(255,255,255,0.4)';
+  return (
+    <View style={[styles.icon, { alignItems: 'center', justifyContent: 'center' }]}>
+      <View style={[styles.infoCircle, { borderColor: c }]}>
+        <Text style={[styles.infoI, { color: c }]}>i</Text>
+      </View>
+    </View>
+  );
+}
 
 function ProfilIcon({ active }: { active: boolean }) {
   const c = active ? C.accentLight : 'rgba(255,255,255,0.4)';
@@ -41,47 +61,31 @@ function ProfilIcon({ active }: { active: boolean }) {
   );
 }
 
-const MAIN_ITEMS: { id: Tab; label: string }[] = [
+const TABS: { id: Tab; label: string }[] = [
   { id: 'home', label: 'Home' },
   { id: 'termine', label: 'Termine' },
+  { id: 'buchen', label: 'Nachholtermin' },
+  { id: 'infos', label: 'Infos' },
   { id: 'profil', label: 'Profil' },
 ];
 
 export function BottomNav({ tab, setTab }: Props) {
   const insets = useSafeAreaInsets();
   const pb = Math.max(insets.bottom, 16);
-  const navStyle = [styles.nav, { paddingBottom: pb }];
-
-  if (tab === 'buchen') {
-    return (
-      <View style={navStyle}>
-        <TouchableOpacity style={styles.item} onPress={() => setTab('home')}>
-          <Text style={styles.backArrow}>←</Text>
-          <Text style={styles.itemLabelInactive}>Abbrechen</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.item} onPress={() => setTab('home')}>
-          <HomeIcon active={false} />
-          <Text style={styles.itemLabelInactive}>Home</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.item} onPress={() => setTab('profil')}>
-          <ProfilIcon active={false} />
-          <Text style={styles.itemLabelInactive}>Profil</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
 
   return (
-    <View style={navStyle}>
-      {MAIN_ITEMS.map(({ id, label }) => {
+    <View style={[styles.nav, { paddingBottom: pb }]}>
+      {TABS.map(({ id, label }) => {
         const active = tab === id;
         const labelStyle = active ? styles.itemLabelActive : styles.itemLabelInactive;
         return (
-          <TouchableOpacity key={id} style={styles.item} onPress={() => setTab(id)}>
+          <TouchableOpacity key={id} style={styles.item} onPress={() => setTab(id)} activeOpacity={0.7}>
             {id === 'home' && <HomeIcon active={active} />}
-            {id === 'termine' && <TermineIcon active={active} />}
+            {id === 'termine' && <ListIcon active={active} />}
+            {id === 'buchen' && <PlusIcon active={active} />}
+            {id === 'infos' && <InfoIcon active={active} />}
             {id === 'profil' && <ProfilIcon active={active} />}
-            <Text style={labelStyle}>{label}</Text>
+            <Text style={labelStyle} numberOfLines={1}>{label}</Text>
           </TouchableOpacity>
         );
       })}
@@ -103,9 +107,12 @@ const styles = StyleSheet.create({
   line: { height: 2, borderRadius: 1 },
   houseRoof: { width: 0, height: 0, borderLeftWidth: 9, borderRightWidth: 9, borderBottomWidth: 8, borderLeftColor: 'transparent', borderRightColor: 'transparent', marginBottom: 1 },
   houseBody: { width: 13, height: 9, borderWidth: 1.8, borderRadius: 1 },
+  plusH: { position: 'absolute', width: 18, height: 2.5, borderRadius: 1.5 },
+  plusV: { position: 'absolute', width: 2.5, height: 18, borderRadius: 1.5 },
+  infoCircle: { width: 18, height: 18, borderRadius: 9, borderWidth: 1.8, alignItems: 'center', justifyContent: 'center' },
+  infoI: { fontSize: 11, fontWeight: '800', lineHeight: 14 },
   head: { width: 9, height: 9, borderRadius: 4.5, borderWidth: 1.8, marginBottom: 2 },
   shoulders: { width: 16, height: 7, borderWidth: 1.8, borderTopLeftRadius: 8, borderTopRightRadius: 8, borderBottomWidth: 0 },
-  backArrow: { fontSize: 20, color: 'rgba(255,255,255,0.5)', lineHeight: 24 },
-  itemLabelActive: { fontSize: 10, fontWeight: '700', color: C.accentLight, letterSpacing: 0.05 },
-  itemLabelInactive: { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.4)', letterSpacing: 0.05 },
+  itemLabelActive: { fontSize: 9, fontWeight: '700', color: C.accentLight, letterSpacing: 0.05 },
+  itemLabelInactive: { fontSize: 9, fontWeight: '700', color: 'rgba(255,255,255,0.4)', letterSpacing: 0.05 },
 });

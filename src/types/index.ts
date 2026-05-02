@@ -7,25 +7,29 @@ export type Appointment = {
   status: AppointmentStatus;
   program: string;
   user_id?: string;
+  trainer_id?: string | null;
+  session_level?: string | null;
+  session_birth_year?: number | null;
 };
 
-export type Tab = 'home' | 'termine' | 'buchen' | 'profil';
-export type AdminTab = 'dashboard' | 'kunden' | 'kalender';
+export type Tab = 'home' | 'termine' | 'buchen' | 'infos' | 'profil';
+export type AdminTab = 'dashboard' | 'kunden' | 'kalender' | 'infos';
 
-export type PlayerLevel = 'anfaenger' | 'amateur' | 'profi' | 'experte';
+export type PlayerLevel = 'gruen' | 'gelb' | 'orange' | 'rot';
+export type PlayerType = 'torwart' | 'feldspieler';
 
 export const LEVEL_COLORS: Record<PlayerLevel, string> = {
-  anfaenger: '#4CAF50',
-  amateur:   '#FFC107',
-  profi:     '#FF9800',
-  experte:   '#F44336',
+  gruen:  '#4CAF50',
+  gelb:   '#FFC107',
+  orange: '#FF9800',
+  rot:    '#F44336',
 };
 
 export const LEVEL_LABELS: Record<PlayerLevel, string> = {
-  anfaenger: 'Anfänger',
-  amateur:   'Amateur',
-  profi:     'Profi',
-  experte:   'Experte',
+  gruen:  'Grün',
+  gelb:   'Gelb',
+  orange: 'Orange',
+  rot:    'Rot',
 };
 
 export type ProgramCategory = 'individual' | 'gruppe';
@@ -48,4 +52,13 @@ export type BookingPermissions = {
   can_book_torhueter_gruppe: boolean;
   quota_individual: number;
   quota_gruppe: number;
+};
+
+export type AppNotification = {
+  id: string;
+  title: string;
+  body: string;
+  location: string | null;
+  created_at: string;
+  is_global: boolean;
 };

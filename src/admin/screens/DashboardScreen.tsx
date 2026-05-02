@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { CustomerProfile, AdminAppointment } from '../hooks/useAdminData';
 import { PROGRAMS } from '../../constants/programs';
+import { AdminTab } from '../../types';
 
 const PROGRAM_COLORS: Record<string, string> = {
   individual: '#4A8FE8', gruppe: '#3DBFA0', athletik: '#F5A84A',
@@ -28,19 +29,21 @@ interface Props {
   customers: CustomerProfile[];
   allAppointments: AdminAppointment[];
   loading: boolean;
+  onNavigate: (tab: AdminTab) => void;
 }
 
-function StatCard({ label, value, color }: { label: string; value: string | number; color?: string }) {
+function StatCard({ label, value, color, onPress }: { label: string; value: string | number; color?: string; onPress?: () => void }) {
   return (
-    <View style={styles.statCard}>
+    <TouchableOpacity style={styles.statCard} onPress={onPress} activeOpacity={onPress ? 0.75 : 1}>
       <Text style={[styles.statValue, color ? { color } : {}]}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
-    </View>
+      {onPress && <Text style={styles.statArrow}>›</Text>}
+    </TouchableOpacity>
   );
 }
 
-export function DashboardScreen({ customers, allAppointments, loading }: Props) {
-  if (loading) return <ActivityIndicator style={{ flex: 1 }} color="#5A8C6A" />;
+export function DashboardScreen({ customers, allAppointments, loading, onNavigate }: Props) {
+  if (loading) return <ActivityIndicator style={{ flex: 1 }} color="#4A7FD4" />;
 
   const ts = todayStr();
   const we = weekEnd();
@@ -58,9 +61,24 @@ export function DashboardScreen({ customers, allAppointments, loading }: Props) 
       <Text style={styles.title}>Dashboard</Text>
 
       <View style={styles.statsRow}>
-        <StatCard label="Aktive Spieler" value={activeCustomers.length} color="#5A8C6A" />
-        <StatCard label="Heute" value={todayAppts.length} color="#4A8FE8" />
-        <StatCard label="Diese Woche" value={weekAppts.length} color="#F5A84A" />
+        <StatCard
+          label="Aktive Spieler"
+          value={activeCustomers.length}
+          color="#4A7FD4"
+          onPress={() => onNavigate('kunden')}
+        />
+        <StatCard
+          label="Heute"
+          value={todayAppts.length}
+          color="#3DBFA0"
+          onPress={() => onNavigate('kalender')}
+        />
+        <StatCard
+          label="Diese Woche"
+          value={weekAppts.length}
+          color="#F5A84A"
+          onPress={() => onNavigate('kalender')}
+        />
       </View>
 
       <Text style={styles.sectionTitle}>Nächste Termine</Text>
@@ -70,7 +88,7 @@ export function DashboardScreen({ customers, allAppointments, loading }: Props) 
         upcoming.map(a => {
           const customer = customers.find(c => c.id === a.user_id);
           const prog = PROGRAMS.find(p => p.id === a.program);
-          const color = PROGRAM_COLORS[a.program] ?? '#5A8C6A';
+          const color = PROGRAM_COLORS[a.program] ?? '#4A7FD4';
           return (
             <View key={a.id} style={styles.apptRow}>
               <View style={[styles.colorDot, { backgroundColor: color }]} />
@@ -96,11 +114,12 @@ const styles = StyleSheet.create({
     flex: 1, minWidth: 120, backgroundColor: '#fff', borderRadius: 14,
     padding: 20, shadowColor: '#000', shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 2 }, shadowRadius: 8, elevation: 2,
+    position: 'relative',
   },
   statValue: { fontSize: 32, fontWeight: '800', color: '#111827', marginBottom: 4 },
   statLabel: { fontSize: 13, color: '#6B7280', fontWeight: '500' },
+  statArrow: { position: 'absolute', right: 14, top: 14, fontSize: 20, color: '#D1D5DB' },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 12 },
-  // Termine
   empty: { color: '#9CA3AF', fontSize: 14, paddingVertical: 20, textAlign: 'center' },
   apptRow: {
     flexDirection: 'row', alignItems: 'center', gap: 14,

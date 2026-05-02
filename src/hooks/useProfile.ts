@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { PlayerLevel, BookingPermissions } from '../types';
+import { PlayerLevel, PlayerType, BookingPermissions } from '../types';
 
 export type Profile = {
   full_name: string;
@@ -10,7 +10,10 @@ export type Profile = {
   email: string | null;
   birth_date: string | null;
   address: string | null;
-  role: 'admin' | 'customer';
+  parent_name: string | null;
+  location: string | null;
+  player_type: PlayerType | null;
+  role: 'admin' | 'customer' | 'trainer';
   level: PlayerLevel | null;
 } & BookingPermissions;
 
@@ -21,14 +24,12 @@ export function useProfile() {
   useEffect(() => {
     let currentUserId: string | null = null;
 
-    // Initial load
     load().then(() => {
       supabase.auth.getUser().then(({ data: { user } }) => {
         currentUserId = user?.id ?? null;
       });
     });
 
-    // Reload whenever auth state changes (login / logout)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       currentUserId = session?.user?.id ?? null;
       if (session?.user) {
@@ -39,8 +40,6 @@ export function useProfile() {
       }
     });
 
-    // Realtime: reload profile when admin changes permissions
-    // Unique name per mount to avoid StrictMode double-invoke conflict
     const channel = supabase
       .channel(`profile-changes-${Date.now()}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {

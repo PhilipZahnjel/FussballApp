@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Switch,
 } from 'react-native';
 import { CustomerProfile, AdminAppointment } from '../hooks/useAdminData';
-import { PlayerLevel, LEVEL_COLORS, LEVEL_LABELS, BookingPermissions } from '../../types';
+import { PlayerLevel, PlayerType, LEVEL_COLORS, LEVEL_LABELS, BookingPermissions } from '../../types';
 import { PROGRAMS } from '../../constants/programs';
 import { SLOTS_MORNING, SLOTS_EVENING } from '../../constants/slots';
 import { todayStr, fmtDate } from '../../constants/i18n';
@@ -13,7 +13,7 @@ const PROGRAM_COLORS: Record<string, string> = {
   torhueter_individual: '#E87676', torhueter_gruppe: '#9B59B6',
 };
 
-const LEVELS: PlayerLevel[] = ['anfaenger', 'amateur', 'profi', 'experte'];
+const LEVELS: PlayerLevel[] = ['gruen', 'gelb', 'orange', 'rot'];
 
 const PERMISSION_FLAGS: { key: keyof BookingPermissions; label: string }[] = [
   { key: 'can_book_individual', label: 'Individualtraining' },
@@ -21,6 +21,11 @@ const PERMISSION_FLAGS: { key: keyof BookingPermissions; label: string }[] = [
   { key: 'can_book_athletik', label: 'Athletiktraining' },
   { key: 'can_book_torhueter_individual', label: 'Torwart Individual' },
   { key: 'can_book_torhueter_gruppe', label: 'Torwart Gruppe' },
+];
+
+const PLAYER_TYPE_OPTIONS: { id: PlayerType; label: string; icon: string }[] = [
+  { id: 'feldspieler', label: 'Feldspieler', icon: '⚽' },
+  { id: 'torwart', label: 'Torwart', icon: '🧤' },
 ];
 
 interface Props {
@@ -31,6 +36,7 @@ interface Props {
   onAddAppointment: (userId: string, date: string, time: string, program: string) => Promise<{ error: any }>;
   onSaveLevel: (customerId: string, level: PlayerLevel | null) => Promise<{ error: any }>;
   onSaveBookingPermissions: (customerId: string, permissions: Partial<BookingPermissions>) => Promise<{ error: any }>;
+  onSaveProfile: (customerId: string, fields: Partial<Pick<CustomerProfile, 'player_type' | 'parent_name' | 'location' | 'birth_date' | 'phone' | 'address'>>) => Promise<{ error: any }>;
   onDeleteCustomer: (id: string) => Promise<{ error: string | null }>;
 }
 
@@ -54,7 +60,7 @@ function SectionCard({ title, children }: { title: string; children: React.React
 
 function ApptRow({ appt, onCancel }: { appt: AdminAppointment; onCancel?: (id: string) => void }) {
   const prog = PROGRAMS.find(p => p.id === appt.program);
-  const color = PROGRAM_COLORS[appt.program] ?? '#5A8C6A';
+  const color = PROGRAM_COLORS[appt.program] ?? '#4A7FD4';
   const ts = todayStr();
   const isUpcoming = appt.status === 'confirmed' && appt.date >= ts;
   const dimmed = appt.status === 'cancelled' || appt.date < ts;
@@ -80,11 +86,11 @@ function ApptRow({ appt, onCancel }: { appt: AdminAppointment; onCancel?: (id: s
 export function KundenDetailScreen({
   customer, appointments,
   onBack, onCancelAppointment, onAddAppointment,
-  onSaveLevel, onSaveBookingPermissions, onDeleteCustomer,
+  onSaveLevel, onSaveBookingPermissions, onSaveProfile, onDeleteCustomer,
 }: Props) {
   const ts = todayStr();
 
-  const jahrgang = customer.birth_date ? parseInt(customer.birth_date.slice(0, 4)) : null;
+  const birthYear = customer.birth_date ? parseInt(customer.birth_date.slice(0, 4)) : null;
 
   // Termin buchen
   const [showBooking, setShowBooking] = useState(false);
@@ -103,6 +109,15 @@ export function KundenDetailScreen({
   const [permError, setPermError] = useState<string | null>(null);
   const [quotaIndividual, setQuotaIndividual] = useState(String(customer.quota_individual ?? 0));
   const [quotaGruppe, setQuotaGruppe] = useState(String(customer.quota_gruppe ?? 0));
+
+  // Profil-Bearbeitung
+  const [editProfile, setEditProfile] = useState(false);
+  const [editPlayerType, setEditPlayerType] = useState<PlayerType | null>(customer.player_type);
+  const [editParentName, setEditParentName] = useState(customer.parent_name ?? '');
+  const [editLocation, setEditLocation] = useState(customer.location ?? '');
+  const [editBirthDate, setEditBirthDate] = useState(customer.birth_date ?? '');
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   // Löschen
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -156,6 +171,20 @@ export function KundenDetailScreen({
     if (error) setPermError(error.message ?? 'Fehler beim Speichern.');
   };
 
+  const doSaveProfile = async () => {
+    setProfileLoading(true);
+    setProfileError(null);
+    const { error } = await onSaveProfile(customer.id, {
+      player_type: editPlayerType,
+      parent_name: editParentName.trim() || null,
+      location: editLocation.trim() || null,
+      birth_date: editBirthDate.trim() || null,
+    });
+    setProfileLoading(false);
+    if (error) setProfileError((error as any).message ?? 'Fehler beim Speichern.');
+    else setEditProfile(false);
+  };
+
   const doDelete = async () => {
     setDeleteLoading(true);
     setDeleteError(null);
@@ -173,13 +202,16 @@ export function KundenDetailScreen({
 
       <View style={styles.pageHeader}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {(customer.full_name ?? '?').split(' ').map(n => n[0] ?? '').join('').slice(0, 2).toUpperCase() || '?'}
+          <Text style={styles.avatarIconLarge}>
+            {customer.player_type === 'torwart' ? '🧤' : '⚽'}
           </Text>
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.customerName}>{customer.full_name}</Text>
-          <Text style={styles.customerSub}>Spieler #{customer.customer_number} · {customer.is_active ? 'Aktiv' : 'Inaktiv'}</Text>
+          <Text style={styles.customerSub}>
+            {customer.player_type === 'torwart' ? 'Torwart' : customer.player_type === 'feldspieler' ? 'Feldspieler' : 'Spieler'} #{customer.customer_number}
+            {birthYear ? ` · Jg. ${birthYear}` : ''}
+          </Text>
         </View>
         <TouchableOpacity
           style={styles.deleteHeaderBtn}
@@ -210,16 +242,57 @@ export function KundenDetailScreen({
 
       {/* Kontaktdaten */}
       <SectionCard title="Kontaktdaten">
-        <InfoRow label="E-Mail" value={customer.email} />
-        <InfoRow label="Telefon" value={customer.phone} />
-        <InfoRow label="Geburtsdatum" value={customer.birth_date} />
-        {jahrgang && <InfoRow label="Jahrgang" value={String(jahrgang)} />}
-        <InfoRow label="Adresse" value={customer.address} />
+        {editProfile ? (
+          <View style={styles.editSection}>
+            <Text style={styles.fieldLabel}>Spielertyp</Text>
+            <View style={styles.typeRow}>
+              {PLAYER_TYPE_OPTIONS.map(opt => (
+                <TouchableOpacity
+                  key={opt.id}
+                  style={[styles.typeChip, editPlayerType === opt.id && styles.typeChipActive]}
+                  onPress={() => setEditPlayerType(opt.id)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.typeChipIcon}>{opt.icon}</Text>
+                  <Text style={[styles.typeChipText, editPlayerType === opt.id && styles.typeChipTextActive]}>{opt.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={styles.fieldLabel}>Elternname</Text>
+            <TextInput style={styles.editInput} value={editParentName} onChangeText={setEditParentName} placeholder="Elternname" placeholderTextColor="#9CA3AF" />
+            <Text style={styles.fieldLabel}>Standort</Text>
+            <TextInput style={styles.editInput} value={editLocation} onChangeText={setEditLocation} placeholder="z.B. Hattersheim" placeholderTextColor="#9CA3AF" />
+            <Text style={styles.fieldLabel}>Geburtsdatum (YYYY-MM-DD)</Text>
+            <TextInput style={styles.editInput} value={editBirthDate} onChangeText={setEditBirthDate} placeholder="2010-05-15" placeholderTextColor="#9CA3AF" />
+            {profileError && <Text style={styles.fieldError}>{profileError}</Text>}
+            <View style={styles.editBtns}>
+              <TouchableOpacity style={[styles.saveBtn, { flex: 1 }, profileLoading && { opacity: 0.6 }]} onPress={doSaveProfile} disabled={profileLoading} activeOpacity={0.7}>
+                <Text style={styles.saveBtnText}>{profileLoading ? 'Speichern...' : 'Speichern'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.cancelEditBtn, { flex: 1 }]} onPress={() => setEditProfile(false)} activeOpacity={0.7}>
+                <Text style={styles.cancelEditText}>Abbrechen</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <>
+            <InfoRow label="E-Mail" value={customer.email} />
+            <InfoRow label="Telefon" value={customer.phone} />
+            {customer.parent_name && <InfoRow label="Elternname" value={customer.parent_name} />}
+            <InfoRow label="Geburtsdatum" value={customer.birth_date} />
+            {birthYear && <InfoRow label="Jahrgang" value={String(birthYear)} />}
+            {customer.location && <InfoRow label="Standort" value={customer.location} />}
+            <InfoRow label="Spielertyp" value={customer.player_type === 'torwart' ? '🧤 Torwart' : customer.player_type === 'feldspieler' ? '⚽ Feldspieler' : '—'} />
+            <TouchableOpacity style={styles.editProfileBtn} onPress={() => setEditProfile(true)} activeOpacity={0.7}>
+              <Text style={styles.editProfileBtnText}>Bearbeiten</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </SectionCard>
 
-      {/* Level */}
+      {/* Qualitätsstufe */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Level</Text>
+        <Text style={styles.cardTitle}>Qualitätsstufe</Text>
         <View style={styles.levelRow}>
           {LEVELS.map(level => {
             const isActive = customer.level === level;
@@ -239,29 +312,29 @@ export function KundenDetailScreen({
             );
           })}
         </View>
-        {!customer.level && <Text style={styles.noLevel}>Kein Level zugewiesen</Text>}
+        {!customer.level && <Text style={styles.noLevel}>Keine Qualitätsstufe zugewiesen</Text>}
         {levelError && <Text style={styles.fieldError}>{levelError}</Text>}
       </View>
 
-      {/* Buchungsberechtigungen */}
+      {/* Abo / Buchungsberechtigungen */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Buchungsberechtigungen</Text>
+        <Text style={styles.cardTitle}>Abo / Buchungsberechtigungen</Text>
         {PERMISSION_FLAGS.map(({ key, label }) => (
           <View key={key} style={styles.permRow}>
             <Text style={styles.permLabel}>{label}</Text>
             <Switch
               value={!!(customer as any)[key]}
               onValueChange={v => doTogglePermission(key, v)}
-              trackColor={{ false: '#E5E7EB', true: '#5A8C6A' }}
+              trackColor={{ false: '#E5E7EB', true: '#4A7FD4' }}
               thumbColor="#fff"
             />
           </View>
         ))}
 
-        <Text style={styles.quotaTitle}>Monatliches Kontingent</Text>
+        <Text style={styles.quotaTitle}>Monatliches Guthaben</Text>
         <View style={styles.quotaRow}>
           <View style={styles.quotaField}>
-            <Text style={styles.fieldLabel}>Individual (0–4)</Text>
+            <Text style={styles.fieldLabel}>LYMPH — Einzeltraining (0–4)</Text>
             <TextInput
               style={styles.quotaInput}
               value={quotaIndividual}
@@ -272,7 +345,7 @@ export function KundenDetailScreen({
             />
           </View>
           <View style={styles.quotaField}>
-            <Text style={styles.fieldLabel}>Gruppe (0–4)</Text>
+            <Text style={styles.fieldLabel}>EMS — Gruppentraining (0–4)</Text>
             <TextInput
               style={styles.quotaInput}
               value={quotaGruppe}
@@ -290,7 +363,7 @@ export function KundenDetailScreen({
           activeOpacity={0.7}
           disabled={permLoading}
         >
-          <Text style={styles.saveBtnText}>{permLoading ? 'Speichern...' : 'Kontingent speichern'}</Text>
+          <Text style={styles.saveBtnText}>{permLoading ? 'Speichern...' : 'Guthaben speichern'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -373,11 +446,11 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F4F6F9' },
   content: { padding: 32 },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 24 },
-  backArrow: { fontSize: 22, color: '#5A8C6A', fontWeight: '600' },
-  backLabel: { fontSize: 14, fontWeight: '600', color: '#5A8C6A' },
+  backArrow: { fontSize: 22, color: '#4A7FD4', fontWeight: '600' },
+  backLabel: { fontSize: 14, fontWeight: '600', color: '#4A7FD4' },
   pageHeader: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 28 },
-  avatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(90,140,106,0.12)', alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: 18, fontWeight: '800', color: '#5A8C6A' },
+  avatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(74,127,212,0.1)', alignItems: 'center', justifyContent: 'center' },
+  avatarIconLarge: { fontSize: 28 },
   customerName: { fontSize: 22, fontWeight: '800', color: '#111827' },
   customerSub: { fontSize: 14, color: '#6B7280', marginTop: 2 },
   card: { backgroundColor: '#fff', borderRadius: 14, padding: 20, marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 6, elevation: 2 },
@@ -386,12 +459,23 @@ const styles = StyleSheet.create({
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
   infoLabel: { fontSize: 13, color: '#6B7280' },
   infoValue: { fontSize: 13, fontWeight: '600', color: '#111827', textAlign: 'right', maxWidth: '60%' },
-  // Level
+  editSection: { paddingTop: 4 },
+  editBtns: { flexDirection: 'row', gap: 10, marginTop: 14 },
+  editInput: { backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: '#111827', marginBottom: 4, outlineWidth: 0 } as any,
+  editProfileBtn: { marginTop: 12, backgroundColor: 'rgba(74,127,212,0.08)', borderRadius: 8, paddingVertical: 9, paddingHorizontal: 16, alignSelf: 'flex-start', borderWidth: 1, borderColor: 'rgba(74,127,212,0.2)' },
+  editProfileBtnText: { fontSize: 13, fontWeight: '700', color: '#4A7FD4' },
+  cancelEditBtn: { borderRadius: 10, paddingVertical: 12, alignItems: 'center', backgroundColor: '#F3F4F6' },
+  cancelEditText: { fontSize: 14, fontWeight: '600', color: '#6B7280' },
+  typeRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
+  typeChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 10, borderWidth: 2, borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' },
+  typeChipActive: { borderColor: '#4A7FD4', backgroundColor: 'rgba(74,127,212,0.08)' },
+  typeChipIcon: { fontSize: 18 },
+  typeChipText: { fontSize: 13, fontWeight: '700', color: '#6B7280' },
+  typeChipTextActive: { color: '#4A7FD4' },
   levelRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 10 },
-  levelChip: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 10, borderWidth: 2 },
+  levelChip: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 10, borderWidth: 2 },
   levelChipText: { fontSize: 14, fontWeight: '700' },
   noLevel: { fontSize: 13, color: '#9CA3AF', fontStyle: 'italic', marginTop: 4 },
-  // Berechtigungen
   permRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
   permLabel: { fontSize: 14, color: '#374151', fontWeight: '500' },
   quotaTitle: { fontSize: 13, fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 16, marginBottom: 8 },
@@ -399,23 +483,22 @@ const styles = StyleSheet.create({
   quotaField: { flex: 1 },
   fieldLabel: { fontSize: 12, fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, marginTop: 4 },
   quotaInput: { backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 18, fontWeight: '700', color: '#111827', textAlign: 'center', outlineWidth: 0 } as any,
-  // Formular
   formSection: { backgroundColor: '#F9FAFB', borderRadius: 10, padding: 16, marginBottom: 16 },
   input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: '#111827', outlineWidth: 0 } as any,
-  saveBtn: { backgroundColor: '#5A8C6A', borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 16 },
+  saveBtn: { backgroundColor: '#4A7FD4', borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 16 },
   saveBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
-  addBtn: { backgroundColor: 'rgba(90,140,106,0.1)', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 7 },
-  addBtnText: { fontSize: 13, fontWeight: '700', color: '#5A8C6A' },
+  addBtn: { backgroundColor: 'rgba(74,127,212,0.1)', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 7 },
+  addBtnText: { fontSize: 13, fontWeight: '700', color: '#4A7FD4' },
   programRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
   programChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, borderWidth: 1.5, borderColor: '#E5E7EB', backgroundColor: '#fff' },
-  programChipActive: { borderColor: '#5A8C6A', backgroundColor: 'rgba(90,140,106,0.1)' },
+  programChipActive: { borderColor: '#4A7FD4', backgroundColor: 'rgba(74,127,212,0.1)' },
   programChipText: { fontSize: 13, color: '#6B7280', fontWeight: '600' },
-  programChipTextActive: { color: '#5A8C6A' },
+  programChipTextActive: { color: '#4A7FD4' },
   slotRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
   slotChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1.5, borderColor: '#E5E7EB', backgroundColor: '#fff' },
-  slotChipActive: { borderColor: '#5A8C6A', backgroundColor: 'rgba(90,140,106,0.1)' },
+  slotChipActive: { borderColor: '#4A7FD4', backgroundColor: 'rgba(74,127,212,0.1)' },
   slotChipText: { fontSize: 13, color: '#6B7280', fontWeight: '600' },
-  slotChipTextActive: { color: '#5A8C6A' },
+  slotChipTextActive: { color: '#4A7FD4' },
   slotChipDisabled: { borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', opacity: 0.5 },
   slotChipTextDisabled: { color: '#D1D5DB' },
   fieldError: { fontSize: 13, color: '#EF4444', fontWeight: '600', marginTop: 10 },
