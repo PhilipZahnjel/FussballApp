@@ -73,7 +73,12 @@ export function useAdminData() {
     return { error };
   };
 
-  const addAppointmentForCustomer = async (userId: string, date: string, time: string, program: string, trainerId?: string | null) => {
+  const addAppointmentForCustomer = async (
+    userId: string, date: string, time: string, program: string,
+    trainerId?: string | null,
+    sessionBirthYear?: number | null,
+    sessionLevel?: string | null,
+  ) => {
     const { data: conflicts } = await supabase
       .from('appointments')
       .select('id')
@@ -87,11 +92,13 @@ export function useAdminData() {
 
     const insertData: Record<string, any> = { user_id: userId, date, time, status: 'confirmed', program };
     if (trainerId) insertData.trainer_id = trainerId;
+    if (sessionBirthYear != null) insertData.session_birth_year = sessionBirthYear;
+    if (sessionLevel) insertData.session_level = sessionLevel;
 
     const { data, error } = await supabase
       .from('appointments')
       .insert(insertData)
-      .select('id, date, time, status, program, user_id, trainer_id')
+      .select('id, date, time, status, program, user_id, trainer_id, session_birth_year, session_level')
       .single();
 
     if (data && !error) {

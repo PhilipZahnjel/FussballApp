@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
 import { CustomerProfile, AdminAppointment, TrainerProfile } from '../hooks/useAdminData';
-import { PROGRAMS } from '../../constants/programs';
+import { PROGRAMS, PROGRAM_CATEGORY, ProgramId } from '../../constants/programs';
+import { PlayerLevel, LEVEL_COLORS, LEVEL_LABELS } from '../../types';
 import { SLOTS_MORNING, SLOTS_EVENING } from '../../constants/slots';
 import { isBookableDay } from '../../utils/bookingRules';
 
@@ -44,7 +45,7 @@ interface Props {
   loading: boolean;
   initialDay?: string;
   onCancelAppointment: (id: string) => Promise<{ error: any }>;
-  onAddAppointment: (userId: string, date: string, time: string, program: string, trainerId?: string | null) => Promise<{ error: any }>;
+  onAddAppointment: (userId: string, date: string, time: string, program: string, trainerId?: string | null, sessionBirthYear?: number | null, sessionLevel?: string | null) => Promise<{ error: any }>;
 }
 
 export function TerminkalenderScreen({ customers, allAppointments, trainers, loading, initialDay, onCancelAppointment, onAddAppointment }: Props) {
@@ -63,6 +64,8 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
   const [bookProgram, setBookProgram] = useState<string>(PROGRAMS[0].id);
   const [bookTime, setBookTime] = useState(SLOTS_MORNING[0]);
   const [bookTrainerId, setBookTrainerId] = useState<string | null>(null);
+  const [bookSessionBirthYear, setBookSessionBirthYear] = useState('');
+  const [bookSessionLevel, setBookSessionLevel] = useState<PlayerLevel | null>(null);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingSuccess, setBookingSuccess] = useState(false);
@@ -108,6 +111,8 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
     setBookProgram(PROGRAMS[0].id);
     setBookTime(presetTime ?? SLOTS_MORNING[0]);
     setBookTrainerId(null);
+    setBookSessionBirthYear('');
+    setBookSessionLevel(null);
     setBookingError(null);
     setBookingSuccess(false);
     setSelectedApptId(null);
@@ -130,7 +135,10 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
     setBookingLoading(true);
     setBookingError(null);
     setBookingSuccess(false);
-    const { error } = await onAddAppointment(bookCustomerId, bookingDay, bookTime, bookProgram, bookTrainerId);
+    const isGruppe = PROGRAM_CATEGORY[bookProgram as ProgramId] === 'gruppe';
+    const sBy = isGruppe && bookSessionBirthYear ? parseInt(bookSessionBirthYear) : null;
+    const sLvl = isGruppe ? bookSessionLevel : null;
+    const { error } = await onAddAppointment(bookCustomerId, bookingDay, bookTime, bookProgram, bookTrainerId, sBy, sLvl);
     setBookingLoading(false);
     if (error) {
       setBookingError(error.message ?? 'Buchung fehlgeschlagen.');
@@ -138,6 +146,8 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
       setBookingSuccess(true);
       setBookCustomerId(null);
       setBookCustomerSearch('');
+      setBookSessionBirthYear('');
+      setBookSessionLevel(null);
     }
   };
 
@@ -231,6 +241,36 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
                 activeOpacity={0.7}
               >
                 <Text style={[styles.chipText, bookTrainerId === t.id && styles.chipTextActive]}>{t.full_name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </>
+      )}
+
+      {PROGRAM_CATEGORY[bookProgram as ProgramId] === 'gruppe' && (
+        <>
+          <Text style={styles.fieldLabel}>Gruppen-Jahrgang (YYYY)</Text>
+          <TextInput
+            style={styles.input}
+            value={bookSessionBirthYear}
+            onChangeText={setBookSessionBirthYear}
+            placeholder="z.B. 2015"
+            keyboardType="number-pad"
+            maxLength={4}
+            placeholderTextColor="#9CA3AF"
+          />
+          <Text style={styles.fieldLabel}>Qualitätsstufe der Gruppe</Text>
+          <View style={styles.chipRow}>
+            {(['gruen', 'gelb', 'orange', 'rot'] as PlayerLevel[]).map(lvl => (
+              <TouchableOpacity
+                key={lvl}
+                style={[styles.chip, bookSessionLevel === lvl && { borderColor: LEVEL_COLORS[lvl], backgroundColor: LEVEL_COLORS[lvl] + '22' }]}
+                onPress={() => setBookSessionLevel(bookSessionLevel === lvl ? null : lvl)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.chipText, bookSessionLevel === lvl && { color: LEVEL_COLORS[lvl], fontWeight: '700' }]}>
+                  {LEVEL_LABELS[lvl]}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>

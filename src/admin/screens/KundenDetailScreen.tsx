@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { CustomerProfile, AdminAppointment, TrainerProfile } from '../hooks/useAdminData';
 import { PlayerLevel, PlayerType, LEVEL_COLORS, LEVEL_LABELS, BookingPermissions } from '../../types';
-import { PROGRAMS } from '../../constants/programs';
+import { PROGRAMS, PROGRAM_CATEGORY, ProgramId } from '../../constants/programs';
 import { SLOTS_MORNING, SLOTS_EVENING } from '../../constants/slots';
 import { todayStr, fmtDate } from '../../constants/i18n';
 
@@ -34,7 +34,7 @@ interface Props {
   trainers: TrainerProfile[];
   onBack: () => void;
   onCancelAppointment: (id: string) => Promise<{ error: any }>;
-  onAddAppointment: (userId: string, date: string, time: string, program: string, trainerId?: string | null) => Promise<{ error: any }>;
+  onAddAppointment: (userId: string, date: string, time: string, program: string, trainerId?: string | null, sessionBirthYear?: number | null, sessionLevel?: string | null) => Promise<{ error: any }>;
   onSaveLevel: (customerId: string, level: PlayerLevel | null) => Promise<{ error: any }>;
   onSaveBookingPermissions: (customerId: string, permissions: Partial<BookingPermissions>) => Promise<{ error: any }>;
   onSaveProfile: (customerId: string, fields: Partial<Pick<CustomerProfile, 'player_type' | 'parent_name' | 'location' | 'birth_date' | 'phone' | 'address'>>) => Promise<{ error: any }>;
@@ -99,6 +99,8 @@ export function KundenDetailScreen({
   const [bookProgram, setBookProgram] = useState<string>(PROGRAMS[0].id);
   const [bookTime, setBookTime] = useState(SLOTS_MORNING[0]);
   const [bookTrainerId, setBookTrainerId] = useState<string | null>(null);
+  const [bookSessionBirthYear, setBookSessionBirthYear] = useState('');
+  const [bookSessionLevel, setBookSessionLevel] = useState<PlayerLevel | null>(null);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
 
@@ -141,10 +143,13 @@ export function KundenDetailScreen({
     const confirmedOnDay = appointments.filter(a => a.date === bookDate && a.status === 'confirmed');
     if (confirmedOnDay.length > 0) { setBookingError('Bereits ein Termin an diesem Tag.'); return; }
     setBookingLoading(true);
-    const { error } = await onAddAppointment(customer.id, bookDate, bookTime, bookProgram, bookTrainerId);
+    const isGruppe = PROGRAM_CATEGORY[bookProgram as ProgramId] === 'gruppe';
+    const sBy = isGruppe && bookSessionBirthYear ? parseInt(bookSessionBirthYear) : null;
+    const sLvl = isGruppe ? bookSessionLevel : null;
+    const { error } = await onAddAppointment(customer.id, bookDate, bookTime, bookProgram, bookTrainerId, sBy, sLvl);
     setBookingLoading(false);
     if (error) setBookingError(error.message ?? 'Buchung fehlgeschlagen.');
-    else { setShowBooking(false); setBookDate(''); setBookingError(null); setBookTrainerId(null); }
+    else { setShowBooking(false); setBookDate(''); setBookingError(null); setBookTrainerId(null); setBookSessionBirthYear(''); setBookSessionLevel(null); }
   };
 
   const doSetLevel = async (level: PlayerLevel | null) => {
@@ -436,6 +441,36 @@ export function KundenDetailScreen({
                       activeOpacity={0.7}
                     >
                       <Text style={[styles.slotChipText, bookTrainerId === t.id && styles.slotChipTextActive]}>{t.full_name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
+
+            {PROGRAM_CATEGORY[bookProgram as ProgramId] === 'gruppe' && (
+              <>
+                <Text style={styles.fieldLabel}>Gruppen-Jahrgang (YYYY)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={bookSessionBirthYear}
+                  onChangeText={setBookSessionBirthYear}
+                  placeholder="z.B. 2015"
+                  keyboardType="number-pad"
+                  maxLength={4}
+                  placeholderTextColor="#9CA3AF"
+                />
+                <Text style={styles.fieldLabel}>Qualitätsstufe der Gruppe</Text>
+                <View style={styles.slotRow}>
+                  {(['gruen', 'gelb', 'orange', 'rot'] as PlayerLevel[]).map(lvl => (
+                    <TouchableOpacity
+                      key={lvl}
+                      style={[styles.slotChip, bookSessionLevel === lvl && { borderColor: LEVEL_COLORS[lvl], backgroundColor: LEVEL_COLORS[lvl] + '22' }]}
+                      onPress={() => setBookSessionLevel(bookSessionLevel === lvl ? null : lvl)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.slotChipText, bookSessionLevel === lvl && { color: LEVEL_COLORS[lvl], fontWeight: '700' }]}>
+                        {LEVEL_LABELS[lvl]}
+                      </Text>
                     </TouchableOpacity>
                   ))}
                 </View>

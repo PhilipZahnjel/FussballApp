@@ -1,4 +1,4 @@
-import { BookingPermissions, ProgramCategory } from '../types';
+import { BookingPermissions, ProgramCategory, PlayerLevel } from '../types';
 import { PROGRAM_CATEGORY, PROGRAM_CAPACITY, ProgramId } from '../constants/programs';
 import { Appointment } from '../types';
 
@@ -102,6 +102,70 @@ export function germanHolidays(year: number): Set<string> {
     `${year}-12-25`,
     `${year}-12-26`,
   ]);
+}
+
+const LEVEL_LABEL: Record<PlayerLevel, string> = {
+  gruen: 'Grün', gelb: 'Gelb', orange: 'Orange', rot: 'Rot',
+};
+
+/**
+ * Prüft ob ein Spieler in eine Gruppen-Session passt.
+ * sessionYear = Jahr des Termins (für Altersberechnung).
+ * Spieler unter 7 Jahren können jede Gruppe buchen.
+ * Ab 7 Jahren gelten die Qualitätsstufen-Jahrgangs-Regeln.
+ */
+export function checkGroupSessionCompatibility(
+  playerBirthYear: number,
+  playerLevel: PlayerLevel,
+  sessionBirthYear: number,
+  sessionLevel: PlayerLevel,
+  sessionYear: number,
+): { allowed: boolean; reason?: string } {
+  const playerAge = sessionYear - playerBirthYear;
+
+  // 0–6 Jahre: darf jede Alters-/Qualitätsgruppe buchen
+  if (playerAge < 7) return { allowed: true };
+
+  const pBY = playerBirthYear;
+  const sBY = sessionBirthYear;
+  const sL  = sessionLevel;
+
+  const ok = (levels: PlayerLevel[], years: number[]) =>
+    levels.includes(sL) && years.includes(sBY);
+
+  switch (playerLevel) {
+    case 'rot':
+      if (ok(['rot'],    [pBY - 1, pBY, pBY + 1])) return { allowed: true };
+      if (ok(['orange'], [pBY - 1, pBY]))           return { allowed: true };
+      if (ok(['gelb'],   [pBY - 2]))                return { allowed: true };
+      break;
+
+    case 'orange':
+      if (ok(['orange'], [pBY - 1, pBY, pBY + 1])) return { allowed: true };
+      if (ok(['rot'],    [pBY, pBY + 1]))            return { allowed: true };
+      if (ok(['gelb'],   [pBY - 1]))                 return { allowed: true };
+      if (ok(['gruen'],  [pBY - 2]))                 return { allowed: true };
+      break;
+
+    case 'gelb':
+      if (ok(['gelb'],  [pBY - 1, pBY, pBY + 1])) return { allowed: true };
+      if (ok(['rot'],   [pBY + 2]))                 return { allowed: true };
+      if (ok(['orange'],[pBY, pBY + 1]))            return { allowed: true };
+      if (ok(['gruen'], [pBY - 1, pBY]))            return { allowed: true };
+      break;
+
+    case 'gruen':
+      if (ok(['gruen'], [pBY - 1, pBY, pBY + 1])) return { allowed: true };
+      // rot: nie erlaubt
+      if (ok(['orange'],[pBY + 2]))                return { allowed: true };
+      if (ok(['gelb'],  [pBY, pBY + 1]))           return { allowed: true };
+      break;
+  }
+
+  return {
+    allowed: false,
+    reason: `Gruppe ${LEVEL_LABEL[sessionLevel]} Jg. ${sessionBirthYear} passt nicht zu deiner Stufe.`,
+  };
 }
 
 export function isBookableDay(dateStr: string): boolean {

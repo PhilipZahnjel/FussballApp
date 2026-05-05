@@ -13,7 +13,8 @@ import { todayStr, fmtDate, fmtShort, DE_MONTHS, DE_DAYS_SHORT } from '../consta
 import { SLOTS_MORNING, SLOTS_EVENING } from '../constants/slots';
 import { PROGRAMS, PROGRAM_CATEGORY, ProgramId } from '../constants/programs';
 import { Profile } from '../hooks/useProfile';
-import { germanHolidays } from '../utils/bookingRules';
+import { germanHolidays, checkGroupSessionCompatibility } from '../utils/bookingRules';
+import { PlayerLevel } from '../types';
 
 interface Props {
   appointments: Appointment[];
@@ -261,6 +262,10 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
     const now = new Date();
     const nowStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     const isToday = selDate === ts;
+    const isGroup = selProgram ? PROGRAM_CATEGORY[selProgram as ProgramId] === 'gruppe' : false;
+    const playerBirthYear = profile?.birth_date ? parseInt(profile.birth_date.slice(0, 4)) : null;
+    const playerLevel = profile?.level ?? null;
+    const sessionYear = selDate ? parseInt(selDate.slice(0, 4)) : new Date().getFullYear();
 
     const capacity = currentProgram?.capacity ?? 1;
     const SlotGroup = ({ label, slots }: { label: string; slots: string[] }) => (
@@ -268,10 +273,29 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
         <Text style={styles.slotGroupLabel}>{label}</Text>
         <View style={styles.slotGrid}>
           {slots.map(t => {
-            const booked = appointments.filter(a => a.date === selDate && a.time === t && a.program === selProgram && a.status === 'confirmed').length;
+            const slotAppts = appointments.filter(a => a.date === selDate && a.time === t && a.program === selProgram && a.status === 'confirmed');
+            const booked = slotAppts.length;
             const userBooked = myAppointments.some(a => a.date === selDate && a.time === t && a.status === 'confirmed');
             const isPast = isToday && t <= nowStr;
-            const full = booked >= capacity || userBooked || isPast;
+
+            // Gruppen-Kompatibilität prüfen
+            let groupBlocked = false;
+            let groupReason = '';
+            if (isGroup && !isPast && !userBooked && booked > 0 && playerBirthYear && playerLevel) {
+              const ref = slotAppts.find(a => a.session_birth_year != null && a.session_level);
+              if (ref?.session_birth_year && ref?.session_level) {
+                const check = checkGroupSessionCompatibility(
+                  playerBirthYear,
+                  playerLevel,
+                  ref.session_birth_year,
+                  ref.session_level as PlayerLevel,
+                  sessionYear,
+                );
+                if (!check.allowed) { groupBlocked = true; groupReason = check.reason ?? 'Falsche Gruppe'; }
+              }
+            }
+
+            const full = booked >= capacity || userBooked || isPast || groupBlocked;
             const sel = selTime === t;
             const free = capacity - booked;
             return (
@@ -284,7 +308,12 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
               >
                 <Text style={[styles.slotTime, full && styles.slotTimeDimmed]}>{t}</Text>
                 <Text style={[styles.slotSub, full && styles.slotSubDimmed, !full && free === 1 && { color: '#FFD580' }]}>
-                  {isPast ? 'Vergangen' : userBooked ? 'Bereits gebucht' : full ? 'Ausgebucht' : free === 1 ? '1 Platz frei' : `${free} Plätze frei`}
+                  {isPast ? 'Vergangen'
+                    : userBooked ? 'Bereits gebucht'
+                    : groupBlocked ? groupReason
+                    : booked >= capacity ? 'Ausgebucht'
+                    : free === 1 ? '1 Platz frei'
+                    : `${free} Plätze frei`}
                 </Text>
               </TouchableOpacity>
             );
