@@ -79,65 +79,31 @@ export function HomeScreen({ appointments, profile, activeTokens, setTab }: Prop
           <Text style={styles.headerTitle}>Guten Tag,{'\n'}{firstName}!</Text>
         </View>
 
-        {/* Nachholtermin-Status — immer sichtbar */}
-        <View style={styles.section}>
-          <GlassCard style={[styles.nachholCard, earliestToken && { borderColor: deadlineColor + '66', borderWidth: 1.5 }]}>
-            <Text style={styles.nachholHeader}>Nachholtermin-Status</Text>
-
-            {earliestToken && tokenDaysLeft !== null ? (
-              <>
-                <View style={styles.nachholRow}>
-                  <Text style={styles.nachholIcon}>
-                    {tokenDaysLeft <= 7 ? '🚨' : tokenDaysLeft <= 14 ? '⚠️' : '🎫'}
+        {/* Nachholtermin-Frist — nur wenn Token vorhanden */}
+        {earliestToken && tokenDaysLeft !== null && (
+          <View style={styles.section}>
+            <GlassCard style={[styles.nachholCard, { borderColor: deadlineColor + '66', borderWidth: 1.5 }]}>
+              <Text style={styles.nachholHeader}>Nachholtermin verfügbar</Text>
+              <View style={styles.nachholRow}>
+                <Text style={styles.nachholIcon}>
+                  {tokenDaysLeft <= 7 ? '🚨' : tokenDaysLeft <= 14 ? '⚠️' : '🎫'}
+                </Text>
+                <View style={styles.nachholInfo}>
+                  <Text style={[styles.nachholDays, { color: deadlineColor }]}>
+                    Noch {tokenDaysLeft} {tokenDaysLeft === 1 ? 'Tag' : 'Tage'}
                   </Text>
-                  <View style={styles.nachholInfo}>
-                    <Text style={[styles.nachholDays, { color: deadlineColor }]}>
-                      {activeTokens.length} Nachholtermin{activeTokens.length !== 1 ? 'e' : ''} verfügbar
-                    </Text>
-                    <Text style={styles.nachholSub}>
-                      Frist: noch {tokenDaysLeft} {tokenDaysLeft === 1 ? 'Tag' : 'Tage'} · verfällt {fmtDate(earliestToken.expires_at.slice(0, 10))}
-                    </Text>
-                  </View>
+                  <Text style={styles.nachholSub}>
+                    Gültig bis {fmtDate(earliestToken.expires_at.slice(0, 10))}
+                    {activeTokens.length > 1 ? ` · ${activeTokens.length} Termine offen` : ''}
+                  </Text>
                 </View>
-                <Text style={styles.nachholHint}>
-                  Jetzt buchen, bevor dein Nachholtermin verfällt!
-                </Text>
-              </>
-            ) : hasQuota ? (
-              <>
-                <View style={styles.nachholRow}>
-                  <Text style={styles.nachholIcon}>✅</Text>
-                  <View style={styles.nachholInfo}>
-                    <Text style={styles.nachholDays}>Kontingent verfügbar</Text>
-                    <Text style={styles.nachholSub}>
-                      {(profile?.quota_individual ?? 0) - usedIndividual > 0
-                        ? `${(profile?.quota_individual ?? 0) - usedIndividual}× Einzeltraining übrig`
-                        : `${(profile?.quota_gruppe ?? 0) - usedGruppe}× Gruppentraining übrig`}
-                    </Text>
-                  </View>
-                </View>
-                <Text style={styles.nachholHint}>
-                  Du kannst diesen Monat noch Termine buchen.
-                </Text>
-              </>
-            ) : (
-              <>
-                <View style={styles.nachholRow}>
-                  <Text style={styles.nachholIcon}>⏸️</Text>
-                  <View style={styles.nachholInfo}>
-                    <Text style={styles.nachholDays}>Kein Nachholtermin verfügbar</Text>
-                    <Text style={styles.nachholSub}>
-                      Dein Kontingent für diesen Monat ist aufgebraucht.
-                    </Text>
-                  </View>
-                </View>
-                <Text style={styles.nachholHint}>
-                  Bei Fragen wende dich an deinen Trainer.
-                </Text>
-              </>
-            )}
-          </GlassCard>
-        </View>
+              </View>
+              <Text style={styles.nachholHint}>
+                Dein Nachholtermin verfällt 1 Monat nach der Stornierung — jetzt buchen!
+              </Text>
+            </GlassCard>
+          </View>
+        )}
 
         {/* Nächster Termin */}
         <View style={styles.section}>
