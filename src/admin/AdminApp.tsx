@@ -34,19 +34,22 @@ export function AdminApp({ onLogout }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const {
-    customers, allAppointments, loading, loadError,
+    customers, allAppointments, trainers, loading, loadError,
     cancelAppointment, addAppointmentForCustomer,
     createCustomer, deleteCustomer,
     saveCustomerLevel, saveBookingPermissions, saveCustomerProfile,
   } = useAdminData();
 
+  const [calendarDay, setCalendarDay] = useState<string | undefined>(undefined);
+
   const selectedCustomer = selectedCustomerId
     ? customers.find(c => c.id === selectedCustomerId) ?? null
     : null;
 
-  const navigate = (t: AdminTab) => {
+  const navigate = (t: AdminTab, day?: string) => {
     setTab(t);
     setSelectedCustomerId(null);
+    if (day) setCalendarDay(day);
     if (isMobile) setSidebarOpen(false);
   };
 
@@ -108,6 +111,7 @@ export function AdminApp({ onLogout }: Props) {
         <KundenDetailScreen
           customer={selectedCustomer}
           appointments={allAppointments.filter(a => a.user_id === selectedCustomer.id)}
+          trainers={trainers}
           onBack={() => setSelectedCustomerId(null)}
           onCancelAppointment={cancelAppointment}
           onAddAppointment={addAppointmentForCustomer}
@@ -125,7 +129,9 @@ export function AdminApp({ onLogout }: Props) {
         <TerminkalenderScreen
           customers={customers}
           allAppointments={allAppointments}
+          trainers={trainers}
           loading={loading}
+          initialDay={calendarDay}
           onCancelAppointment={cancelAppointment}
           onAddAppointment={addAppointmentForCustomer}
         />

@@ -30,9 +30,15 @@ export type AdminAppointment = {
   session_birth_year?: number | null;
 };
 
+export type TrainerProfile = {
+  id: string;
+  full_name: string;
+};
+
 export function useAdminData() {
   const [customers, setCustomers] = useState<CustomerProfile[]>([]);
   const [allAppointments, setAllAppointments] = useState<AdminAppointment[]>([]);
+  const [trainers, setTrainers] = useState<TrainerProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -44,15 +50,18 @@ export function useAdminData() {
     const [
       { data: profiles, error: profilesErr },
       { data: appointments, error: apptsErr },
+      { data: trainerProfiles },
     ] = await Promise.all([
       supabase.from('profiles').select('*').eq('role', 'customer').order('full_name'),
       supabase.from('appointments').select('*').order('date', { ascending: false }),
+      supabase.from('profiles').select('id, full_name').in('role', ['admin', 'trainer']).order('full_name'),
     ]);
     if (profilesErr || apptsErr) {
       setLoadError(profilesErr?.message ?? apptsErr?.message ?? 'Fehler beim Laden.');
     }
     setCustomers((profiles ?? []) as CustomerProfile[]);
     setAllAppointments((appointments ?? []) as AdminAppointment[]);
+    setTrainers((trainerProfiles ?? []) as TrainerProfile[]);
     setLoading(false);
   };
 
@@ -64,7 +73,7 @@ export function useAdminData() {
     return { error };
   };
 
-  const addAppointmentForCustomer = async (userId: string, date: string, time: string, program: string) => {
+  const addAppointmentForCustomer = async (userId: string, date: string, time: string, program: string, trainerId?: string | null) => {
     const { data: conflicts } = await supabase
       .from('appointments')
       .select('id')
@@ -76,10 +85,13 @@ export function useAdminData() {
       return { error: { message: 'Der Kunde hat an diesem Tag bereits einen Termin.' } };
     }
 
+    const insertData: Record<string, any> = { user_id: userId, date, time, status: 'confirmed', program };
+    if (trainerId) insertData.trainer_id = trainerId;
+
     const { data, error } = await supabase
       .from('appointments')
-      .insert({ user_id: userId, date, time, status: 'confirmed', program })
-      .select('id, date, time, status, program, user_id')
+      .insert(insertData)
+      .select('id, date, time, status, program, user_id, trainer_id')
       .single();
 
     if (data && !error) {
@@ -140,7 +152,7 @@ export function useAdminData() {
   };
 
   return {
-    customers, allAppointments, loading, loadError,
+    customers, allAppointments, trainers, loading, loadError,
     cancelAppointment, addAppointmentForCustomer,
     createCustomer, deleteCustomer,
     saveCustomerLevel, saveBookingPermissions, saveCustomerProfile,

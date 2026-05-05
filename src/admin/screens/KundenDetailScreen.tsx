@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Switch,
 } from 'react-native';
-import { CustomerProfile, AdminAppointment } from '../hooks/useAdminData';
+import { CustomerProfile, AdminAppointment, TrainerProfile } from '../hooks/useAdminData';
 import { PlayerLevel, PlayerType, LEVEL_COLORS, LEVEL_LABELS, BookingPermissions } from '../../types';
 import { PROGRAMS } from '../../constants/programs';
 import { SLOTS_MORNING, SLOTS_EVENING } from '../../constants/slots';
@@ -31,9 +31,10 @@ const PLAYER_TYPE_OPTIONS: { id: PlayerType; label: string; icon: string }[] = [
 interface Props {
   customer: CustomerProfile;
   appointments: AdminAppointment[];
+  trainers: TrainerProfile[];
   onBack: () => void;
   onCancelAppointment: (id: string) => Promise<{ error: any }>;
-  onAddAppointment: (userId: string, date: string, time: string, program: string) => Promise<{ error: any }>;
+  onAddAppointment: (userId: string, date: string, time: string, program: string, trainerId?: string | null) => Promise<{ error: any }>;
   onSaveLevel: (customerId: string, level: PlayerLevel | null) => Promise<{ error: any }>;
   onSaveBookingPermissions: (customerId: string, permissions: Partial<BookingPermissions>) => Promise<{ error: any }>;
   onSaveProfile: (customerId: string, fields: Partial<Pick<CustomerProfile, 'player_type' | 'parent_name' | 'location' | 'birth_date' | 'phone' | 'address'>>) => Promise<{ error: any }>;
@@ -84,7 +85,7 @@ function ApptRow({ appt, onCancel }: { appt: AdminAppointment; onCancel?: (id: s
 }
 
 export function KundenDetailScreen({
-  customer, appointments,
+  customer, appointments, trainers,
   onBack, onCancelAppointment, onAddAppointment,
   onSaveLevel, onSaveBookingPermissions, onSaveProfile, onDeleteCustomer,
 }: Props) {
@@ -97,6 +98,7 @@ export function KundenDetailScreen({
   const [bookDate, setBookDate] = useState('');
   const [bookProgram, setBookProgram] = useState<string>(PROGRAMS[0].id);
   const [bookTime, setBookTime] = useState(SLOTS_MORNING[0]);
+  const [bookTrainerId, setBookTrainerId] = useState<string | null>(null);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
 
@@ -139,10 +141,10 @@ export function KundenDetailScreen({
     const confirmedOnDay = appointments.filter(a => a.date === bookDate && a.status === 'confirmed');
     if (confirmedOnDay.length > 0) { setBookingError('Bereits ein Termin an diesem Tag.'); return; }
     setBookingLoading(true);
-    const { error } = await onAddAppointment(customer.id, bookDate, bookTime, bookProgram);
+    const { error } = await onAddAppointment(customer.id, bookDate, bookTime, bookProgram, bookTrainerId);
     setBookingLoading(false);
     if (error) setBookingError(error.message ?? 'Buchung fehlgeschlagen.');
-    else { setShowBooking(false); setBookDate(''); setBookingError(null); }
+    else { setShowBooking(false); setBookDate(''); setBookingError(null); setBookTrainerId(null); }
   };
 
   const doSetLevel = async (level: PlayerLevel | null) => {
@@ -334,7 +336,7 @@ export function KundenDetailScreen({
         <Text style={styles.quotaTitle}>Monatliches Guthaben</Text>
         <View style={styles.quotaRow}>
           <View style={styles.quotaField}>
-            <Text style={styles.fieldLabel}>LYMPH — Einzeltraining (0–4)</Text>
+            <Text style={styles.fieldLabel}>Einzeltraining (0–4)</Text>
             <TextInput
               style={styles.quotaInput}
               value={quotaIndividual}
@@ -345,7 +347,7 @@ export function KundenDetailScreen({
             />
           </View>
           <View style={styles.quotaField}>
-            <Text style={styles.fieldLabel}>EMS — Gruppentraining (0–4)</Text>
+            <Text style={styles.fieldLabel}>Gruppentraining (0–4)</Text>
             <TextInput
               style={styles.quotaInput}
               value={quotaGruppe}
@@ -414,6 +416,31 @@ export function KundenDetailScreen({
                 );
               })}
             </View>
+
+            {trainers.length > 0 && (
+              <>
+                <Text style={styles.fieldLabel}>Trainer (optional)</Text>
+                <View style={styles.slotRow}>
+                  <TouchableOpacity
+                    style={[styles.slotChip, bookTrainerId === null && styles.slotChipActive]}
+                    onPress={() => setBookTrainerId(null)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.slotChipText, bookTrainerId === null && styles.slotChipTextActive]}>Kein Trainer</Text>
+                  </TouchableOpacity>
+                  {trainers.map(t => (
+                    <TouchableOpacity
+                      key={t.id}
+                      style={[styles.slotChip, bookTrainerId === t.id && styles.slotChipActive]}
+                      onPress={() => setBookTrainerId(t.id)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.slotChipText, bookTrainerId === t.id && styles.slotChipTextActive]}>{t.full_name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
 
             {bookingError && <Text style={styles.fieldError}>{bookingError}</Text>}
             <TouchableOpacity style={[styles.saveBtn, bookingLoading && { opacity: 0.6 }]} onPress={doBook} activeOpacity={0.7} disabled={bookingLoading}>

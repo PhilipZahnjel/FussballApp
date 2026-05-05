@@ -29,7 +29,7 @@ interface Props {
   customers: CustomerProfile[];
   allAppointments: AdminAppointment[];
   loading: boolean;
-  onNavigate: (tab: AdminTab) => void;
+  onNavigate: (tab: AdminTab, day?: string) => void;
 }
 
 function StatCard({ label, value, color, onPress }: { label: string; value: string | number; color?: string; onPress?: () => void }) {
@@ -71,7 +71,7 @@ export function DashboardScreen({ customers, allAppointments, loading, onNavigat
           label="Heute"
           value={todayAppts.length}
           color="#3DBFA0"
-          onPress={() => onNavigate('kalender')}
+          onPress={() => onNavigate('kalender', ts)}
         />
         <StatCard
           label="Diese Woche"
