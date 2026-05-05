@@ -79,27 +79,65 @@ export function HomeScreen({ appointments, profile, activeTokens, setTab }: Prop
           <Text style={styles.headerTitle}>Guten Tag,{'\n'}{firstName}!</Text>
         </View>
 
-        {/* 4-Wochen-Frist Anzeige */}
-        {earliestToken && tokenDaysLeft !== null && (
-          <View style={styles.section}>
-            <GlassCard style={[styles.deadlineCard, { borderColor: deadlineColor + '55' }]}>
-              <View style={styles.deadlineRow}>
-                <Text style={styles.deadlineIcon}>
-                  {tokenDaysLeft <= 7 ? '🚨' : tokenDaysLeft <= 14 ? '⚠️' : '🎫'}
-                </Text>
-                <View style={styles.deadlineInfo}>
-                  <Text style={styles.deadlineLabel}>Nachholtermin-Frist</Text>
-                  <Text style={[styles.deadlineDays, { color: deadlineColor }]}>
-                    Noch {tokenDaysLeft} {tokenDaysLeft === 1 ? 'Tag' : 'Tage'}
+        {/* Nachholtermin-Status — immer sichtbar */}
+        <View style={styles.section}>
+          <GlassCard style={[styles.nachholCard, earliestToken && { borderColor: deadlineColor + '66', borderWidth: 1.5 }]}>
+            <Text style={styles.nachholHeader}>Nachholtermin-Status</Text>
+
+            {earliestToken && tokenDaysLeft !== null ? (
+              <>
+                <View style={styles.nachholRow}>
+                  <Text style={styles.nachholIcon}>
+                    {tokenDaysLeft <= 7 ? '🚨' : tokenDaysLeft <= 14 ? '⚠️' : '🎫'}
                   </Text>
-                  <Text style={styles.deadlineSub}>
-                    Verfällt am {fmtDate(earliestToken.expires_at.slice(0, 10))}
-                  </Text>
+                  <View style={styles.nachholInfo}>
+                    <Text style={[styles.nachholDays, { color: deadlineColor }]}>
+                      {activeTokens.length} Nachholtermin{activeTokens.length !== 1 ? 'e' : ''} verfügbar
+                    </Text>
+                    <Text style={styles.nachholSub}>
+                      Frist: noch {tokenDaysLeft} {tokenDaysLeft === 1 ? 'Tag' : 'Tage'} · verfällt {fmtDate(earliestToken.expires_at.slice(0, 10))}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            </GlassCard>
-          </View>
-        )}
+                <Text style={styles.nachholHint}>
+                  Jetzt buchen, bevor dein Nachholtermin verfällt!
+                </Text>
+              </>
+            ) : hasQuota ? (
+              <>
+                <View style={styles.nachholRow}>
+                  <Text style={styles.nachholIcon}>✅</Text>
+                  <View style={styles.nachholInfo}>
+                    <Text style={styles.nachholDays}>Kontingent verfügbar</Text>
+                    <Text style={styles.nachholSub}>
+                      {(profile?.quota_individual ?? 0) - usedIndividual > 0
+                        ? `${(profile?.quota_individual ?? 0) - usedIndividual}× Einzeltraining übrig`
+                        : `${(profile?.quota_gruppe ?? 0) - usedGruppe}× Gruppentraining übrig`}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.nachholHint}>
+                  Du kannst diesen Monat noch Termine buchen.
+                </Text>
+              </>
+            ) : (
+              <>
+                <View style={styles.nachholRow}>
+                  <Text style={styles.nachholIcon}>⏸️</Text>
+                  <View style={styles.nachholInfo}>
+                    <Text style={styles.nachholDays}>Kein Nachholtermin verfügbar</Text>
+                    <Text style={styles.nachholSub}>
+                      Dein Kontingent für diesen Monat ist aufgebraucht.
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.nachholHint}>
+                  Bei Fragen wende dich an deinen Trainer.
+                </Text>
+              </>
+            )}
+          </GlassCard>
+        </View>
 
         {/* Nächster Termin */}
         <View style={styles.section}>
@@ -167,33 +205,42 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 16,
   },
-  deadlineCard: {
+  nachholCard: {
     padding: 18,
-    borderWidth: 1.5,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
-  deadlineRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  deadlineIcon: { fontSize: 28 },
-  deadlineInfo: { flex: 1 },
-  deadlineLabel: {
+  nachholHeader: {
     fontSize: 11,
     fontWeight: '700',
     color: C.textFaint,
     textTransform: 'uppercase',
-    letterSpacing: 0.14,
-    marginBottom: 4,
+    letterSpacing: 0.5,
+    marginBottom: 12,
   },
-  deadlineDays: {
-    fontSize: 20,
+  nachholRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 8,
+  },
+  nachholIcon: { fontSize: 24 },
+  nachholInfo: { flex: 1 },
+  nachholDays: {
+    fontSize: 16,
     fontWeight: '800',
+    color: '#fff',
     marginBottom: 2,
   },
-  deadlineSub: {
+  nachholSub: {
     fontSize: 13,
     color: C.textFaint,
+  },
+  nachholHint: {
+    fontSize: 12,
+    color: C.textFaint,
+    fontStyle: 'italic',
+    marginTop: 4,
   },
   nextCard: {
     padding: 22,
