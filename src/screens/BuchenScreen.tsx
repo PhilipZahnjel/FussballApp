@@ -278,9 +278,7 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
             const userBooked = myAppointments.some(a => a.date === selDate && a.time === t && a.status === 'confirmed');
             const isPast = isToday && t <= nowStr;
 
-            // Gruppen-Kompatibilität prüfen
-            let groupBlocked = false;
-            let groupReason = '';
+            // Gruppen-Kompatibilität prüfen — nicht passende Slots gar nicht anzeigen
             if (isGroup && !isPast && !userBooked && booked > 0 && playerBirthYear && playerLevel) {
               const ref = slotAppts.find(a => a.session_birth_year != null && a.session_level);
               if (ref?.session_birth_year && ref?.session_level) {
@@ -291,11 +289,11 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
                   ref.session_level as PlayerLevel,
                   sessionYear,
                 );
-                if (!check.allowed) { groupBlocked = true; groupReason = check.reason ?? 'Falsche Gruppe'; }
+                if (!check.allowed) return null;
               }
             }
 
-            const full = booked >= capacity || userBooked || isPast || groupBlocked;
+            const full = booked >= capacity || userBooked || isPast;
             const sel = selTime === t;
             const free = capacity - booked;
             return (
@@ -310,7 +308,6 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
                 <Text style={[styles.slotSub, full && styles.slotSubDimmed, !full && free === 1 && { color: '#FFD580' }]}>
                   {isPast ? 'Vergangen'
                     : userBooked ? 'Bereits gebucht'
-                    : groupBlocked ? groupReason
                     : booked >= capacity ? 'Ausgebucht'
                     : free === 1 ? '1 Platz frei'
                     : `${free} Plätze frei`}
