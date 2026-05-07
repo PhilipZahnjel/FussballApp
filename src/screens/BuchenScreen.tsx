@@ -96,66 +96,49 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
     ? PROGRAMS.filter(p => isProgramAllowed(profile, p.id))
     : [];
 
-  const thisMonth = ts.slice(0, 7);
-  const usedIndividual = myAppointments.filter(
-    a => a.status === 'confirmed' && a.date.startsWith(thisMonth) && PROGRAM_CATEGORY[a.program as ProgramId] === 'individual'
-  ).length;
-  const usedGruppe = myAppointments.filter(
-    a => a.status === 'confirmed' && a.date.startsWith(thisMonth) && PROGRAM_CATEGORY[a.program as ProgramId] === 'gruppe'
-  ).length;
 
   // ── ProgramStep ───────────────────────────────────────────────
   function ProgramStep() {
-    const quotaIndividual = profile?.quota_individual ?? 0;
-    const quotaGruppe = profile?.quota_gruppe ?? 0;
-    const hasIndividualPrograms = allowedPrograms.some(p => PROGRAM_CATEGORY[p.id as ProgramId] === 'individual');
-    const hasGruppePrograms = allowedPrograms.some(p => PROGRAM_CATEGORY[p.id as ProgramId] === 'gruppe');
     const tokenIndividual = activeTokens.find(t => t.category === 'individual');
     const tokenGruppe = activeTokens.find(t => t.category === 'gruppe');
+
+    if (activeTokens.length === 0) {
+      return (
+        <FadeUp>
+          <SectionTitle t="Nachholtermin buchen" />
+          <View style={styles.noPrograms}>
+            <Text style={styles.noProgramsIcon}>🎫</Text>
+            <Text style={styles.noProgramsTitle}>Kein Nachholtermin verfügbar</Text>
+            <Text style={styles.noProgramsText}>
+              Nachholtermine entstehen automatisch, wenn du einen bestehenden Termin stornierst. Du hast aktuell keinen offenen Nachholtermin.
+            </Text>
+          </View>
+        </FadeUp>
+      );
+    }
 
     return (
       <FadeUp>
         <SectionTitle t="Nachholtermin buchen" sub="Wähle deine Trainingseinheit" />
 
-        {activeTokens.length > 0 && (
-          <View style={styles.tokenBanner}>
-            {tokenIndividual && (
-              <View style={styles.tokenRow}>
-                <Text style={styles.tokenIcon}>🎫</Text>
-                <Text style={styles.tokenText}>
-                  Nachholtermin Individual bis {fmtDate(tokenIndividual.expires_at.slice(0, 10))}
-                </Text>
-              </View>
-            )}
-            {tokenGruppe && (
-              <View style={styles.tokenRow}>
-                <Text style={styles.tokenIcon}>🎫</Text>
-                <Text style={styles.tokenText}>
-                  Nachholtermin Gruppe bis {fmtDate(tokenGruppe.expires_at.slice(0, 10))}
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
-
-        {(quotaIndividual > 0 || quotaGruppe > 0) && (
-          <View style={styles.quotaRow}>
-            {hasIndividualPrograms && quotaIndividual > 0 && (
-              <View style={styles.quotaChip}>
-                <Text style={styles.quotaText}>
-                  Individual: {Math.max(0, quotaIndividual - usedIndividual)}/{quotaIndividual} diesen Monat
-                </Text>
-              </View>
-            )}
-            {hasGruppePrograms && quotaGruppe > 0 && (
-              <View style={styles.quotaChip}>
-                <Text style={styles.quotaText}>
-                  Gruppe: {Math.max(0, quotaGruppe - usedGruppe)}/{quotaGruppe} diesen Monat
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
+        <View style={styles.tokenBanner}>
+          {tokenIndividual && (
+            <View style={styles.tokenRow}>
+              <Text style={styles.tokenIcon}>🎫</Text>
+              <Text style={styles.tokenText}>
+                Nachholtermin Individual bis {fmtDate(tokenIndividual.expires_at.slice(0, 10))}
+              </Text>
+            </View>
+          )}
+          {tokenGruppe && (
+            <View style={styles.tokenRow}>
+              <Text style={styles.tokenIcon}>🎫</Text>
+              <Text style={styles.tokenText}>
+                Nachholtermin Gruppe bis {fmtDate(tokenGruppe.expires_at.slice(0, 10))}
+              </Text>
+            </View>
+          )}
+        </View>
 
         {allowedPrograms.length === 0 ? (
           <View style={styles.noPrograms}>

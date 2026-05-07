@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
+// TextInput retained for customer search field
 import { CustomerProfile, AdminAppointment, TrainerProfile } from '../hooks/useAdminData';
 import { PROGRAMS, PROGRAM_CATEGORY, ProgramId } from '../../constants/programs';
 import { PlayerLevel, LEVEL_COLORS, LEVEL_LABELS } from '../../types';
@@ -64,7 +65,6 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
   const [bookProgram, setBookProgram] = useState<string>(PROGRAMS[0].id);
   const [bookTime, setBookTime] = useState(SLOTS_MORNING[0]);
   const [bookTrainerId, setBookTrainerId] = useState<string | null>(null);
-  const [bookSessionBirthYear, setBookSessionBirthYear] = useState('');
   const [bookSessionLevel, setBookSessionLevel] = useState<PlayerLevel | null>(null);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
@@ -111,7 +111,6 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
     setBookProgram(PROGRAMS[0].id);
     setBookTime(presetTime ?? SLOTS_MORNING[0]);
     setBookTrainerId(null);
-    setBookSessionBirthYear('');
     setBookSessionLevel(null);
     setBookingError(null);
     setBookingSuccess(false);
@@ -127,6 +126,10 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
 
   const selectedBookCustomer = bookCustomerId ? customers.find(c => c.id === bookCustomerId) : null;
 
+  const bookCustomerBirthYear = selectedBookCustomer?.birth_date
+    ? parseInt(selectedBookCustomer.birth_date.slice(0, 4))
+    : null;
+
   const doBook = async () => {
     if (!bookCustomerId || !bookingDay) {
       setBookingError('Bitte einen Kunden auswählen.');
@@ -136,7 +139,7 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
     setBookingError(null);
     setBookingSuccess(false);
     const isGruppe = PROGRAM_CATEGORY[bookProgram as ProgramId] === 'gruppe';
-    const sBy = isGruppe && bookSessionBirthYear ? parseInt(bookSessionBirthYear) : null;
+    const sBy = isGruppe ? bookCustomerBirthYear : null;
     const sLvl = isGruppe ? bookSessionLevel : null;
     const { error } = await onAddAppointment(bookCustomerId, bookingDay, bookTime, bookProgram, bookTrainerId, sBy, sLvl);
     setBookingLoading(false);
@@ -146,7 +149,6 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
       setBookingSuccess(true);
       setBookCustomerId(null);
       setBookCustomerSearch('');
-      setBookSessionBirthYear('');
       setBookSessionLevel(null);
     }
   };
@@ -249,16 +251,19 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
 
       {PROGRAM_CATEGORY[bookProgram as ProgramId] === 'gruppe' && (
         <>
-          <Text style={styles.fieldLabel}>Gruppen-Jahrgang (YYYY)</Text>
-          <TextInput
-            style={styles.input}
-            value={bookSessionBirthYear}
-            onChangeText={setBookSessionBirthYear}
-            placeholder="z.B. 2015"
-            keyboardType="number-pad"
-            maxLength={4}
-            placeholderTextColor="#9CA3AF"
-          />
+          <Text style={styles.fieldLabel}>Gruppen-Jahrgang</Text>
+          {bookCustomerBirthYear ? (
+            <View style={styles.birthYearDisplay}>
+              <Text style={styles.birthYearText}>Jg. {bookCustomerBirthYear}</Text>
+              <Text style={styles.birthYearHint}>(aus Geburtsdatum)</Text>
+            </View>
+          ) : (
+            <View style={styles.birthYearWarning}>
+              <Text style={styles.birthYearWarningText}>
+                {selectedBookCustomer ? '⚠ Kein Geburtsdatum hinterlegt.' : '⚠ Zuerst einen Kunden auswählen.'}
+              </Text>
+            </View>
+          )}
           <Text style={styles.fieldLabel}>Qualitätsstufe der Gruppe</Text>
           <View style={styles.chipRow}>
             {(['gruen', 'gelb', 'orange', 'rot'] as PlayerLevel[]).map(lvl => (
@@ -618,4 +623,9 @@ const styles = StyleSheet.create({
   bookBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
   cancelPanelBtn: { backgroundColor: '#F3F4F6', borderRadius: 10, paddingVertical: 13, paddingHorizontal: 16, alignItems: 'center', marginTop: 16 },
   cancelPanelBtnText: { fontSize: 14, fontWeight: '600', color: '#6B7280' },
+  birthYearDisplay: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(74,127,212,0.08)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 4 },
+  birthYearText: { fontSize: 15, fontWeight: '700', color: '#4A7FD4' },
+  birthYearHint: { fontSize: 12, color: '#9CA3AF' },
+  birthYearWarning: { backgroundColor: '#FEF3C7', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 4 },
+  birthYearWarningText: { fontSize: 13, color: '#92400E' },
 });

@@ -118,7 +118,7 @@ export default function App() {
               />
             )}
             {tab === 'infos' && (
-              <InfosScreen />
+              <InfosScreen profile={profile} />
             )}
             {tab === 'profil' && (
               <ProfilScreen onLogout={doLogout} activeTokens={activeTokens} />

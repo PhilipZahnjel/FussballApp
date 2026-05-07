@@ -49,7 +49,7 @@ export function useAppointments(profile: Profile | null) {
       const [allData, tokenData] = await Promise.all([
         supabase
           .from('appointments')
-          .select('id, date, time, status, program, user_id')
+          .select('id, date, time, status, program, user_id, trainer_id, session_birth_year, session_level')
           .order('date', { ascending: true }),
         user
           ? supabase
@@ -101,6 +101,13 @@ export function useAppointments(profile: Profile | null) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: { message: 'Nicht eingeloggt.' } };
 
+    // Token-Pflicht: Kunden können nur Nachholtermine buchen
+    const category = getCategory(program);
+    const activeToken = activeTokens.find(t => t.category === category);
+    if (!activeToken) {
+      return { error: { message: 'Nachholtermine können nur mit einem gültigen Stornierungstoken gebucht werden.' } };
+    }
+
     // Berechtigung prüfen
     if (profile) {
       const permCheck = checkProgramPermission(profile, program as ProgramId);
@@ -114,14 +121,6 @@ export function useAppointments(profile: Profile | null) {
     );
     if (!dailyConflict.allowed) return { error: { message: dailyConflict.reason! } };
 
-    // Monatliches Kontingent prüfen
-    const category = getCategory(program);
-    const activeToken = activeTokens.find(t => t.category === category);
-    if (profile) {
-      const quotaCheck = checkMonthlyQuota(myAppointments, profile, program as ProgramId, date.slice(0, 7), !!activeToken);
-      if (!quotaCheck.allowed) return { error: { message: quotaCheck.reason! } };
-    }
-
     const { data: profileData } = await supabase
       .from('profiles')
       .select('full_name')
@@ -131,7 +130,7 @@ export function useAppointments(profile: Profile | null) {
     const { data, error } = await supabase
       .from('appointments')
       .insert({ date, time, status: 'confirmed', user_id: user.id, program })
-      .select('id, date, time, status, program, user_id')
+      .select('id, date, time, status, program, user_id, trainer_id, session_birth_year, session_level')
       .single();
 
     if (data && !error) {

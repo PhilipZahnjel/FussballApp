@@ -7,6 +7,7 @@ import { PlayerLevel, PlayerType, LEVEL_COLORS, LEVEL_LABELS, BookingPermissions
 import { PROGRAMS, PROGRAM_CATEGORY, ProgramId } from '../../constants/programs';
 import { SLOTS_MORNING, SLOTS_EVENING } from '../../constants/slots';
 import { todayStr, fmtDate } from '../../constants/i18n';
+import { LOCATIONS, Location } from '../../constants/studio';
 
 const PROGRAM_COLORS: Record<string, string> = {
   individual: '#4A8FE8', gruppe: '#3DBFA0', athletik: '#F5A84A',
@@ -99,7 +100,6 @@ export function KundenDetailScreen({
   const [bookProgram, setBookProgram] = useState<string>(PROGRAMS[0].id);
   const [bookTime, setBookTime] = useState(SLOTS_MORNING[0]);
   const [bookTrainerId, setBookTrainerId] = useState<string | null>(null);
-  const [bookSessionBirthYear, setBookSessionBirthYear] = useState('');
   const [bookSessionLevel, setBookSessionLevel] = useState<PlayerLevel | null>(null);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
@@ -118,7 +118,7 @@ export function KundenDetailScreen({
   const [editProfile, setEditProfile] = useState(false);
   const [editPlayerType, setEditPlayerType] = useState<PlayerType | null>(customer.player_type);
   const [editParentName, setEditParentName] = useState(customer.parent_name ?? '');
-  const [editLocation, setEditLocation] = useState(customer.location ?? '');
+  const [editLocation, setEditLocation] = useState<Location | null>((customer.location as Location) ?? null);
   const [editBirthDate, setEditBirthDate] = useState(customer.birth_date ?? '');
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -144,12 +144,12 @@ export function KundenDetailScreen({
     if (confirmedOnDay.length > 0) { setBookingError('Bereits ein Termin an diesem Tag.'); return; }
     setBookingLoading(true);
     const isGruppe = PROGRAM_CATEGORY[bookProgram as ProgramId] === 'gruppe';
-    const sBy = isGruppe && bookSessionBirthYear ? parseInt(bookSessionBirthYear) : null;
+    const sBy = isGruppe ? birthYear : null;
     const sLvl = isGruppe ? bookSessionLevel : null;
     const { error } = await onAddAppointment(customer.id, bookDate, bookTime, bookProgram, bookTrainerId, sBy, sLvl);
     setBookingLoading(false);
     if (error) setBookingError(error.message ?? 'Buchung fehlgeschlagen.');
-    else { setShowBooking(false); setBookDate(''); setBookingError(null); setBookTrainerId(null); setBookSessionBirthYear(''); setBookSessionLevel(null); }
+    else { setShowBooking(false); setBookDate(''); setBookingError(null); setBookTrainerId(null); setBookSessionLevel(null); }
   };
 
   const doSetLevel = async (level: PlayerLevel | null) => {
@@ -179,12 +179,21 @@ export function KundenDetailScreen({
   };
 
   const doSaveProfile = async () => {
+    if (!editLocation) { setProfileError('Bitte einen Standort auswählen.'); return; }
+    if (editBirthDate.trim()) {
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      const d = new Date(editBirthDate.trim());
+      if (!dateRegex.test(editBirthDate.trim()) || isNaN(d.getTime()) || d > new Date()) {
+        setProfileError('Geburtsdatum muss im Format YYYY-MM-DD und in der Vergangenheit liegen.');
+        return;
+      }
+    }
     setProfileLoading(true);
     setProfileError(null);
     const { error } = await onSaveProfile(customer.id, {
       player_type: editPlayerType,
       parent_name: editParentName.trim() || null,
-      location: editLocation.trim() || null,
+      location: editLocation,
       birth_date: editBirthDate.trim() || null,
     });
     setProfileLoading(false);
@@ -267,8 +276,19 @@ export function KundenDetailScreen({
             </View>
             <Text style={styles.fieldLabel}>Elternname</Text>
             <TextInput style={styles.editInput} value={editParentName} onChangeText={setEditParentName} placeholder="Elternname" placeholderTextColor="#9CA3AF" />
-            <Text style={styles.fieldLabel}>Standort</Text>
-            <TextInput style={styles.editInput} value={editLocation} onChangeText={setEditLocation} placeholder="z.B. Hattersheim" placeholderTextColor="#9CA3AF" />
+            <Text style={styles.fieldLabel}>Standort *</Text>
+            <View style={styles.typeRow}>
+              {LOCATIONS.map(loc => (
+                <TouchableOpacity
+                  key={loc}
+                  style={[styles.typeChip, editLocation === loc && styles.typeChipActive]}
+                  onPress={() => setEditLocation(loc)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.typeChipText, editLocation === loc && styles.typeChipTextActive]}>📍 {loc}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
             <Text style={styles.fieldLabel}>Geburtsdatum (YYYY-MM-DD)</Text>
             <TextInput style={styles.editInput} value={editBirthDate} onChangeText={setEditBirthDate} placeholder="2010-05-15" placeholderTextColor="#9CA3AF" />
             {profileError && <Text style={styles.fieldError}>{profileError}</Text>}
@@ -449,16 +469,17 @@ export function KundenDetailScreen({
 
             {PROGRAM_CATEGORY[bookProgram as ProgramId] === 'gruppe' && (
               <>
-                <Text style={styles.fieldLabel}>Gruppen-Jahrgang (YYYY)</Text>
-                <TextInput
-                  style={styles.input}
-                  value={bookSessionBirthYear}
-                  onChangeText={setBookSessionBirthYear}
-                  placeholder="z.B. 2015"
-                  keyboardType="number-pad"
-                  maxLength={4}
-                  placeholderTextColor="#9CA3AF"
-                />
+                <Text style={styles.fieldLabel}>Gruppen-Jahrgang</Text>
+                {birthYear ? (
+                  <View style={styles.birthYearDisplay}>
+                    <Text style={styles.birthYearText}>Jg. {birthYear}</Text>
+                    <Text style={styles.birthYearHint}>(aus Geburtsdatum)</Text>
+                  </View>
+                ) : (
+                  <View style={styles.birthYearWarning}>
+                    <Text style={styles.birthYearWarningText}>⚠ Bitte zuerst Geburtsdatum im Profil eintragen.</Text>
+                  </View>
+                )}
                 <Text style={styles.fieldLabel}>Qualitätsstufe der Gruppe</Text>
                 <View style={styles.slotRow}>
                   {(['gruen', 'gelb', 'orange', 'rot'] as PlayerLevel[]).map(lvl => (
@@ -586,4 +607,9 @@ const styles = StyleSheet.create({
   deleteConfirmYesText: { fontSize: 14, fontWeight: '700', color: '#fff' },
   deleteConfirmNo: { flex: 1, backgroundColor: '#F3F4F6', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
   deleteConfirmNoText: { fontSize: 14, fontWeight: '600', color: '#6B7280' },
+  birthYearDisplay: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(74,127,212,0.08)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 4 },
+  birthYearText: { fontSize: 15, fontWeight: '700', color: '#4A7FD4' },
+  birthYearHint: { fontSize: 12, color: '#9CA3AF' },
+  birthYearWarning: { backgroundColor: '#FEF3C7', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 4 },
+  birthYearWarningText: { fontSize: 13, color: '#92400E' },
 });

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { AppNotification } from '../../types';
+import { LOCATIONS, Location } from '../../constants/studio';
 
 function fmtDate(iso: string) {
   const d = new Date(iso);
@@ -14,7 +15,7 @@ export function NotificationsScreen() {
   const [showForm, setShowForm] = useState(false);
   const [formTitle, setFormTitle] = useState('');
   const [formBody, setFormBody] = useState('');
-  const [formLocation, setFormLocation] = useState('');
+  const [formLocation, setFormLocation] = useState<Location | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -34,13 +35,17 @@ export function NotificationsScreen() {
       setSaveError('Titel und Text sind Pflichtfelder.');
       return;
     }
+    if (!formLocation) {
+      setSaveError('Bitte einen Standort auswählen.');
+      return;
+    }
     setSaving(true);
     setSaveError(null);
     const { data: { user } } = await supabase.auth.getUser();
     const { error } = await supabase.from('notifications').insert({
       title: formTitle.trim(),
       body: formBody.trim(),
-      location: formLocation.trim() || null,
+      location: formLocation,
       is_global: true,
       created_by: user?.id,
     });
@@ -48,7 +53,7 @@ export function NotificationsScreen() {
     if (error) {
       setSaveError(error.message);
     } else {
-      setFormTitle(''); setFormBody(''); setFormLocation('');
+      setFormTitle(''); setFormBody(''); setFormLocation(null);
       setShowForm(false);
       await loadNotifications();
     }
@@ -95,14 +100,21 @@ export function NotificationsScreen() {
             multiline
             numberOfLines={4}
           />
-          <Text style={styles.fieldLabel}>Standort (optional)</Text>
-          <TextInput
-            style={styles.input}
-            value={formLocation}
-            onChangeText={setFormLocation}
-            placeholder="z.B. Hattersheim"
-            placeholderTextColor="#9CA3AF"
-          />
+          <Text style={styles.fieldLabel}>Standort *</Text>
+          <View style={styles.chipRow}>
+            {LOCATIONS.map(loc => (
+              <TouchableOpacity
+                key={loc}
+                style={[styles.locationChip, formLocation === loc && styles.locationChipActive]}
+                onPress={() => setFormLocation(loc)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.locationChipText, formLocation === loc && styles.locationChipTextActive]}>
+                  📍 {loc}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
           {saveError && <Text style={styles.errorText}>{saveError}</Text>}
           <TouchableOpacity
             style={[styles.saveBtn, saving && { opacity: 0.6 }]}
@@ -168,4 +180,9 @@ const styles = StyleSheet.create({
   deleteBtnText: { fontSize: 14, color: '#9CA3AF', fontWeight: '700' },
   notifTitle: { fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 6 },
   notifBody: { fontSize: 13, color: '#6B7280', lineHeight: 20 },
+  chipRow: { flexDirection: 'row', gap: 10, marginBottom: 4 },
+  locationChip: { flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 2, borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', alignItems: 'center' },
+  locationChipActive: { borderColor: '#4A7FD4', backgroundColor: 'rgba(74,127,212,0.08)' },
+  locationChipText: { fontSize: 14, fontWeight: '700', color: '#6B7280' },
+  locationChipTextActive: { color: '#4A7FD4' },
 });

@@ -5,3 +5,6 @@ export const STUDIO = {
   email: 'pk.Fussballschule@gmail.com',
   hours: 'Mo–Fr 9–18 Uhr',
 };
+
+export const LOCATIONS = ['Rüsselsheim', 'Kelsterbach'] as const;
+export type Location = typeof LOCATIONS[number];

@@ -59,6 +59,10 @@ Deno.serve(async (req) => {
       .update({ is_active: false })
       .eq('id', customerId);
 
+    // Nullify FK references before auth delete to avoid constraint violations
+    await serviceClient.from('notifications').update({ created_by: null }).eq('created_by', customerId);
+    await serviceClient.from('appointments').update({ trainer_id: null }).eq('trainer_id', customerId);
+
     const { error: authError } = await serviceClient.auth.admin.deleteUser(customerId);
     if (authError) return json({ error: authError.message }, 500);
 

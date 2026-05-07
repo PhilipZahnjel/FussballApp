@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { CustomerProfile, AdminAppointment } from '../hooks/useAdminData';
 import { LEVEL_COLORS, LEVEL_LABELS, PlayerLevel, PlayerType } from '../../types';
+import { LOCATIONS, Location } from '../../constants/studio';
 
 interface Props {
   customers: CustomerProfile[];
@@ -16,6 +17,7 @@ interface Props {
     address: string;
     parent_name: string;
     player_type: PlayerType | null;
+    location: string;
   }) => Promise<{ error: string | null; tempPassword?: string; customerNumber?: number }>;
 }
 
@@ -35,6 +37,7 @@ export function KundenScreen({ customers, allAppointments, loading, onSelectCust
   const [formBirth, setFormBirth] = useState('');
   const [formAddress, setFormAddress] = useState('');
   const [formPlayerType, setFormPlayerType] = useState<PlayerType | null>(null);
+  const [formLocation, setFormLocation] = useState<Location | null>(null);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [createdInfo, setCreatedInfo] = useState<{ name: string; email: string; password: string; number: number } | null>(null);
@@ -42,14 +45,25 @@ export function KundenScreen({ customers, allAppointments, loading, onSelectCust
   const resetForm = () => {
     setFormEmail(''); setFormName(''); setFormPhone('');
     setFormBirth(''); setFormAddress(''); setFormParentName('');
-    setFormPlayerType(null);
+    setFormPlayerType(null); setFormLocation(null);
     setFormError(null); setShowForm(false);
   };
 
   const doCreate = async () => {
-    if (!formEmail.trim() || !formName.trim()) {
-      setFormError('Name und E-Mail sind Pflichtfelder.');
+    if (!formName.trim()) { setFormError('Name ist ein Pflichtfeld.'); return; }
+    if (!formEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formEmail.trim())) {
+      setFormError('Bitte eine gültige E-Mail-Adresse eingeben.');
       return;
+    }
+    if (!formPlayerType) { setFormError('Bitte einen Spielertyp auswählen.'); return; }
+    if (!formLocation) { setFormError('Bitte einen Standort auswählen.'); return; }
+    if (formBirth.trim()) {
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      const d = new Date(formBirth.trim());
+      if (!dateRegex.test(formBirth.trim()) || isNaN(d.getTime()) || d > new Date()) {
+        setFormError('Geburtsdatum muss im Format YYYY-MM-DD und in der Vergangenheit liegen.');
+        return;
+      }
     }
     setFormError(null);
     setFormLoading(true);
@@ -62,6 +76,7 @@ export function KundenScreen({ customers, allAppointments, loading, onSelectCust
         address: formAddress.trim(),
         parent_name: formParentName.trim(),
         player_type: formPlayerType,
+        location: formLocation,
       });
       if (error) {
         setFormError(error);
@@ -133,6 +148,23 @@ export function KundenScreen({ customers, allAppointments, loading, onSelectCust
                 <Text style={styles.typeChipIcon}>{opt.icon}</Text>
                 <Text style={[styles.typeChipText, formPlayerType === opt.id && styles.typeChipTextActive]}>
                   {opt.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Standort */}
+          <Text style={styles.fieldLabel}>Standort *</Text>
+          <View style={styles.typeRow}>
+            {LOCATIONS.map(loc => (
+              <TouchableOpacity
+                key={loc}
+                style={[styles.typeChip, formLocation === loc && styles.typeChipActive]}
+                onPress={() => setFormLocation(loc)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.typeChipText, formLocation === loc && styles.typeChipTextActive]}>
+                  📍 {loc}
                 </Text>
               </TouchableOpacity>
             ))}

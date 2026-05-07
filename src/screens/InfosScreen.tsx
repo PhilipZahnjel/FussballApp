@@ -5,13 +5,18 @@ import { C } from '../constants/colors';
 import { GlassCard } from '../components/GlassCard';
 import { supabase } from '../lib/supabase';
 import { AppNotification } from '../types';
+import { Profile } from '../hooks/useProfile';
 
 function fmtDate(iso: string) {
   const d = new Date(iso);
   return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-export function InfosScreen() {
+interface Props {
+  profile: Profile | null;
+}
+
+export function InfosScreen({ profile }: Props) {
   const insets = useSafeAreaInsets();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,6 +32,10 @@ export function InfosScreen() {
       });
   }, []);
 
+  const visibleNotifications = notifications.filter(n =>
+    !n.location || n.location === profile?.location
+  );
+
   return (
     <ScrollView
       style={[styles.flex, { backgroundColor: 'transparent' }]}
@@ -41,14 +50,14 @@ export function InfosScreen() {
       <View style={styles.content}>
         {loading ? (
           <ActivityIndicator color={C.accentLight} style={{ marginTop: 40 }} />
-        ) : notifications.length === 0 ? (
+        ) : visibleNotifications.length === 0 ? (
           <GlassCard style={styles.emptyCard}>
             <Text style={styles.emptyEmoji}>📢</Text>
             <Text style={styles.emptyTitle}>Keine Infos vorhanden</Text>
             <Text style={styles.emptySub}>Hier erscheinen Neuigkeiten und Infos zu deinem Standort.</Text>
           </GlassCard>
         ) : (
-          notifications.map(n => (
+          visibleNotifications.map(n => (
             <GlassCard key={n.id} style={styles.card}>
               <View style={styles.cardTop}>
                 <Text style={styles.cardDate}>{fmtDate(n.created_at)}</Text>

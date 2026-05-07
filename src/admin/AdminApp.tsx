@@ -49,7 +49,7 @@ export function AdminApp({ onLogout }: Props) {
   const navigate = (t: AdminTab, day?: string) => {
     setTab(t);
     setSelectedCustomerId(null);
-    if (day) setCalendarDay(day);
+    if (t === 'kalender') setCalendarDay(day);
     if (isMobile) setSidebarOpen(false);
   };
 

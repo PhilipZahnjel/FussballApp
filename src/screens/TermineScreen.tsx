@@ -150,7 +150,6 @@ export function TermineScreen({ appointments, cancelAppointment, activeTokens, s
     >
       <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
         <Text style={styles.screenTitle}>Meine Termine</Text>
-        <Btn label="Neuen Termin buchen" onPress={() => setTab('buchen')} variant="primary" style={styles.bookBtn} />
 
         {activeTokens.length > 0 && (
           <View style={styles.tokenBanner}>

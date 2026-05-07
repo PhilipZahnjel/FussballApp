@@ -52,7 +52,7 @@ export function HomeScreen({ appointments, profile, activeTokens, setTab }: Prop
   const hasQuota =
     (profile?.quota_individual ?? 0) > usedIndividual ||
     (profile?.quota_gruppe ?? 0) > usedGruppe;
-  const buchenActive = hasTokens || hasQuota;
+  const buchenActive = hasTokens;
 
   // Frühest ablaufender Token
   const earliestToken = activeTokens
@@ -137,7 +137,7 @@ export function HomeScreen({ appointments, profile, activeTokens, setTab }: Prop
             style={!buchenActive ? styles.btnDisabled : undefined}
           />
           {!buchenActive && (
-            <Text style={styles.noQuotaHint}>Kein Kontingent verfügbar</Text>
+            <Text style={styles.noQuotaHint}>Kein Nachholtermin verfügbar</Text>
           )}
           <View style={{ height: 12 }} />
           <Btn label="Meine Termine anzeigen" onPress={() => setTab('termine')} variant="ghost" />

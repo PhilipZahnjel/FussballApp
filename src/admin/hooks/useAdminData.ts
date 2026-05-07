@@ -115,6 +115,7 @@ export function useAdminData() {
     address: string;
     parent_name: string;
     player_type: PlayerType | null;
+    location: string;
   }): Promise<{ error: string | null; tempPassword?: string; customerNumber?: number }> => {
     try {
       const { data, error } = await supabase.functions.invoke('create-customer', { body: params });
