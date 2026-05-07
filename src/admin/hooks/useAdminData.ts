@@ -119,7 +119,13 @@ export function useAdminData() {
   }): Promise<{ error: string | null; tempPassword?: string; customerNumber?: number }> => {
     try {
       const { data, error } = await supabase.functions.invoke('create-customer', { body: params });
-      if (error) return { error: error.message ?? JSON.stringify(error) };
+      if (error) {
+        const body = (error as any).context;
+        const msg = (body && typeof body === 'object' && 'error' in body)
+          ? String(body.error)
+          : error.message ?? JSON.stringify(error);
+        return { error: msg };
+      }
       if (data?.error) return { error: data.error as string };
       await load();
       return { error: null, tempPassword: data.temp_password, customerNumber: data.customer_number };
@@ -131,7 +137,13 @@ export function useAdminData() {
   const deleteCustomer = async (customerId: string): Promise<{ error: string | null }> => {
     try {
       const { data, error } = await supabase.functions.invoke('delete-customer', { body: { customerId } });
-      if (error) return { error: error.message ?? JSON.stringify(error) };
+      if (error) {
+        const body = (error as any).context;
+        const msg = (body && typeof body === 'object' && 'error' in body)
+          ? String(body.error)
+          : error.message ?? JSON.stringify(error);
+        return { error: msg };
+      }
       if (data?.error) return { error: data.error as string };
       setCustomers(prev => prev.filter(c => c.id !== customerId));
       setAllAppointments(prev => prev.filter(a => a.user_id !== customerId));

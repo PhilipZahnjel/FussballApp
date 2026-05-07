@@ -66,7 +66,12 @@ Deno.serve(async (req) => {
     await serviceClient.from('appointments').update({ trainer_id: null }).eq('trainer_id', customerId);
 
     const { error: authError } = await serviceClient.auth.admin.deleteUser(customerId);
-    if (authError) return json({ error: authError.message }, 500);
+    if (authError) {
+      // If the auth user is already gone, still clean up the profile and succeed
+      const notFound = authError.status === 404 || authError.message?.toLowerCase().includes('not found');
+      if (!notFound) return json({ error: authError.message }, 500);
+      await serviceClient.from('profiles').delete().eq('id', customerId);
+    }
 
     return json({ ok: true });
   } catch (e: unknown) {
