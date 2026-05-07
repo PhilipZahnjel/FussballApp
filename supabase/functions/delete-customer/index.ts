@@ -59,7 +59,9 @@ Deno.serve(async (req) => {
       .update({ is_active: false })
       .eq('id', customerId);
 
-    // Nullify FK references before auth delete to avoid constraint violations
+    // Remove all user data before auth delete to satisfy FK constraints
+    await serviceClient.from('cancellation_tokens').delete().eq('user_id', customerId);
+    await serviceClient.from('appointments').delete().eq('user_id', customerId);
     await serviceClient.from('notifications').update({ created_by: null }).eq('created_by', customerId);
     await serviceClient.from('appointments').update({ trainer_id: null }).eq('trainer_id', customerId);
 
