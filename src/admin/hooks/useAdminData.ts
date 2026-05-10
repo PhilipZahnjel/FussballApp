@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
 import { PlayerLevel, PlayerType, BookingPermissions } from '../../types';
+import { AppointmentService } from '../../services/appointmentService';
+import { ProfileService } from '../../services/profileService';
+import { CustomerService, CreateCustomerParams } from '../services/customerService';
 
 export type CustomerProfile = {
   id: string;
@@ -52,9 +54,9 @@ export function useAdminData() {
       { data: appointments, error: apptsErr },
       { data: trainerProfiles },
     ] = await Promise.all([
-      supabase.from('profiles').select('*').eq('role', 'customer').order('full_name'),
-      supabase.from('appointments').select('*').order('date', { ascending: false }),
-      supabase.from('profiles').select('id, full_name').in('role', ['admin', 'trainer']).order('full_name'),
+      ProfileService.fetchAllCustomers(),
+      AppointmentService.fetchAllDesc(),
+      ProfileService.fetchTrainers(),
     ]);
     if (profilesErr || apptsErr) {
       setLoadError(profilesErr?.message ?? apptsErr?.message ?? 'Fehler beim Laden.');
@@ -66,9 +68,11 @@ export function useAdminData() {
   };
 
   const cancelAppointment = async (id: string) => {
-    const { error } = await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', id);
+    const { error } = await AppointmentService.updateStatus(id, 'cancelled');
     if (!error) {
-      setAllAppointments(prev => prev.map(a => a.id === id ? { ...a, status: 'cancelled' as const } : a));
+      setAllAppointments(prev => prev.map(a =>
+        a.id === id ? { ...a, status: 'cancelled' as const } : a,
+      ));
     }
     return { error };
   };
@@ -79,27 +83,17 @@ export function useAdminData() {
     sessionBirthYear?: number | null,
     sessionLevel?: string | null,
   ) => {
-    const { data: conflicts } = await supabase
-      .from('appointments')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('date', date)
-      .eq('status', 'confirmed');
-
+    const { data: conflicts } = await AppointmentService.checkDailyConflict(userId, date);
     if (conflicts && conflicts.length > 0) {
       return { error: { message: 'Der Kunde hat an diesem Tag bereits einen Termin.' } };
     }
 
-    const insertData: Record<string, any> = { user_id: userId, date, time, status: 'confirmed', program };
-    if (trainerId) insertData.trainer_id = trainerId;
-    if (sessionBirthYear != null) insertData.session_birth_year = sessionBirthYear;
-    if (sessionLevel) insertData.session_level = sessionLevel;
-
-    const { data, error } = await supabase
-      .from('appointments')
-      .insert(insertData)
-      .select('id, date, time, status, program, user_id, trainer_id, session_birth_year, session_level')
-      .single();
+    const { data, error } = await AppointmentService.insert({
+      user_id: userId, date, time, status: 'confirmed', program,
+      ...(trainerId ? { trainer_id: trainerId } : {}),
+      ...(sessionBirthYear != null ? { session_birth_year: sessionBirthYear } : {}),
+      ...(sessionLevel ? { session_level: sessionLevel } : {}),
+    });
 
     if (data && !error) {
       setAllAppointments(prev => [...prev, data as AdminAppointment]);
@@ -107,21 +101,14 @@ export function useAdminData() {
     return { error };
   };
 
-  const createCustomer = async (params: {
-    email: string;
-    full_name: string;
-    phone: string;
-    birth_date: string;
-    address: string;
-    parent_name: string;
-    player_type: PlayerType | null;
-    location: string;
-  }): Promise<{ error: string | null; tempPassword?: string; customerNumber?: number }> => {
+  const createCustomer = async (
+    params: CreateCustomerParams,
+  ): Promise<{ error: string | null; tempPassword?: string; customerNumber?: number }> => {
     try {
-      const { data, error } = await supabase.functions.invoke('create-customer', { body: params });
+      const { data, error } = await CustomerService.create(params);
       if (error) {
         const body = (error as any).context;
-        const msg = (body && typeof body === 'object' && 'error' in body)
+        const msg = body && typeof body === 'object' && 'error' in body
           ? String(body.error)
           : error.message ?? JSON.stringify(error);
         return { error: msg };
@@ -136,10 +123,10 @@ export function useAdminData() {
 
   const deleteCustomer = async (customerId: string): Promise<{ error: string | null }> => {
     try {
-      const { data, error } = await supabase.functions.invoke('delete-customer', { body: { customerId } });
+      const { data, error } = await CustomerService.delete(customerId);
       if (error) {
         const body = (error as any).context;
-        const msg = (body && typeof body === 'object' && 'error' in body)
+        const msg = body && typeof body === 'object' && 'error' in body
           ? String(body.error)
           : error.message ?? JSON.stringify(error);
         return { error: msg };
@@ -154,19 +141,22 @@ export function useAdminData() {
   };
 
   const saveCustomerLevel = async (customerId: string, level: PlayerLevel | null) => {
-    const { error } = await supabase.from('profiles').update({ level }).eq('id', customerId);
+    const { error } = await ProfileService.update(customerId, { level });
     if (!error) setCustomers(prev => prev.map(c => c.id === customerId ? { ...c, level } : c));
     return { error };
   };
 
   const saveBookingPermissions = async (customerId: string, permissions: Partial<BookingPermissions>) => {
-    const { error } = await supabase.from('profiles').update(permissions).eq('id', customerId);
+    const { error } = await ProfileService.update(customerId, permissions as Record<string, unknown>);
     if (!error) setCustomers(prev => prev.map(c => c.id === customerId ? { ...c, ...permissions } : c));
     return { error };
   };
 
-  const saveCustomerProfile = async (customerId: string, fields: Partial<Pick<CustomerProfile, 'player_type' | 'parent_name' | 'location' | 'birth_date' | 'phone' | 'address'>>) => {
-    const { error } = await supabase.from('profiles').update(fields).eq('id', customerId);
+  const saveCustomerProfile = async (
+    customerId: string,
+    fields: Partial<Pick<CustomerProfile, 'player_type' | 'parent_name' | 'location' | 'birth_date' | 'phone' | 'address'>>,
+  ) => {
+    const { error } = await ProfileService.update(customerId, fields as Record<string, unknown>);
     if (!error) setCustomers(prev => prev.map(c => c.id === customerId ? { ...c, ...fields } : c));
     return { error };
   };

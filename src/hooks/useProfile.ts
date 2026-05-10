@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { PlayerLevel, PlayerType, BookingPermissions } from '../types';
+import { ProfileService } from '../services/profileService';
 
 export type Profile = {
   full_name: string;
@@ -24,11 +25,11 @@ export function useProfile() {
   useEffect(() => {
     let currentUserId: string | null = null;
 
-    load().then(() => {
-      supabase.auth.getUser().then(({ data: { user } }) => {
-        currentUserId = user?.id ?? null;
-      });
-    });
+    const loadForUser = async (userId: string, email: string | null) => {
+      const { data } = await ProfileService.fetchById(userId);
+      setProfile(data ? { ...data, email: email ?? data.email } as Profile : null);
+      setLoading(false);
+    };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       currentUserId = session?.user?.id ?? null;
@@ -44,8 +45,8 @@ export function useProfile() {
       .channel(`profile-changes-${Date.now()}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
         if (currentUserId && payload.new.id === currentUserId) {
-          supabase.auth.getUser().then(({ data: { user } }) => {
-            if (user) loadForUser(user.id, user.email ?? null);
+          supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session?.user) loadForUser(session.user.id, session.user.email ?? null);
           });
         }
       })
@@ -57,21 +58,12 @@ export function useProfile() {
     };
   }, []);
 
-  const loadForUser = async (userId: string, email: string | null) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    setProfile(data ? { ...data, email: email ?? data.email } as Profile : null);
-    setLoading(false);
+  const reload = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return;
+    const { data } = await ProfileService.fetchById(session.user.id);
+    setProfile(data ? { ...data, email: session.user.email ?? data.email } as Profile : null);
   };
 
-  const load = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setLoading(false); return; }
-    await loadForUser(user.id, user.email ?? null);
-  };
-
-  return { profile, loading, reload: load };
+  return { profile, loading, reload };
 }
