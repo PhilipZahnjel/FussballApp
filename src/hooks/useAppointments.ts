@@ -40,45 +40,44 @@ export function useAppointments(profile: Profile | null) {
 
   useEffect(() => {
     let isMounted = true;
-    let initialized = false;
 
-    const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user ?? null;
-      if (!isMounted) return;
-      if (user) { setUserId(user.id); userIdRef.current = user.id; }
-
+    const loadData = async (uid: string) => {
       const [allData, tokenData] = await Promise.all([
         supabase
           .from('appointments')
           .select('id, date, time, status, program, user_id, trainer_id, session_birth_year, session_level')
           .order('date', { ascending: true }),
-        user
-          ? supabase
-              .from('cancellation_tokens')
-              .select('*')
-              .eq('user_id', user.id)
-              .is('used_at', null)
-              .gt('expires_at', new Date().toISOString())
-          : Promise.resolve({ data: [] }),
+        supabase
+          .from('cancellation_tokens')
+          .select('*')
+          .eq('user_id', uid)
+          .is('used_at', null)
+          .gt('expires_at', new Date().toISOString()),
       ]);
-
       if (!isMounted) return;
       if (allData.data) {
         const all = allData.data as Appointment[];
         setAppointments(all);
-        if (user) setMyAppointments(all.filter(a => a.user_id === user.id));
+        setMyAppointments(all.filter(a => a.user_id === uid));
       }
       setActiveTokens((tokenData.data ?? []) as CancellationToken[]);
       setLoading(false);
-      initialized = true;
     };
 
-    init();
-
-    // Re-init on login so appointments load even if session wasn't ready on mount
-    const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' && !initialized && isMounted) init();
+    // onAuthStateChange fires INITIAL_SESSION on mount → handles both first load and login
+    const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!isMounted) return;
+      const user = session?.user ?? null;
+      if (user && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN')) {
+        setUserId(user.id);
+        userIdRef.current = user.id;
+        loadData(user.id);
+      } else if (!user) {
+        setAppointments([]);
+        setMyAppointments([]);
+        setActiveTokens([]);
+        setLoading(false);
+      }
     });
 
     const channel = supabase
