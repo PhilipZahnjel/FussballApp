@@ -34,7 +34,7 @@ export function AdminApp({ onLogout }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const {
-    customers, allAppointments, trainers, loading, loadError,
+    customers, allAppointments, trainers, activeTokensByCustomer, loading, loadError,
     cancelAppointment, addAppointmentForCustomer,
     createCustomer, deleteCustomer,
     saveCustomerLevel, saveBookingPermissions, saveCustomerProfile,
@@ -112,6 +112,7 @@ export function AdminApp({ onLogout }: Props) {
           customer={selectedCustomer}
           appointments={allAppointments.filter(a => a.user_id === selectedCustomer.id)}
           trainers={trainers}
+          tokenCounts={activeTokensByCustomer[selectedCustomer.id]}
           onBack={() => setSelectedCustomerId(null)}
           onCancelAppointment={cancelAppointment}
           onAddAppointment={addAppointmentForCustomer}

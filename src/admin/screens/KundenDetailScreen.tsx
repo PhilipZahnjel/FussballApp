@@ -33,6 +33,7 @@ interface Props {
   customer: CustomerProfile;
   appointments: AdminAppointment[];
   trainers: TrainerProfile[];
+  tokenCounts?: { individual: number; gruppe: number };
   onBack: () => void;
   onCancelAppointment: (id: string) => Promise<{ error: any }>;
   onAddAppointment: (userId: string, date: string, time: string, program: string, trainerId?: string | null, sessionBirthYear?: number | null, sessionLevel?: string | null) => Promise<{ error: any }>;
@@ -86,7 +87,7 @@ function ApptRow({ appt, onCancel }: { appt: AdminAppointment; onCancel?: (id: s
 }
 
 export function KundenDetailScreen({
-  customer, appointments, trainers,
+  customer, appointments, trainers, tokenCounts,
   onBack, onCancelAppointment, onAddAppointment,
   onSaveLevel, onSaveBookingPermissions, onSaveProfile, onDeleteCustomer,
 }: Props) {
@@ -108,11 +109,9 @@ export function KundenDetailScreen({
   const [levelLoading, setLevelLoading] = useState(false);
   const [levelError, setLevelError] = useState<string | null>(null);
 
-  // Berechtigungen & Kontingent
+  // Berechtigungen
   const [permLoading, setPermLoading] = useState(false);
   const [permError, setPermError] = useState<string | null>(null);
-  const [quotaIndividual, setQuotaIndividual] = useState(String(customer.quota_individual ?? 0));
-  const [quotaGruppe, setQuotaGruppe] = useState(String(customer.quota_gruppe ?? 0));
 
   // Profil-Bearbeitung
   const [editProfile, setEditProfile] = useState(false);
@@ -127,6 +126,8 @@ export function KundenDetailScreen({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const confirmedTotal = appointments.filter(a => a.status === 'confirmed').length;
 
   const upcoming = appointments
     .filter(a => a.date >= ts && a.status === 'confirmed')
@@ -163,18 +164,6 @@ export function KundenDetailScreen({
   const doTogglePermission = async (key: keyof BookingPermissions, value: boolean) => {
     setPermError(null);
     const { error } = await onSaveBookingPermissions(customer.id, { [key]: value });
-    if (error) setPermError(error.message ?? 'Fehler beim Speichern.');
-  };
-
-  const doSaveQuotas = async () => {
-    const qi = parseInt(quotaIndividual);
-    const qg = parseInt(quotaGruppe);
-    if (isNaN(qi) || qi < 0 || qi > 4) { setPermError('Individual-Kontingent muss 0–4 sein.'); return; }
-    if (isNaN(qg) || qg < 0 || qg > 4) { setPermError('Gruppen-Kontingent muss 0–4 sein.'); return; }
-    setPermLoading(true);
-    setPermError(null);
-    const { error } = await onSaveBookingPermissions(customer.id, { quota_individual: qi, quota_gruppe: qg });
-    setPermLoading(false);
     if (error) setPermError(error.message ?? 'Fehler beim Speichern.');
   };
 
@@ -358,40 +347,23 @@ export function KundenDetailScreen({
           </View>
         ))}
 
-        <Text style={styles.quotaTitle}>Monatliches Guthaben</Text>
-        <View style={styles.quotaRow}>
-          <View style={styles.quotaField}>
-            <Text style={styles.fieldLabel}>Einzeltraining (0–4)</Text>
-            <TextInput
-              style={styles.quotaInput}
-              value={quotaIndividual}
-              onChangeText={setQuotaIndividual}
-              keyboardType="number-pad"
-              maxLength={1}
-              placeholderTextColor="#9CA3AF"
-            />
+        {permError && <Text style={styles.fieldError}>{permError}</Text>}
+
+        <Text style={styles.quotaTitle}>Aktive Nachholtermine</Text>
+        <View style={styles.tokenDisplayRow}>
+          <View style={styles.tokenDisplayItem}>
+            <Text style={styles.tokenDisplayCount}>{tokenCounts?.individual ?? 0}</Text>
+            <Text style={styles.tokenDisplayLabel}>Einzeltraining</Text>
           </View>
-          <View style={styles.quotaField}>
-            <Text style={styles.fieldLabel}>Gruppentraining (0–4)</Text>
-            <TextInput
-              style={styles.quotaInput}
-              value={quotaGruppe}
-              onChangeText={setQuotaGruppe}
-              keyboardType="number-pad"
-              maxLength={1}
-              placeholderTextColor="#9CA3AF"
-            />
+          <View style={styles.tokenDisplayItem}>
+            <Text style={styles.tokenDisplayCount}>{tokenCounts?.gruppe ?? 0}</Text>
+            <Text style={styles.tokenDisplayLabel}>Gruppentraining</Text>
+          </View>
+          <View style={styles.tokenDisplayItem}>
+            <Text style={styles.tokenDisplayCount}>{confirmedTotal}</Text>
+            <Text style={styles.tokenDisplayLabel}>Termine gesamt</Text>
           </View>
         </View>
-        {permError && <Text style={styles.fieldError}>{permError}</Text>}
-        <TouchableOpacity
-          style={[styles.saveBtn, permLoading && { opacity: 0.6 }]}
-          onPress={doSaveQuotas}
-          activeOpacity={0.7}
-          disabled={permLoading}
-        >
-          <Text style={styles.saveBtnText}>{permLoading ? 'Speichern...' : 'Guthaben speichern'}</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Termine */}
@@ -562,10 +534,11 @@ const styles = StyleSheet.create({
   permRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
   permLabel: { fontSize: 14, color: '#374151', fontWeight: '500' },
   quotaTitle: { fontSize: 13, fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 16, marginBottom: 8 },
-  quotaRow: { flexDirection: 'row', gap: 14 },
-  quotaField: { flex: 1 },
+  tokenDisplayRow: { flexDirection: 'row', gap: 10 },
+  tokenDisplayItem: { flex: 1, backgroundColor: '#F9FAFB', borderRadius: 10, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB' },
+  tokenDisplayCount: { fontSize: 28, fontWeight: '800', color: '#111827' },
+  tokenDisplayLabel: { fontSize: 11, fontWeight: '600', color: '#9CA3AF', marginTop: 4, textAlign: 'center' },
   fieldLabel: { fontSize: 12, fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, marginTop: 4 },
-  quotaInput: { backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 18, fontWeight: '700', color: '#111827', textAlign: 'center', outlineWidth: 0 } as any,
   formSection: { backgroundColor: '#F9FAFB', borderRadius: 10, padding: 16, marginBottom: 16 },
   input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: '#111827', outlineWidth: 0 } as any,
   saveBtn: { backgroundColor: '#4A7FD4', borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 16 },

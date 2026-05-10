@@ -24,4 +24,11 @@ export const TokenService = {
       .from('cancellation_tokens')
       .update({ used_at: new Date().toISOString() })
       .eq('id', id),
+
+  fetchAllActive: () =>
+    supabase
+      .from('cancellation_tokens')
+      .select('user_id, category')
+      .is('used_at', null)
+      .gt('expires_at', new Date().toISOString()),
 };

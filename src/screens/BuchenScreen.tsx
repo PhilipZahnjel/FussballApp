@@ -26,8 +26,7 @@ interface Props {
 }
 
 
-type Step = 'program' | 'date' | 'time' | 'confirm' | 'done';
-const STEPS: Step[] = ['program', 'date', 'time', 'confirm'];
+type Step = 'category' | 'program' | 'date' | 'time' | 'confirm' | 'done';
 
 function FadeUp({ children }: { children: React.ReactNode }) {
   const fade = useRef(new Animated.Value(0)).current;
@@ -80,13 +79,35 @@ function isProgramAllowed(profile: Profile, programId: string): boolean {
 
 export function BuchenScreen({ appointments, myAppointments, profile, activeTokens, addAppointment, setTab }: Props) {
   const insets = useSafeAreaInsets();
-  const [step, setStep] = useState<Step>('program');
+  const [step, setStep] = useState<Step>('category');
+  const [selectedCategory, setSelectedCategory] = useState<'individual' | 'gruppe' | null>(null);
   const [selProgram, setSelProgram] = useState<string | null>(null);
   const [selDate, setSelDate] = useState<string | null>(null);
   const [selTime, setSelTime] = useState<string | null>(null);
   const [calM, setCalM] = useState(new Date().getMonth());
   const [calY, setCalY] = useState(new Date().getFullYear());
   const [bookingError, setBookingError] = useState<string | null>(null);
+
+  const tokenIndividual = activeTokens.find(t => t.category === 'individual');
+  const tokenGruppe = activeTokens.find(t => t.category === 'gruppe');
+  const hasBothCategories = !!(tokenIndividual && tokenGruppe);
+
+  const STEPS: Step[] = hasBothCategories
+    ? ['category', 'program', 'date', 'time', 'confirm']
+    : ['program', 'date', 'time', 'confirm'];
+
+  // Effective category for program filtering
+  const effectiveCategory: 'individual' | 'gruppe' | null =
+    selectedCategory ??
+    (tokenIndividual && !tokenGruppe ? 'individual' :
+     tokenGruppe && !tokenIndividual ? 'gruppe' : null);
+
+  // Skip category step if only one (or zero) token categories
+  React.useEffect(() => {
+    if (step === 'category' && !hasBothCategories) {
+      setStep('program');
+    }
+  }, [step, hasBothCategories]);
 
   const ts = todayStr();
   const stepIdx = STEPS.indexOf(step);
@@ -97,10 +118,50 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
     : [];
 
 
+  // ── CategoryStep ──────────────────────────────────────────────
+  function CategoryStep() {
+    return (
+      <FadeUp>
+        <SectionTitle t="Nachholtermin buchen" sub="Welche Art von Training möchtest du nachholen?" />
+        <TouchableOpacity
+          onPress={() => { setSelectedCategory('individual'); setStep('program'); }}
+          activeOpacity={0.8}
+          style={[styles.categoryCard, { borderColor: '#4A8FE8' }]}
+        >
+          <View style={[styles.categoryIcon, { backgroundColor: '#4A8FE8' + '22' }]}>
+            <Text style={styles.categoryEmoji}>🏃</Text>
+          </View>
+          <View style={styles.categoryBody}>
+            <Text style={[styles.categoryName, { color: '#4A8FE8' }]}>Einzeltraining nachholen</Text>
+            {tokenIndividual && (
+              <Text style={styles.categoryExpiry}>Gültig bis {fmtDate(tokenIndividual.expires_at.slice(0, 10))}</Text>
+            )}
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => { setSelectedCategory('gruppe'); setStep('program'); }}
+          activeOpacity={0.8}
+          style={[styles.categoryCard, { borderColor: '#3DBFA0' }]}
+        >
+          <View style={[styles.categoryIcon, { backgroundColor: '#3DBFA0' + '22' }]}>
+            <Text style={styles.categoryEmoji}>👥</Text>
+          </View>
+          <View style={styles.categoryBody}>
+            <Text style={[styles.categoryName, { color: '#3DBFA0' }]}>Gruppentraining nachholen</Text>
+            {tokenGruppe && (
+              <Text style={styles.categoryExpiry}>Gültig bis {fmtDate(tokenGruppe.expires_at.slice(0, 10))}</Text>
+            )}
+          </View>
+        </TouchableOpacity>
+      </FadeUp>
+    );
+  }
+
   // ── ProgramStep ───────────────────────────────────────────────
   function ProgramStep() {
-    const tokenIndividual = activeTokens.find(t => t.category === 'individual');
-    const tokenGruppe = activeTokens.find(t => t.category === 'gruppe');
+    const visiblePrograms = effectiveCategory
+      ? allowedPrograms.filter(p => PROGRAM_CATEGORY[p.id as ProgramId] === effectiveCategory)
+      : allowedPrograms;
 
     if (activeTokens.length === 0) {
       return (
@@ -119,35 +180,17 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
 
     return (
       <FadeUp>
+        {hasBothCategories && <BackBtn onPress={() => setStep('category')} />}
         <SectionTitle t="Nachholtermin buchen" sub="Wähle deine Trainingseinheit" />
 
-        <View style={styles.tokenBanner}>
-          {tokenIndividual && (
-            <View style={styles.tokenRow}>
-              <Text style={styles.tokenIcon}>🎫</Text>
-              <Text style={styles.tokenText}>
-                Nachholtermin Individual bis {fmtDate(tokenIndividual.expires_at.slice(0, 10))}
-              </Text>
-            </View>
-          )}
-          {tokenGruppe && (
-            <View style={styles.tokenRow}>
-              <Text style={styles.tokenIcon}>🎫</Text>
-              <Text style={styles.tokenText}>
-                Nachholtermin Gruppe bis {fmtDate(tokenGruppe.expires_at.slice(0, 10))}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {allowedPrograms.length === 0 ? (
+        {visiblePrograms.length === 0 ? (
           <View style={styles.noPrograms}>
             <Text style={styles.noProgramsIcon}>⚽</Text>
             <Text style={styles.noProgramsTitle}>Keine Trainingseinheiten verfügbar</Text>
             <Text style={styles.noProgramsText}>Wende dich an deinen Trainer, um Buchungsberechtigungen zu erhalten.</Text>
           </View>
         ) : (
-          allowedPrograms.map(p => (
+          visiblePrograms.map(p => (
             <TouchableOpacity
               key={p.id}
               onPress={() => { setSelProgram(p.id); setStep('date'); }}
@@ -399,6 +442,7 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
           </View>
         </>
       )}
+      {step === 'category' && <CategoryStep />}
       {step === 'program' && <ProgramStep />}
       {step === 'date' && <DateStep />}
       {step === 'time' && <TimeStep />}
@@ -426,6 +470,21 @@ const styles = StyleSheet.create({
   quotaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
   quotaChip: { backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
   quotaText: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.8)' },
+  categoryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 16,
+    borderWidth: 2,
+    padding: 20,
+    marginBottom: 14,
+  },
+  categoryIcon: { width: 56, height: 56, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  categoryEmoji: { fontSize: 28 },
+  categoryBody: { flex: 1 },
+  categoryName: { fontSize: 16, fontWeight: '800' },
+  categoryExpiry: { fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 4 },
   noPrograms: { alignItems: 'center', paddingTop: 40, paddingHorizontal: 20 },
   noProgramsIcon: { fontSize: 48, marginBottom: 16 },
   noProgramsTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 10, textAlign: 'center' },

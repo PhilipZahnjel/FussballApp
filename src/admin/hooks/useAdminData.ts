@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { PlayerLevel, PlayerType, BookingPermissions } from '../../types';
 import { AppointmentService } from '../../services/appointmentService';
 import { ProfileService } from '../../services/profileService';
+import { TokenService } from '../../services/tokenService';
 import { CustomerService, CreateCustomerParams } from '../services/customerService';
+import { PROGRAM_CATEGORY, ProgramId } from '../../constants/programs';
 
 export type CustomerProfile = {
   id: string;
@@ -41,6 +43,7 @@ export function useAdminData() {
   const [customers, setCustomers] = useState<CustomerProfile[]>([]);
   const [allAppointments, setAllAppointments] = useState<AdminAppointment[]>([]);
   const [trainers, setTrainers] = useState<TrainerProfile[]>([]);
+  const [activeTokensByCustomer, setActiveTokensByCustomer] = useState<Record<string, { individual: number; gruppe: number }>>({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -53,10 +56,12 @@ export function useAdminData() {
       { data: profiles, error: profilesErr },
       { data: appointments, error: apptsErr },
       { data: trainerProfiles },
+      { data: allTokens },
     ] = await Promise.all([
       ProfileService.fetchAllCustomers(),
       AppointmentService.fetchAllDesc(),
       ProfileService.fetchTrainers(),
+      TokenService.fetchAllActive(),
     ]);
     if (profilesErr || apptsErr) {
       setLoadError(profilesErr?.message ?? apptsErr?.message ?? 'Fehler beim Laden.');
@@ -64,15 +69,41 @@ export function useAdminData() {
     setCustomers((profiles ?? []) as CustomerProfile[]);
     setAllAppointments((appointments ?? []) as AdminAppointment[]);
     setTrainers((trainerProfiles ?? []) as TrainerProfile[]);
+
+    const tokenMap: Record<string, { individual: number; gruppe: number }> = {};
+    for (const token of (allTokens ?? []) as { user_id: string; category: string }[]) {
+      if (!tokenMap[token.user_id]) tokenMap[token.user_id] = { individual: 0, gruppe: 0 };
+      if (token.category === 'individual') tokenMap[token.user_id].individual++;
+      else if (token.category === 'gruppe') tokenMap[token.user_id].gruppe++;
+    }
+    setActiveTokensByCustomer(tokenMap);
+
     setLoading(false);
   };
 
   const cancelAppointment = async (id: string) => {
+    const appt = allAppointments.find(a => a.id === id);
     const { error } = await AppointmentService.updateStatus(id, 'cancelled');
-    if (!error) {
+    if (!error && appt) {
+      const category = PROGRAM_CATEGORY[appt.program as ProgramId] ?? 'individual';
+      const expiresAt = new Date();
+      expiresAt.setMonth(expiresAt.getMonth() + 1);
+      await TokenService.insert({
+        user_id: appt.user_id,
+        category,
+        expires_at: expiresAt.toISOString(),
+        source_appointment_id: id,
+      });
       setAllAppointments(prev => prev.map(a =>
         a.id === id ? { ...a, status: 'cancelled' as const } : a,
       ));
+      setActiveTokensByCustomer(prev => ({
+        ...prev,
+        [appt.user_id]: {
+          individual: (prev[appt.user_id]?.individual ?? 0) + (category === 'individual' ? 1 : 0),
+          gruppe: (prev[appt.user_id]?.gruppe ?? 0) + (category === 'gruppe' ? 1 : 0),
+        },
+      }));
     }
     return { error };
   };
@@ -162,7 +193,7 @@ export function useAdminData() {
   };
 
   return {
-    customers, allAppointments, trainers, loading, loadError,
+    customers, allAppointments, trainers, activeTokensByCustomer, loading, loadError,
     cancelAppointment, addAppointmentForCustomer,
     createCustomer, deleteCustomer,
     saveCustomerLevel, saveBookingPermissions, saveCustomerProfile,
