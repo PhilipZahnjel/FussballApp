@@ -11,11 +11,8 @@ import { Btn } from '../components/Btn';
 import { useProfile } from '../hooks/useProfile';
 import { supabase } from '../lib/supabase';
 import { STUDIO } from '../constants/studio';
-import { CancellationToken } from '../types';
-
 interface Props {
   onLogout: () => void;
-  activeTokens: CancellationToken[];
 }
 
 function InfoRow({ label, value, last }: { label: string; value: string; last?: boolean }) {
@@ -53,7 +50,7 @@ function fmtDate(iso: string) {
   return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-export function ProfilScreen({ onLogout, activeTokens }: Props) {
+export function ProfilScreen({ onLogout }: Props) {
   const insets = useSafeAreaInsets();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(16)).current;
@@ -127,9 +124,6 @@ export function ProfilScreen({ onLogout, activeTokens }: Props) {
     }
     setContactLoading(false);
   };
-
-  const tokenIndividual = activeTokens.filter(t => t.category === 'individual');
-  const tokenGruppe = activeTokens.filter(t => t.category === 'gruppe');
 
   const playerTypeLabel = profile?.player_type === 'torwart' ? 'Torwart' : profile?.player_type === 'feldspieler' ? 'Feldspieler' : '—';
 
@@ -215,27 +209,6 @@ export function ProfilScreen({ onLogout, activeTokens }: Props) {
           )}
         </SectionCard>
 
-        {/* Kontingent / Nachholtermine */}
-        {(tokenIndividual.length > 0 || tokenGruppe.length > 0) && (
-          <SectionCard title="Nachholtermine">
-            {tokenIndividual.length > 0 && (
-              <View style={[styles.infoRow, styles.infoRowBorder]}>
-                <Text style={styles.infoKey}>LYMPH (Einzeltraining)</Text>
-                <Text style={[styles.infoVal, { color: C.accent }]}>
-                  {tokenIndividual.length}x bis {fmtDate(tokenIndividual[0].expires_at.slice(0, 10))}
-                </Text>
-              </View>
-            )}
-            {tokenGruppe.length > 0 && (
-              <View style={styles.infoRow}>
-                <Text style={styles.infoKey}>EMS (Gruppentraining)</Text>
-                <Text style={[styles.infoVal, { color: C.accent }]}>
-                  {tokenGruppe.length}x bis {fmtDate(tokenGruppe[0].expires_at.slice(0, 10))}
-                </Text>
-              </View>
-            )}
-          </SectionCard>
-        )}
 
         {/* Allgemein */}
         <SectionCard title="Allgemein">

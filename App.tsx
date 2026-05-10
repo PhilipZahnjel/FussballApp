@@ -121,7 +121,7 @@ export default function App() {
               <InfosScreen profile={profile} />
             )}
             {tab === 'profil' && (
-              <ProfilScreen onLogout={doLogout} activeTokens={activeTokens} />
+              <ProfilScreen onLogout={doLogout} />
             )}
           </View>
           <BottomNav tab={tab} setTab={setTab} />
