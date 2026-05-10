@@ -40,9 +40,11 @@ export function useAppointments(profile: Profile | null) {
 
   useEffect(() => {
     let isMounted = true;
+    let initialized = false;
 
     const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user ?? null;
       if (!isMounted) return;
       if (user) { setUserId(user.id); userIdRef.current = user.id; }
 
@@ -69,12 +71,18 @@ export function useAppointments(profile: Profile | null) {
       }
       setActiveTokens((tokenData.data ?? []) as CancellationToken[]);
       setLoading(false);
+      initialized = true;
     };
 
     init();
 
+    // Re-init on login so appointments load even if session wasn't ready on mount
+    const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' && !initialized && isMounted) init();
+    });
+
     const channel = supabase
-      .channel('appointments-live')
+      .channel(`appointments-live-${Date.now()}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'appointments' }, (payload) => {
         if (!isMounted) return;
         const appt = payload.new as Appointment;
@@ -93,6 +101,7 @@ export function useAppointments(profile: Profile | null) {
 
     return () => {
       isMounted = false;
+      authSub.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, []);
