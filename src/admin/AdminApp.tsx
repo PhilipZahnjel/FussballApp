@@ -41,7 +41,7 @@ export function AdminApp({ onLogout }: Props) {
     cancelAppointment, addAppointmentForCustomer,
     createCustomer, deleteCustomer,
     saveCustomerLevel, saveBookingPermissions, saveCustomerProfile,
-    toggleScheduleSlot, createTrainer,
+    toggleScheduleSlot, createTrainer, updateTrainer, deleteTrainer,
   } = useAdminData();
 
   const [calendarDay, setCalendarDay] = useState<string | undefined>(undefined);
@@ -147,6 +147,8 @@ export function AdminApp({ onLogout }: Props) {
           trainerSchedules={trainerSchedules}
           onToggleSlot={toggleScheduleSlot}
           onCreateTrainer={createTrainer}
+          onUpdateTrainer={updateTrainer}
+          onDeleteTrainer={deleteTrainer}
         />
       )}
       {tab === 'infos' && (

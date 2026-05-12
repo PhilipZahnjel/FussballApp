@@ -11,7 +11,7 @@ export const ProfileService = {
     supabase
       .from('profiles')
       .select('id, full_name, trainer_specialty')
-      .in('role', ['admin', 'trainer'])
+      .eq('role', 'trainer')
       .order('full_name'),
 
   update: (userId: string, fields: Record<string, unknown>) =>

@@ -4,14 +4,14 @@ import { Appointment } from '../types';
 
 export type AppointmentSlim = { date: string; time: string; status: string; program: string };
 
-// 1 Termin pro Tag — keine Ausnahmen
+// Max. 2 Termine pro Tag
 export function checkDailyConflict(
   existing: AppointmentSlim[],
   newDate: string,
 ): { allowed: boolean; reason?: string } {
   const confirmed = existing.filter(a => a.date === newDate && a.status === 'confirmed');
-  if (confirmed.length === 0) return { allowed: true };
-  return { allowed: false, reason: 'Du hast an diesem Tag bereits einen Termin.' };
+  if (confirmed.length < 2) return { allowed: true };
+  return { allowed: false, reason: 'Du hast an diesem Tag bereits zwei Termine.' };
 }
 
 // Prüft ob Kunde diesen Programmtyp buchen darf

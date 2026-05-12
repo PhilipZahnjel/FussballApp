@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, useWindowDimensions } from 'react-native';
 // TextInput retained for customer search field
 import { CustomerProfile, AdminAppointment, TrainerProfile } from '../hooks/useAdminData';
 import { PROGRAMS, PROGRAM_CATEGORY, ProgramId } from '../../constants/programs';
@@ -51,6 +51,7 @@ interface Props {
 
 export function TerminkalenderScreen({ customers, allAppointments, trainers, loading, initialDay, onCancelAppointment, onAddAppointment }: Props) {
   const todayStr = dateStr(new Date());
+  const { width: winW } = useWindowDimensions();
 
   const [viewMode, setViewMode] = useState<'week' | 'day'>(initialDay ? 'day' : 'week');
   const [dayDate, setDayDate] = useState(initialDay ?? todayStr);
@@ -58,6 +59,7 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
   const [selectedApptId, setSelectedApptId] = useState<string | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [expandedGroupKey, setExpandedGroupKey] = useState<string | null>(null);
 
   const [bookingDay, setBookingDay] = useState<string | null>(null);
   const [bookCustomerSearch, setBookCustomerSearch] = useState('');
@@ -361,56 +363,101 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
             </View>
           )}
 
-          {ALL_SLOTS.map(slot => {
-            const slotAppts = dayAppts.filter(a => a.time === slot);
-            if (slotAppts.length === 0) return null;
+          {dayAppts.length > 0 && (() => {
+            const cols = trainers as TrainerProfile[];
+            const numCols = cols.length || 1;
+            // Fenster minus Sidebar (220px Desktop / 0px Mobile) minus ScrollView-Padding (32px) minus Zeitspalte
+            const sidebarW = winW >= 768 ? 220 : 0;
+            const availW = winW - sidebarW - 32 - TIME_COL_W;
+            const colW = Math.max(150, Math.floor(availW / numCols));
+
+            const selAppt = selectedApptId ? dayAppts.find(a => a.id === selectedApptId) : null;
+            const selCust = selAppt ? customers.find(c => c.id === selAppt.user_id) : null;
+            const selProg = selAppt ? PROGRAMS.find(p => p.id === selAppt.program) : null;
+            const selTrainer = selAppt?.trainer_id ? trainers.find(t => t.id === selAppt.trainer_id) : null;
+            const selColor = selAppt ? (PROGRAM_COLORS[selAppt.program] ?? '#5A8C6A') : '#5A8C6A';
+            const colStyle = { width: colW };
+
             return (
-              <View key={slot} style={styles.slotBlock}>
-                <View style={styles.slotTimeCol}>
-                  <Text style={styles.slotTime}>{slot}</Text>
-                </View>
-                <View style={styles.slotAppts}>
-                  {slotAppts.map(a => {
-                    const customer = customers.find(c => c.id === a.user_id);
-                    const trainer = trainers.find(t => t.id === a.trainer_id);
-                    const prog = PROGRAMS.find(p => p.id === a.program);
-                    const color = PROGRAM_COLORS[a.program] ?? '#5A8C6A';
-                    const isSelected = selectedApptId === a.id;
-                    return (
-                      <View key={a.id}>
-                        <TouchableOpacity
-                          style={[styles.dayApptCard, { borderLeftColor: color }, isSelected && styles.dayApptCardSelected]}
-                          onPress={() => { setSelectedApptId(isSelected ? null : a.id); setCancelError(null); setBookingDay(null); }}
-                          activeOpacity={0.7}
-                        >
-                          <View style={[styles.dayApptColorBar, { backgroundColor: color }]} />
-                          <View style={styles.dayApptInfo}>
-                            <Text style={[styles.dayApptProg, { color }]}>{prog?.name ?? a.program}</Text>
-                            <Text style={styles.dayApptCustomer}>{customer?.full_name ?? '—'}</Text>
-                            {trainer && <Text style={styles.dayApptTrainer}>Trainer: {trainer.full_name}</Text>}
-                          </View>
-                          <Text style={styles.dayApptTime}>{a.time} Uhr</Text>
-                        </TouchableOpacity>
-                        {isSelected && (
-                          <View style={styles.apptActions}>
-                            {cancelError && <Text style={styles.apptActionError}>{cancelError}</Text>}
-                            <TouchableOpacity
-                              style={[styles.stornBtn, cancelLoading && { opacity: 0.6 }]}
-                              onPress={() => handleCancelAppt(a.id)}
-                              activeOpacity={0.7}
-                              disabled={cancelLoading}
-                            >
-                              <Text style={styles.stornBtnText}>{cancelLoading ? 'Stornieren...' : 'Termin stornieren'}</Text>
-                            </TouchableOpacity>
-                          </View>
-                        )}
+              <View>
+                <ScrollView horizontal={colW === 150} showsHorizontalScrollIndicator={true}>
+                  <View>
+                    {/* Header */}
+                    <View style={[gStyles.row, gStyles.headerRow]}>
+                      <View style={gStyles.timeCol}>
+                        <Text style={gStyles.headerText}>Zeit</Text>
                       </View>
-                    );
-                  })}
-                </View>
+                      {cols.map(t => (
+                        <View key={t.id} style={[gStyles.trainerCol, colStyle]}>
+                          <Text style={gStyles.headerText} numberOfLines={1}>{t.full_name}</Text>
+                          {t.trainer_specialty && (
+                            <View style={[gStyles.specialtyBadge, { backgroundColor: t.trainer_specialty === 'torwart' ? '#9B59B6' : '#4A8FE8' }]}>
+                              <Text style={gStyles.specialtyText}>{t.trainer_specialty === 'torwart' ? 'Torwart' : 'Spieler'}</Text>
+                            </View>
+                          )}
+                        </View>
+                      ))}
+                    </View>
+
+                    {/* Slot rows */}
+                    {ALL_SLOTS.map((slot, i) => (
+                      <View key={slot} style={[gStyles.row, i % 2 === 1 && gStyles.rowAlt]}>
+                        <View style={gStyles.timeCol}>
+                          <Text style={gStyles.timeText}>{slot}</Text>
+                        </View>
+                        {cols.map(t => {
+                          const cellAppts = dayAppts.filter(a => a.trainer_id === t.id && a.time === slot);
+                          return (
+                            <View key={t.id} style={[gStyles.cell, colStyle]}>
+                              {cellAppts.map(a => {
+                                const cust = customers.find(c => c.id === a.user_id);
+                                const color = PROGRAM_COLORS[a.program] ?? '#5A8C6A';
+                                const isSel = selectedApptId === a.id;
+                                return (
+                                  <TouchableOpacity
+                                    key={a.id}
+                                    style={[gStyles.tag, { backgroundColor: color }, isSel && gStyles.tagSelected]}
+                                    onPress={() => { setSelectedApptId(isSel ? null : a.id); setCancelError(null); setBookingDay(null); }}
+                                    activeOpacity={0.85}
+                                  >
+                                    <Text style={gStyles.tagText} numberOfLines={1}>{cust?.full_name ?? '—'}</Text>
+                                  </TouchableOpacity>
+                                );
+                              })}
+                            </View>
+                          );
+                        })}
+                      </View>
+                    ))}
+                  </View>
+                </ScrollView>
+
+                {selAppt && (
+                  <View style={gStyles.selPanel}>
+                    <View style={[gStyles.selBar, { backgroundColor: selColor }]} />
+                    <View style={gStyles.selInfo}>
+                      <Text style={gStyles.selName}>{selCust?.full_name ?? '—'}</Text>
+                      <Text style={gStyles.selSub}>
+                        {selProg?.name} · {selAppt.time} Uhr{selTrainer ? ` · ${selTrainer.full_name}` : ''}
+                      </Text>
+                      {cancelError && <Text style={styles.apptActionError}>{cancelError}</Text>}
+                      <TouchableOpacity
+                        style={[gStyles.stornBtn, cancelLoading && { opacity: 0.6 }]}
+                        onPress={() => handleCancelAppt(selAppt.id)}
+                        activeOpacity={0.7}
+                        disabled={cancelLoading}
+                      >
+                        <Text style={gStyles.stornBtnText}>{cancelLoading ? 'Stornieren...' : 'Termin stornieren'}</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <TouchableOpacity onPress={() => setSelectedApptId(null)} style={gStyles.selClose}>
+                      <Text style={gStyles.selCloseText}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
             );
-          })}
+          })()}
         </ScrollView>
       </View>
     );
@@ -480,37 +527,76 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
                 <View style={styles.dayAppts}>
                   {dayAppts.length === 0 ? (
                     <View style={styles.emptyDay} />
-                  ) : (
-                    dayAppts.map(a => {
-                      const customer = customers.find(c => c.id === a.user_id);
-                      const prog = PROGRAMS.find(p => p.id === a.program);
-                      const color = PROGRAM_COLORS[a.program] ?? '#5A8C6A';
-                      const isSelected = selectedApptId === a.id;
+                  ) : (() => {
+                    const grouped = new Map<string, typeof dayAppts>();
+                    dayAppts.forEach(a => {
+                      const key = `${a.time}|${a.program}|${a.trainer_id ?? ''}`;
+                      if (!grouped.has(key)) grouped.set(key, []);
+                      grouped.get(key)!.push(a);
+                    });
+                    return Array.from(grouped.entries()).map(([key, appts]) => {
+                      const first = appts[0];
+                      const color = PROGRAM_COLORS[first.program] ?? '#5A8C6A';
+                      const prog = PROGRAMS.find(p => p.id === first.program);
+                      const trainer = first.trainer_id ? trainers.find(t => t.id === first.trainer_id) : null;
+                      const isGruppe = PROGRAM_CATEGORY[first.program as ProgramId] === 'gruppe';
+                      const cap = isGruppe ? 4 : 1;
+                      const isExpanded = expandedGroupKey === key;
 
                       return (
-                        <View key={a.id}>
+                        <View key={key}>
                           <TouchableOpacity
-                            style={[styles.apptChip, { borderLeftColor: color }, isSelected && styles.apptChipSelected]}
-                            onPress={() => {
-                              setSelectedApptId(isSelected ? null : a.id);
-                              setCancelError(null);
-                              setBookingDay(null);
-                            }}
+                            style={[styles.compactCard, { borderLeftColor: color }, isExpanded && styles.compactCardExpanded]}
+                            onPress={() => { setExpandedGroupKey(isExpanded ? null : key); setCancelError(null); setBookingDay(null); }}
                             activeOpacity={0.7}
                           >
-                            <Text style={styles.apptTime}>{a.time}</Text>
-                            <Text style={[styles.apptProg, { color }]} numberOfLines={1}>{prog?.name ?? a.program}</Text>
-                            <Text style={styles.apptCustomer} numberOfLines={1}>{customer?.full_name ?? '—'}</Text>
+                            <View style={[styles.compactColorDot, { backgroundColor: color }]} />
+                            <View style={styles.compactInfo}>
+                              <View style={styles.compactTopRow}>
+                                <Text style={styles.compactTime}>{first.time}</Text>
+                                <Text style={[styles.compactProg, { color }]} numberOfLines={1}>{prog?.name ?? first.program}</Text>
+                              </View>
+                              {isGruppe ? (
+                                <Text style={styles.compactMeta}>{appts.length}/{cap} Teiln.</Text>
+                              ) : (
+                                <Text style={styles.compactMeta} numberOfLines={1}>
+                                  {customers.find(c => c.id === first.user_id)?.full_name ?? '—'}
+                                </Text>
+                              )}
+                              {trainer && <Text style={styles.compactTrainerLabel} numberOfLines={1}>{trainer.full_name}</Text>}
+                            </View>
+                            <Text style={styles.expandArrow}>{isExpanded ? '▴' : '▾'}</Text>
                           </TouchableOpacity>
-                          {isSelected && (
+
+                          {isExpanded && isGruppe && (
+                            <View style={styles.expandedParticipants}>
+                              {appts.map(a => {
+                                const cust = customers.find(c => c.id === a.user_id);
+                                const isThis = selectedApptId === a.id;
+                                return (
+                                  <View key={a.id} style={styles.participantRow}>
+                                    <Text style={styles.participantName} numberOfLines={1}>{cust?.full_name ?? '—'}</Text>
+                                    {cancelError && isThis && <Text style={styles.apptActionError}>{cancelError}</Text>}
+                                    <TouchableOpacity
+                                      style={[styles.miniStornBtn, cancelLoading && isThis && { opacity: 0.5 }]}
+                                      onPress={() => { setSelectedApptId(a.id); handleCancelAppt(a.id); }}
+                                      activeOpacity={0.7}
+                                      disabled={cancelLoading && isThis}
+                                    >
+                                      <Text style={styles.miniStornBtnText}>{cancelLoading && isThis ? '...' : '✕'}</Text>
+                                    </TouchableOpacity>
+                                  </View>
+                                );
+                              })}
+                            </View>
+                          )}
+
+                          {isExpanded && !isGruppe && (
                             <View style={styles.apptActions}>
-                              <Text style={styles.apptActionInfo}>
-                                {fmtDate(a.date)} · {a.time} Uhr
-                              </Text>
                               {cancelError && <Text style={styles.apptActionError}>{cancelError}</Text>}
                               <TouchableOpacity
                                 style={[styles.stornBtn, cancelLoading && { opacity: 0.6 }]}
-                                onPress={() => handleCancelAppt(a.id)}
+                                onPress={() => handleCancelAppt(first.id)}
                                 activeOpacity={0.7}
                                 disabled={cancelLoading}
                               >
@@ -520,8 +606,8 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
                           )}
                         </View>
                       );
-                    })
-                  )}
+                    });
+                  })()}
                 </View>
               </View>
             );
@@ -566,14 +652,25 @@ const styles = StyleSheet.create({
   addDayBtnToday: { backgroundColor: 'rgba(255,255,255,0.2)' },
   addDayBtnText: { fontSize: 14, fontWeight: '800', color: '#5A8C6A', lineHeight: 18 },
   addDayBtnTextToday: { color: '#fff' },
-  dayAppts: { padding: 8, gap: 6, minHeight: 60 },
+  dayAppts: { padding: 6, gap: 5, minHeight: 60 },
   emptyDay: { height: 40 },
-  apptChip: { backgroundColor: '#F9FAFB', borderRadius: 8, padding: 8, borderLeftWidth: 3 },
-  apptChipSelected: { backgroundColor: '#EEF8F2', borderColor: '#5A8C6A' },
-  apptTime: { fontSize: 11, fontWeight: '700', color: '#374151', marginBottom: 2 },
-  apptProg: { fontSize: 11, fontWeight: '700', marginBottom: 1 },
-  apptCustomer: { fontSize: 11, color: '#6B7280' },
-  apptActions: { backgroundColor: '#FEF2F2', borderRadius: 8, padding: 10, marginTop: 4, gap: 6 },
+  // compact card styles (week view Option B)
+  compactCard: { backgroundColor: '#F9FAFB', borderRadius: 8, paddingVertical: 7, paddingHorizontal: 8, borderLeftWidth: 3, flexDirection: 'row', alignItems: 'center', gap: 7 },
+  compactCardExpanded: { backgroundColor: '#EEF8F2' },
+  compactColorDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
+  compactInfo: { flex: 1, gap: 1 },
+  compactTopRow: { flexDirection: 'row', alignItems: 'center', gap: 5, flexWrap: 'wrap' },
+  compactTime: { fontSize: 11, fontWeight: '800', color: '#374151' },
+  compactProg: { fontSize: 10, fontWeight: '700' },
+  compactMeta: { fontSize: 10, color: '#6B7280', fontWeight: '600' },
+  compactTrainerLabel: { fontSize: 10, color: '#9CA3AF' },
+  expandArrow: { fontSize: 9, color: '#9CA3AF', flexShrink: 0 },
+  expandedParticipants: { backgroundColor: '#FEF2F2', borderRadius: 7, padding: 8, marginTop: 3, gap: 5 },
+  participantRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  participantName: { flex: 1, fontSize: 11, color: '#374151', fontWeight: '600' },
+  miniStornBtn: { backgroundColor: '#EF4444', borderRadius: 5, paddingHorizontal: 7, paddingVertical: 3 },
+  miniStornBtnText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+  apptActions: { backgroundColor: '#FEF2F2', borderRadius: 8, padding: 10, marginTop: 3, gap: 6 },
   apptActionInfo: { fontSize: 12, color: '#374151', fontWeight: '600' },
   apptActionError: { fontSize: 12, color: '#DC2626', fontWeight: '600' },
   stornBtn: { backgroundColor: '#EF4444', borderRadius: 7, paddingVertical: 7, alignItems: 'center' },
@@ -628,4 +725,31 @@ const styles = StyleSheet.create({
   birthYearHint: { fontSize: 12, color: '#9CA3AF' },
   birthYearWarning: { backgroundColor: '#FEF3C7', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 4 },
   birthYearWarningText: { fontSize: 13, color: '#92400E' },
+});
+
+const TIME_COL_W = 90;
+
+const gStyles = StyleSheet.create({
+  row: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#E5E9EF', minHeight: 64 },
+  rowAlt: { backgroundColor: '#F8FAFB' },
+  headerRow: { backgroundColor: '#1C2133', borderBottomWidth: 0, minHeight: 52 },
+  timeCol: { width: TIME_COL_W, justifyContent: 'center', alignItems: 'center', paddingVertical: 10, borderRightWidth: 1, borderRightColor: '#E5E7EB' },
+  timeText: { fontSize: 14, fontWeight: '700', color: '#6B7280' },
+  headerText: { fontSize: 13, fontWeight: '700', color: '#fff', textAlign: 'center' },
+  trainerCol: { justifyContent: 'center', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#2D3548', gap: 5 },
+  specialtyBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  specialtyText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+  cell: { paddingHorizontal: 6, paddingVertical: 6, gap: 4, borderRightWidth: 1, borderRightColor: '#E5E9EF', justifyContent: 'center' },
+  tag: { borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5 },
+  tagSelected: { borderWidth: 2, borderColor: '#111827', opacity: 0.85 },
+  tagText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  selPanel: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, padding: 16, marginTop: 12, gap: 14, shadowColor: '#000', shadowOpacity: 0.06, shadowOffset: { width: 0, height: 2 }, shadowRadius: 6, elevation: 2 },
+  selBar: { width: 5, height: 48, borderRadius: 3, flexShrink: 0 },
+  selInfo: { flex: 1, gap: 4 },
+  selName: { fontSize: 16, fontWeight: '800', color: '#111827' },
+  selSub: { fontSize: 14, color: '#6B7280' },
+  stornBtn: { backgroundColor: '#EF4444', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 16, alignSelf: 'flex-start', marginTop: 6 },
+  stornBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  selClose: { padding: 6 },
+  selCloseText: { fontSize: 18, color: '#9CA3AF', fontWeight: '700' },
 });

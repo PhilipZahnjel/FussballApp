@@ -18,7 +18,7 @@ export function useTrainerSchedules() {
       supabase
         .from('profiles')
         .select('id, full_name, trainer_specialty')
-        .in('role', ['admin', 'trainer'])
+        .eq('role', 'trainer')
         .order('full_name'),
     ]).then(([s, t]) => {
       if (s.data) setTrainerSchedules(s.data as TrainerSchedule[]);

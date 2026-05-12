@@ -27,14 +27,17 @@ interface Props {
   trainerSchedules: TrainerSchedule[];
   onToggleSlot: (trainerId: string, day: number, time: string) => Promise<{ error: unknown }>;
   onCreateTrainer: (params: { full_name: string; email: string; specialty: TrainerSpecialty }) => Promise<{ error: string | null; tempPassword?: string }>;
+  onUpdateTrainer: (trainerId: string, params: { full_name: string; trainer_specialty: TrainerSpecialty }) => Promise<{ error: string | null }>;
+  onDeleteTrainer: (trainerId: string) => Promise<{ error: string | null; cancelledCount?: number }>;
 }
 
-export function ZeitplanScreen({ trainers, trainerSchedules, onToggleSlot, onCreateTrainer }: Props) {
+export function ZeitplanScreen({ trainers, trainerSchedules, onToggleSlot, onCreateTrainer, onUpdateTrainer, onDeleteTrainer }: Props) {
   const [selectedTrainerId, setSelectedTrainerId] = useState<string | null>(
     trainers.length > 0 ? trainers[0].id : null,
   );
   const [toggling, setToggling] = useState<string | null>(null);
 
+  // Anlegen
   const [showForm, setShowForm] = useState(false);
   const [formName, setFormName] = useState('');
   const [formEmail, setFormEmail] = useState('');
@@ -42,6 +45,19 @@ export function ZeitplanScreen({ trainers, trainerSchedules, onToggleSlot, onCre
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
+
+  // Bearbeiten
+  const [showEdit, setShowEdit] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editSpecialty, setEditSpecialty] = useState<TrainerSpecialty>('spieler');
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  // Löschen
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteSuccess, setDeleteSuccess] = useState<string | null>(null);
 
   const selectedTrainer = trainers.find(t => t.id === selectedTrainerId) ?? null;
 
@@ -83,6 +99,53 @@ export function ZeitplanScreen({ trainers, trainerSchedules, onToggleSlot, onCre
     }
   };
 
+  const openEdit = () => {
+    if (!selectedTrainer) return;
+    setEditName(selectedTrainer.full_name);
+    setEditSpecialty(selectedTrainer.trainer_specialty ?? 'spieler');
+    setEditError(null);
+    setShowEdit(true);
+    setShowDeleteConfirm(false);
+  };
+
+  const handleUpdate = async () => {
+    if (!selectedTrainerId || !editName.trim()) {
+      setEditError('Name darf nicht leer sein.');
+      return;
+    }
+    setEditLoading(true);
+    setEditError(null);
+    const { error } = await onUpdateTrainer(selectedTrainerId, {
+      full_name: editName.trim(),
+      trainer_specialty: editSpecialty,
+    });
+    setEditLoading(false);
+    if (error) {
+      setEditError(error);
+    } else {
+      setShowEdit(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedTrainerId) return;
+    setDeleteLoading(true);
+    setDeleteError(null);
+    const { error, cancelledCount } = await onDeleteTrainer(selectedTrainerId);
+    setDeleteLoading(false);
+    if (error) {
+      setDeleteError(error);
+    } else {
+      setShowDeleteConfirm(false);
+      setSelectedTrainerId(trainers.filter(t => t.id !== selectedTrainerId)[0]?.id ?? null);
+      setDeleteSuccess(
+        cancelledCount && cancelledCount > 0
+          ? `Trainer gelöscht. ${cancelledCount} Termin${cancelledCount > 1 ? 'e' : ''} storniert, Nachholtermine ausgestellt.`
+          : 'Trainer erfolgreich gelöscht.',
+      );
+    }
+  };
+
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
       <Text style={styles.title}>Trainerzeitplan</Text>
@@ -93,7 +156,12 @@ export function ZeitplanScreen({ trainers, trainerSchedules, onToggleSlot, onCre
           <TouchableOpacity
             key={t.id}
             style={[styles.chip, selectedTrainerId === t.id && styles.chipActive]}
-            onPress={() => setSelectedTrainerId(t.id)}
+            onPress={() => {
+              setSelectedTrainerId(t.id);
+              setShowEdit(false);
+              setShowDeleteConfirm(false);
+              setDeleteError(null);
+            }}
             activeOpacity={0.7}
           >
             <Text style={[styles.chipName, selectedTrainerId === t.id && styles.chipNameActive]}>
@@ -108,14 +176,100 @@ export function ZeitplanScreen({ trainers, trainerSchedules, onToggleSlot, onCre
         ))}
         <TouchableOpacity
           style={[styles.chip, styles.chipAdd]}
-          onPress={() => { setShowForm(v => !v); setFormError(null); setFormSuccess(null); }}
+          onPress={() => { setShowForm(v => !v); setFormError(null); setFormSuccess(null); setShowEdit(false); setShowDeleteConfirm(false); }}
           activeOpacity={0.7}
         >
           <Text style={styles.chipAddText}>+ Trainer anlegen</Text>
         </TouchableOpacity>
       </ScrollView>
 
-      {/* Formular */}
+      {/* Trainer-Aktionen (Bearbeiten / Löschen) */}
+      {selectedTrainer && !showForm && (
+        <View style={styles.trainerActions}>
+          <TouchableOpacity
+            style={[styles.actionBtn, showEdit && styles.actionBtnActive]}
+            onPress={() => { showEdit ? setShowEdit(false) : openEdit(); setShowDeleteConfirm(false); }}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.actionBtnText, showEdit && styles.actionBtnTextActive]}>✎ Bearbeiten</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.actionBtnDanger, showDeleteConfirm && styles.actionBtnDangerActive]}
+            onPress={() => { setShowDeleteConfirm(v => !v); setShowEdit(false); setDeleteError(null); }}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.actionBtnText, styles.actionBtnDangerText]}>✕ Löschen</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Edit-Formular */}
+      {showEdit && selectedTrainer && (
+        <View style={styles.form}>
+          <Text style={styles.formTitle}>Trainer bearbeiten</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Name"
+            value={editName}
+            onChangeText={setEditName}
+            placeholderTextColor="#999"
+          />
+          <View style={styles.specialtyRow}>
+            {(['spieler', 'torwart'] as TrainerSpecialty[]).map(s => (
+              <TouchableOpacity
+                key={s}
+                style={[styles.specialtyBtn, editSpecialty === s && { backgroundColor: SPECIALTY_COLOR[s] }]}
+                onPress={() => setEditSpecialty(s)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.specialtyBtnText, editSpecialty === s && styles.specialtyBtnTextActive]}>
+                  {SPECIALTY_LABEL[s]}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          {editError && <Text style={styles.errorText}>{editError}</Text>}
+          {editLoading
+            ? <ActivityIndicator style={{ marginTop: 8 }} color="#5A8C6A" />
+            : (
+              <View style={styles.specialtyRow}>
+                <TouchableOpacity style={[styles.submitBtn, { flex: 1 }]} onPress={handleUpdate} activeOpacity={0.8}>
+                  <Text style={styles.submitBtnText}>Speichern</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.cancelBtn, { flex: 1 }]} onPress={() => setShowEdit(false)} activeOpacity={0.7}>
+                  <Text style={styles.cancelBtnText}>Abbrechen</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          }
+        </View>
+      )}
+
+      {/* Lösch-Bestätigung */}
+      {showDeleteConfirm && selectedTrainer && (
+        <View style={styles.deleteConfirm}>
+          <Text style={styles.deleteConfirmTitle}>Trainer löschen?</Text>
+          <Text style={styles.deleteConfirmText}>
+            Alle bestätigten Termine von <Text style={{ fontWeight: '800' }}>{selectedTrainer.full_name}</Text> werden storniert und die betroffenen Kunden erhalten automatisch einen Nachholtermin.
+          </Text>
+          {deleteError && <Text style={styles.errorText}>{deleteError}</Text>}
+          {deleteLoading
+            ? <ActivityIndicator style={{ marginTop: 8 }} color="#EF4444" />
+            : (
+              <View style={styles.specialtyRow}>
+                <TouchableOpacity style={[styles.deleteBtn, { flex: 1 }]} onPress={handleDelete} activeOpacity={0.8}>
+                  <Text style={styles.deleteBtnText}>Ja, löschen</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.cancelBtn, { flex: 1 }]} onPress={() => setShowDeleteConfirm(false)} activeOpacity={0.7}>
+                  <Text style={styles.cancelBtnText}>Abbrechen</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          }
+        </View>
+      )}
+
+      {/* Anlegen-Formular */}
       {showForm && (
         <View style={styles.form}>
           <Text style={styles.formTitle}>Neuen Trainer anlegen</Text>
@@ -167,10 +321,15 @@ export function ZeitplanScreen({ trainers, trainerSchedules, onToggleSlot, onCre
         </View>
       )}
 
+      {deleteSuccess && (
+        <View style={styles.successBox}>
+          <Text style={styles.successText}>{deleteSuccess}</Text>
+        </View>
+      )}
+
       {/* Wochenraster */}
       {selectedTrainer ? (
         <View style={styles.grid}>
-          {/* Header */}
           <View style={styles.gridRow}>
             <View style={styles.timeCell} />
             {DAYS.map(d => (
@@ -180,7 +339,6 @@ export function ZeitplanScreen({ trainers, trainerSchedules, onToggleSlot, onCre
             ))}
           </View>
 
-          {/* Slots */}
           {SLOTS.map(time => (
             <View key={time} style={styles.gridRow}>
               <View style={styles.timeCell}>
@@ -221,7 +379,7 @@ const styles = StyleSheet.create({
   content: { padding: 24 },
   title: { fontSize: 22, fontWeight: '700', color: '#1C2133', marginBottom: 16 },
 
-  chipRow: { flexDirection: 'row', marginBottom: 16 },
+  chipRow: { flexDirection: 'row', marginBottom: 12 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: '#fff', borderRadius: 20, borderWidth: 1.5, borderColor: '#E0E0E0', marginRight: 8 },
   chipActive: { borderColor: '#5A8C6A', backgroundColor: '#F0F7F2' },
   chipName: { fontSize: 13, fontWeight: '600', color: '#666' },
@@ -230,6 +388,15 @@ const styles = StyleSheet.create({
   specialtyBadgeText: { fontSize: 10, fontWeight: '700', color: '#fff' },
   chipAdd: { borderStyle: 'dashed', borderColor: '#5A8C6A' },
   chipAddText: { fontSize: 13, fontWeight: '600', color: '#5A8C6A' },
+
+  trainerActions: { flexDirection: 'row', gap: 8, marginBottom: 14 },
+  actionBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8, borderWidth: 1.5, borderColor: '#DDE2E8', backgroundColor: '#fff' },
+  actionBtnActive: { borderColor: '#5A8C6A', backgroundColor: '#F0F7F2' },
+  actionBtnDanger: { borderColor: '#FECACA' },
+  actionBtnDangerActive: { backgroundColor: '#FEF2F2', borderColor: '#EF4444' },
+  actionBtnText: { fontSize: 13, fontWeight: '600', color: '#6B7280' },
+  actionBtnTextActive: { color: '#5A8C6A' },
+  actionBtnDangerText: { color: '#EF4444' },
 
   form: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#E8ECF0' },
   formTitle: { fontSize: 15, fontWeight: '700', color: '#1C2133', marginBottom: 12 },
@@ -241,6 +408,14 @@ const styles = StyleSheet.create({
   errorText: { color: '#DC2626', fontSize: 13, marginBottom: 8 },
   submitBtn: { backgroundColor: '#5A8C6A', paddingVertical: 10, borderRadius: 8, alignItems: 'center', marginTop: 4 },
   submitBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  cancelBtn: { backgroundColor: '#F3F4F6', paddingVertical: 10, borderRadius: 8, alignItems: 'center', marginTop: 4 },
+  cancelBtnText: { color: '#6B7280', fontWeight: '600', fontSize: 14 },
+
+  deleteConfirm: { backgroundColor: '#FEF2F2', borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#FECACA' },
+  deleteConfirmTitle: { fontSize: 15, fontWeight: '700', color: '#991B1B', marginBottom: 8 },
+  deleteConfirmText: { fontSize: 14, color: '#374151', lineHeight: 20, marginBottom: 12 },
+  deleteBtn: { backgroundColor: '#EF4444', paddingVertical: 10, borderRadius: 8, alignItems: 'center', marginTop: 4 },
+  deleteBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 
   successBox: { backgroundColor: '#F0FDF4', borderWidth: 1, borderColor: '#86EFAC', borderRadius: 8, padding: 12, marginBottom: 16 },
   successText: { color: '#15803D', fontSize: 13, fontWeight: '600' },

@@ -6,6 +6,7 @@ import { TokenService } from '../../services/tokenService';
 import { TrainerScheduleService } from '../../services/trainerScheduleService';
 import { CustomerService, CreateCustomerParams } from '../services/customerService';
 import { PROGRAM_CATEGORY, ProgramId } from '../../constants/programs';
+import { supabase } from '../../lib/supabase';
 
 export type CustomerProfile = {
   id: string;
@@ -121,8 +122,24 @@ export function useAdminData() {
     sessionLevel?: string | null,
   ) => {
     const { data: conflicts } = await AppointmentService.checkDailyConflict(userId, date);
-    if (conflicts && conflicts.length > 0) {
-      return { error: { message: 'Der Kunde hat an diesem Tag bereits einen Termin.' } };
+    if (conflicts && conflicts.length >= 2) {
+      return { error: { message: 'Der Kunde hat an diesem Tag bereits zwei Termine.' } };
+    }
+
+    if (trainerId) {
+      const trainer = trainers.find(t => t.id === trainerId);
+      if (trainer?.trainer_specialty === 'spieler') {
+        const slotBookings = allAppointments.filter(
+          a => a.trainer_id === trainerId && a.date === date && a.time === time && a.status === 'confirmed',
+        );
+        if (slotBookings.length > 0) {
+          const newCat = PROGRAM_CATEGORY[program as ProgramId] ?? 'individual';
+          const existCat = PROGRAM_CATEGORY[slotBookings[0].program as ProgramId] ?? 'individual';
+          if (newCat !== existCat) {
+            return { error: { message: `Trainer hat in diesem Slot bereits ${existCat === 'individual' ? 'Individual' : 'Gruppen'}training.` } };
+          }
+        }
+      }
     }
 
     const { data, error } = await AppointmentService.insert({
@@ -254,12 +271,34 @@ export function useAdminData() {
     }
   };
 
+  const updateTrainer = async (trainerId: string, params: { full_name: string; trainer_specialty: TrainerSpecialty }): Promise<{ error: string | null }> => {
+    const { error } = await ProfileService.update(trainerId, params);
+    if (!error) {
+      setTrainers(prev => prev.map(t => t.id === trainerId ? { ...t, ...params } : t));
+    }
+    return { error: error?.message ?? null };
+  };
+
+  const deleteTrainer = async (trainerId: string): Promise<{ error: string | null; cancelledCount?: number }> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-trainer', { body: { trainer_id: trainerId } });
+      if (error) return { error: error.message ?? 'Fehler beim Löschen.' };
+      if (data?.error) return { error: String(data.error) };
+      setTrainers(prev => prev.filter(t => t.id !== trainerId));
+      setTrainerSchedules(prev => prev.filter(s => s.trainer_id !== trainerId));
+      await load();
+      return { error: null, cancelledCount: data?.cancelled_count ?? 0 };
+    } catch (e: any) {
+      return { error: e?.message ?? String(e) };
+    }
+  };
+
   return {
     customers, allAppointments, trainers, trainerSchedules, activeTokensByCustomer, loading, loadError,
     cancelAppointment, addAppointmentForCustomer,
     createCustomer, deleteCustomer,
     saveCustomerLevel, saveBookingPermissions, saveCustomerProfile,
-    toggleScheduleSlot, createTrainer,
+    toggleScheduleSlot, createTrainer, updateTrainer, deleteTrainer,
     reload: load,
   };
 }
