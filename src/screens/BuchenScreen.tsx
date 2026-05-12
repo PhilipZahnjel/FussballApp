@@ -8,9 +8,9 @@ import { C } from '../constants/colors';
 import { Card } from '../components/Card';
 import { GlassCard } from '../components/GlassCard';
 import { Btn } from '../components/Btn';
-import { Appointment, CancellationToken, Tab } from '../types';
+import { Appointment, CancellationToken, Tab, TrainerSchedule } from '../types';
 import { todayStr, fmtDate, fmtShort, DE_MONTHS, DE_DAYS_SHORT } from '../constants/i18n';
-import { SLOTS_MORNING, SLOTS_EVENING } from '../constants/slots';
+import { SLOTS } from '../constants/slots';
 import { PROGRAMS, PROGRAM_CATEGORY, ProgramId } from '../constants/programs';
 import { Profile } from '../hooks/useProfile';
 import { germanHolidays, checkGroupSessionCompatibility } from '../utils/bookingRules';
@@ -23,6 +23,8 @@ interface Props {
   activeTokens: CancellationToken[];
   addAppointment: (date: string, time: string, program: string) => Promise<{ error: any }>;
   setTab: (t: Tab) => void;
+  trainerSchedules?: TrainerSchedule[];
+  trainers?: Array<{ id: string; trainer_specialty?: string | null }>;
 }
 
 
@@ -77,7 +79,7 @@ function isProgramAllowed(profile: Profile, programId: string): boolean {
   return true;
 }
 
-export function BuchenScreen({ appointments, myAppointments, profile, activeTokens, addAppointment, setTab }: Props) {
+export function BuchenScreen({ appointments, myAppointments, profile, activeTokens, addAppointment, setTab, trainerSchedules = [], trainers = [] }: Props) {
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState<Step>('category');
   const [selectedCategory, setSelectedCategory] = useState<'individual' | 'gruppe' | null>(null);
@@ -345,12 +347,26 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
       </View>
     );
 
+    // Trainer-Verfügbarkeit filtern
+    const TORWART_IDS = ['torhueter_individual', 'torhueter_gruppe'];
+    const neededSpecialty = selProgram && TORWART_IDS.includes(selProgram) ? 'torwart' : 'spieler';
+    const jsDay = selDate ? new Date(selDate).getDay() : 0;
+    const dayOfWeek = jsDay === 0 ? 7 : jsDay;
+    const relevantIds = trainers
+      .filter(t => t.trainer_specialty === neededSpecialty)
+      .map(t => t.id);
+    const scheduledTimes = trainerSchedules
+      .filter(s => relevantIds.includes(s.trainer_id) && s.day_of_week === dayOfWeek)
+      .map(s => s.time);
+    const allowedSlots = scheduledTimes.length > 0
+      ? SLOTS.filter(s => scheduledTimes.includes(s))
+      : SLOTS;
+
     return (
       <FadeUp>
         <BackBtn onPress={() => setStep('date')} />
         <SectionTitle t="Uhrzeit wählen" sub={selDate ? fmtShort(selDate) : ''} />
-        <SlotGroup label="Morgen" slots={SLOTS_MORNING} />
-        <SlotGroup label="Nachmittag / Abend" slots={SLOTS_EVENING} />
+        <SlotGroup label="Verfügbare Zeiten" slots={allowedSlots} />
         {selTime && <Btn label="Weiter" onPress={() => setStep('confirm')} variant="primary" />}
       </FadeUp>
     );

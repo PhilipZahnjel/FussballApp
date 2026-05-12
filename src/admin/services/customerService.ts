@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabase';
-import { PlayerType } from '../../types';
+import { PlayerType, TrainerSpecialty } from '../../types';
 
 export type CreateCustomerParams = {
   email: string;
@@ -10,6 +10,8 @@ export type CreateCustomerParams = {
   parent_name: string;
   player_type: PlayerType | null;
   location: string;
+  role?: 'customer' | 'trainer';
+  trainer_specialty?: TrainerSpecialty;
 };
 
 export const CustomerService = {

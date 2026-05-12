@@ -5,7 +5,7 @@ import {
 import { CustomerProfile, AdminAppointment, TrainerProfile } from '../hooks/useAdminData';
 import { PlayerLevel, PlayerType, LEVEL_COLORS, LEVEL_LABELS, BookingPermissions } from '../../types';
 import { PROGRAMS, PROGRAM_CATEGORY, ProgramId } from '../../constants/programs';
-import { SLOTS_MORNING, SLOTS_EVENING } from '../../constants/slots';
+import { SLOTS } from '../../constants/slots';
 import { todayStr, fmtDate } from '../../constants/i18n';
 import { LOCATIONS, Location } from '../../constants/studio';
 
@@ -99,7 +99,7 @@ export function KundenDetailScreen({
   const [showBooking, setShowBooking] = useState(false);
   const [bookDate, setBookDate] = useState('');
   const [bookProgram, setBookProgram] = useState<string>(PROGRAMS[0].id);
-  const [bookTime, setBookTime] = useState(SLOTS_MORNING[0]);
+  const [bookTime, setBookTime] = useState(SLOTS[0]);
   const [bookTrainerId, setBookTrainerId] = useState<string | null>(null);
   const [bookSessionLevel, setBookSessionLevel] = useState<PlayerLevel | null>(null);
   const [bookingLoading, setBookingLoading] = useState(false);
@@ -396,7 +396,7 @@ export function KundenDetailScreen({
 
             <Text style={styles.fieldLabel}>Uhrzeit</Text>
             <View style={styles.slotRow}>
-              {[...SLOTS_MORNING, ...SLOTS_EVENING].map(t => {
+              {SLOTS.map(t => {
                 const now = new Date();
                 const nowStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
                 const isPast = bookDate === ts && t <= nowStr;

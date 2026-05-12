@@ -10,6 +10,7 @@ import { supabase } from './src/lib/supabase';
 import { Tab } from './src/types';
 import { useAppointments } from './src/hooks/useAppointments';
 import { useProfile } from './src/hooks/useProfile';
+import { useTrainerSchedules } from './src/hooks/useTrainerSchedules';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { TermineScreen } from './src/screens/TermineScreen';
@@ -28,6 +29,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('home');
   const { profile } = useProfile();
   const { appointments, myAppointments, activeTokens, addAppointment, cancelAppointment } = useAppointments(profile);
+  const { trainerSchedules, trainers: trainerProfiles } = useTrainerSchedules();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -115,6 +117,8 @@ export default function App() {
                 profile={profile}
                 addAppointment={(d, t, p) => addAppointment(d, t, p)}
                 setTab={setTab}
+                trainerSchedules={trainerSchedules}
+                trainers={trainerProfiles}
               />
             )}
             {tab === 'infos' && (

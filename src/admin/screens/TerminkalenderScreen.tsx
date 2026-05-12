@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { CustomerProfile, AdminAppointment, TrainerProfile } from '../hooks/useAdminData';
 import { PROGRAMS, PROGRAM_CATEGORY, ProgramId } from '../../constants/programs';
 import { PlayerLevel, LEVEL_COLORS, LEVEL_LABELS } from '../../types';
-import { SLOTS_MORNING, SLOTS_EVENING } from '../../constants/slots';
+import { SLOTS } from '../../constants/slots';
 import { isBookableDay } from '../../utils/bookingRules';
 
 const PROGRAM_COLORS: Record<string, string> = {
@@ -14,7 +14,7 @@ const PROGRAM_COLORS: Record<string, string> = {
 
 const DE_DAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 const DE_MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
-const ALL_SLOTS = [...SLOTS_MORNING, ...SLOTS_EVENING];
+const ALL_SLOTS = SLOTS;
 
 function pad2(n: number) { return String(n).padStart(2, '0'); }
 function dateStr(d: Date) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
@@ -63,7 +63,7 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
   const [bookCustomerSearch, setBookCustomerSearch] = useState('');
   const [bookCustomerId, setBookCustomerId] = useState<string | null>(null);
   const [bookProgram, setBookProgram] = useState<string>(PROGRAMS[0].id);
-  const [bookTime, setBookTime] = useState(SLOTS_MORNING[0]);
+  const [bookTime, setBookTime] = useState(SLOTS[0]);
   const [bookTrainerId, setBookTrainerId] = useState<string | null>(null);
   const [bookSessionLevel, setBookSessionLevel] = useState<PlayerLevel | null>(null);
   const [bookingLoading, setBookingLoading] = useState(false);
@@ -109,7 +109,7 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
     setBookCustomerSearch('');
     setBookCustomerId(null);
     setBookProgram(PROGRAMS[0].id);
-    setBookTime(presetTime ?? SLOTS_MORNING[0]);
+    setBookTime(presetTime ?? SLOTS[0]);
     setBookTrainerId(null);
     setBookSessionLevel(null);
     setBookingError(null);

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { PlayerLevel, PlayerType, BookingPermissions } from '../../types';
+import { PlayerLevel, PlayerType, BookingPermissions, TrainerSchedule, TrainerSpecialty } from '../../types';
 import { AppointmentService } from '../../services/appointmentService';
 import { ProfileService } from '../../services/profileService';
 import { TokenService } from '../../services/tokenService';
+import { TrainerScheduleService } from '../../services/trainerScheduleService';
 import { CustomerService, CreateCustomerParams } from '../services/customerService';
 import { PROGRAM_CATEGORY, ProgramId } from '../../constants/programs';
 
@@ -37,12 +38,14 @@ export type AdminAppointment = {
 export type TrainerProfile = {
   id: string;
   full_name: string;
+  trainer_specialty?: TrainerSpecialty | null;
 };
 
 export function useAdminData() {
   const [customers, setCustomers] = useState<CustomerProfile[]>([]);
   const [allAppointments, setAllAppointments] = useState<AdminAppointment[]>([]);
   const [trainers, setTrainers] = useState<TrainerProfile[]>([]);
+  const [trainerSchedules, setTrainerSchedules] = useState<TrainerSchedule[]>([]);
   const [activeTokensByCustomer, setActiveTokensByCustomer] = useState<Record<string, { individual: number; gruppe: number }>>({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -57,11 +60,13 @@ export function useAdminData() {
       { data: appointments, error: apptsErr },
       { data: trainerProfiles },
       { data: allTokens },
+      { data: schedules },
     ] = await Promise.all([
       ProfileService.fetchAllCustomers(),
       AppointmentService.fetchAllDesc(),
       ProfileService.fetchTrainers(),
       TokenService.fetchAllActive(),
+      TrainerScheduleService.fetchAll(),
     ]);
     if (profilesErr || apptsErr) {
       setLoadError(profilesErr?.message ?? apptsErr?.message ?? 'Fehler beim Laden.');
@@ -69,6 +74,7 @@ export function useAdminData() {
     setCustomers((profiles ?? []) as CustomerProfile[]);
     setAllAppointments((appointments ?? []) as AdminAppointment[]);
     setTrainers((trainerProfiles ?? []) as TrainerProfile[]);
+    setTrainerSchedules((schedules ?? []) as TrainerSchedule[]);
 
     const tokenMap: Record<string, { individual: number; gruppe: number }> = {};
     for (const token of (allTokens ?? []) as { user_id: string; category: string }[]) {
@@ -192,11 +198,68 @@ export function useAdminData() {
     return { error };
   };
 
+  const toggleScheduleSlot = async (trainerId: string, day: number, time: string) => {
+    const exists = trainerSchedules.some(
+      s => s.trainer_id === trainerId && s.day_of_week === day && s.time === time,
+    );
+    if (exists) {
+      const { error } = await TrainerScheduleService.deleteEntry(trainerId, day, time);
+      if (!error) {
+        setTrainerSchedules(prev =>
+          prev.filter(s => !(s.trainer_id === trainerId && s.day_of_week === day && s.time === time)),
+        );
+      }
+      return { error };
+    } else {
+      const { data, error } = await TrainerScheduleService.upsert({ trainer_id: trainerId, day_of_week: day, time });
+      if (!error && data) {
+        setTrainerSchedules(prev => [...prev, data as TrainerSchedule]);
+      } else if (!error) {
+        await load();
+      }
+      return { error };
+    }
+  };
+
+  const createTrainer = async (params: {
+    full_name: string;
+    email: string;
+    specialty: TrainerSpecialty;
+  }): Promise<{ error: string | null; tempPassword?: string }> => {
+    try {
+      const { data, error } = await CustomerService.create({
+        full_name: params.full_name,
+        email: params.email,
+        phone: '',
+        birth_date: '',
+        address: '',
+        parent_name: '',
+        player_type: null,
+        location: '',
+        role: 'trainer',
+        trainer_specialty: params.specialty,
+      });
+      if (error) {
+        const body = (error as any).context;
+        const msg = body && typeof body === 'object' && 'error' in body
+          ? String(body.error)
+          : (error as any).message ?? JSON.stringify(error);
+        return { error: msg };
+      }
+      if (data?.error) return { error: data.error as string };
+      await load();
+      return { error: null, tempPassword: data.temp_password };
+    } catch (e: any) {
+      return { error: e?.message ?? String(e) };
+    }
+  };
+
   return {
-    customers, allAppointments, trainers, activeTokensByCustomer, loading, loadError,
+    customers, allAppointments, trainers, trainerSchedules, activeTokensByCustomer, loading, loadError,
     cancelAppointment, addAppointmentForCustomer,
     createCustomer, deleteCustomer,
     saveCustomerLevel, saveBookingPermissions, saveCustomerProfile,
+    toggleScheduleSlot, createTrainer,
     reload: load,
   };
 }

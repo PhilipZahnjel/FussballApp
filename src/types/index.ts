@@ -13,7 +13,16 @@ export type Appointment = {
 };
 
 export type Tab = 'home' | 'termine' | 'buchen' | 'infos' | 'profil';
-export type AdminTab = 'dashboard' | 'kunden' | 'kalender' | 'infos';
+export type AdminTab = 'dashboard' | 'kunden' | 'kalender' | 'infos' | 'zeitplan';
+
+export type TrainerSpecialty = 'spieler' | 'torwart';
+
+export type TrainerSchedule = {
+  id: string;
+  trainer_id: string;
+  day_of_week: number;
+  time: string;
+};
 
 export type PlayerLevel = 'gruen' | 'gelb' | 'orange' | 'rot';
 export type PlayerType = 'torwart' | 'feldspieler';

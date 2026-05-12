@@ -10,7 +10,7 @@ export const ProfileService = {
   fetchTrainers: () =>
     supabase
       .from('profiles')
-      .select('id, full_name')
+      .select('id, full_name, trainer_specialty')
       .in('role', ['admin', 'trainer'])
       .order('full_name'),
 

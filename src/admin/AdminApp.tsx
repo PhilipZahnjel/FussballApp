@@ -7,6 +7,7 @@ import { KundenScreen } from './screens/KundenScreen';
 import { KundenDetailScreen } from './screens/KundenDetailScreen';
 import { TerminkalenderScreen } from './screens/TerminkalenderScreen';
 import { NotificationsScreen } from './screens/NotificationsScreen';
+import { ZeitplanScreen } from './screens/ZeitplanScreen';
 
 interface Props {
   onLogout: () => void;
@@ -16,6 +17,7 @@ const NAV: { id: AdminTab; label: string; icon: string }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: '📊' },
   { id: 'kunden', label: 'Spieler', icon: '👥' },
   { id: 'kalender', label: 'Terminkalender', icon: '📅' },
+  { id: 'zeitplan', label: 'Zeitplan', icon: '🗓' },
   { id: 'infos', label: 'Infos', icon: '📢' },
 ];
 
@@ -23,6 +25,7 @@ const TAB_LABELS: Record<AdminTab, string> = {
   dashboard: 'Dashboard',
   kunden: 'Spieler',
   kalender: 'Terminkalender',
+  zeitplan: 'Trainerzeitplan',
   infos: 'Infos',
 };
 
@@ -34,10 +37,11 @@ export function AdminApp({ onLogout }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const {
-    customers, allAppointments, trainers, activeTokensByCustomer, loading, loadError,
+    customers, allAppointments, trainers, trainerSchedules, activeTokensByCustomer, loading, loadError,
     cancelAppointment, addAppointmentForCustomer,
     createCustomer, deleteCustomer,
     saveCustomerLevel, saveBookingPermissions, saveCustomerProfile,
+    toggleScheduleSlot, createTrainer,
   } = useAdminData();
 
   const [calendarDay, setCalendarDay] = useState<string | undefined>(undefined);
@@ -135,6 +139,14 @@ export function AdminApp({ onLogout }: Props) {
           initialDay={calendarDay}
           onCancelAppointment={cancelAppointment}
           onAddAppointment={addAppointmentForCustomer}
+        />
+      )}
+      {tab === 'zeitplan' && (
+        <ZeitplanScreen
+          trainers={trainers}
+          trainerSchedules={trainerSchedules}
+          onToggleSlot={toggleScheduleSlot}
+          onCreateTrainer={createTrainer}
         />
       )}
       {tab === 'infos' && (
