@@ -13,8 +13,7 @@ import { todayStr, fmtDate, fmtShort, DE_MONTHS, DE_DAYS_SHORT } from '../consta
 import { SLOTS } from '../constants/slots';
 import { PROGRAMS, PROGRAM_CATEGORY, ProgramId } from '../constants/programs';
 import { Profile } from '../hooks/useProfile';
-import { germanHolidays, checkGroupSessionCompatibility } from '../utils/bookingRules';
-import { PlayerLevel } from '../types';
+import { germanHolidays, canJoinGroupSlot } from '../utils/bookingRules';
 
 interface Props {
   appointments: Appointment[];
@@ -306,15 +305,15 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
             const userBooked = myAppointments.some(a => a.date === selDate && a.time === t && a.status === 'confirmed');
             const isPast = isToday && t <= nowStr;
 
-            // Gruppen-Kompatibilität prüfen — nicht passende Slots gar nicht anzeigen
+            // Gruppen-Kompatibilität paarweise prüfen — nicht passende Slots gar nicht anzeigen
             if (isGroup && !isPast && !userBooked && booked > 0 && playerBirthYear && playerLevel) {
-              const ref = slotAppts.find(a => a.session_birth_year != null && a.session_level);
-              if (ref?.session_birth_year && ref?.session_level) {
-                const check = checkGroupSessionCompatibility(
-                  playerBirthYear,
-                  playerLevel,
-                  ref.session_birth_year,
-                  ref.session_level as PlayerLevel,
+              const existingPlayers = slotAppts
+                .filter(a => a.session_birth_year != null && a.session_level)
+                .map(a => ({ birthYear: a.session_birth_year!, level: a.session_level as any }));
+              if (existingPlayers.length > 0) {
+                const check = canJoinGroupSlot(
+                  { birthYear: playerBirthYear, level: playerLevel },
+                  existingPlayers,
                   sessionYear,
                 );
                 if (!check.allowed) return null;

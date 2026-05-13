@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 // TextInput retained for customer search field
 import { CustomerProfile, AdminAppointment, TrainerProfile } from '../hooks/useAdminData';
 import { PROGRAMS, PROGRAM_CATEGORY, ProgramId } from '../../constants/programs';
-import { PlayerLevel, LEVEL_COLORS, LEVEL_LABELS } from '../../types';
 import { SLOTS } from '../../constants/slots';
 import { isBookableDay } from '../../utils/bookingRules';
 
@@ -46,7 +45,7 @@ interface Props {
   loading: boolean;
   initialDay?: string;
   onCancelAppointment: (id: string) => Promise<{ error: any }>;
-  onAddAppointment: (userId: string, date: string, time: string, program: string, trainerId?: string | null, sessionBirthYear?: number | null, sessionLevel?: string | null) => Promise<{ error: any }>;
+  onAddAppointment: (userId: string, date: string, time: string, program: string, trainerId?: string | null) => Promise<{ error: any }>;
 }
 
 export function TerminkalenderScreen({ customers, allAppointments, trainers, loading, initialDay, onCancelAppointment, onAddAppointment }: Props) {
@@ -67,7 +66,6 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
   const [bookProgram, setBookProgram] = useState<string>(PROGRAMS[0].id);
   const [bookTime, setBookTime] = useState(SLOTS[0]);
   const [bookTrainerId, setBookTrainerId] = useState<string | null>(null);
-  const [bookSessionLevel, setBookSessionLevel] = useState<PlayerLevel | null>(null);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingSuccess, setBookingSuccess] = useState(false);
@@ -113,7 +111,6 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
     setBookProgram(PROGRAMS[0].id);
     setBookTime(presetTime ?? SLOTS[0]);
     setBookTrainerId(null);
-    setBookSessionLevel(null);
     setBookingError(null);
     setBookingSuccess(false);
     setSelectedApptId(null);
@@ -128,10 +125,6 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
 
   const selectedBookCustomer = bookCustomerId ? customers.find(c => c.id === bookCustomerId) : null;
 
-  const bookCustomerBirthYear = selectedBookCustomer?.birth_date
-    ? parseInt(selectedBookCustomer.birth_date.slice(0, 4))
-    : null;
-
   const doBook = async () => {
     if (!bookCustomerId || !bookingDay) {
       setBookingError('Bitte einen Kunden auswählen.');
@@ -140,10 +133,7 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
     setBookingLoading(true);
     setBookingError(null);
     setBookingSuccess(false);
-    const isGruppe = PROGRAM_CATEGORY[bookProgram as ProgramId] === 'gruppe';
-    const sBy = isGruppe ? bookCustomerBirthYear : null;
-    const sLvl = isGruppe ? bookSessionLevel : null;
-    const { error } = await onAddAppointment(bookCustomerId, bookingDay, bookTime, bookProgram, bookTrainerId, sBy, sLvl);
+    const { error } = await onAddAppointment(bookCustomerId, bookingDay, bookTime, bookProgram, bookTrainerId);
     setBookingLoading(false);
     if (error) {
       setBookingError(error.message ?? 'Buchung fehlgeschlagen.');
@@ -151,7 +141,6 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
       setBookingSuccess(true);
       setBookCustomerId(null);
       setBookCustomerSearch('');
-      setBookSessionLevel(null);
     }
   };
 
@@ -245,39 +234,6 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
                 activeOpacity={0.7}
               >
                 <Text style={[styles.chipText, bookTrainerId === t.id && styles.chipTextActive]}>{t.full_name}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </>
-      )}
-
-      {PROGRAM_CATEGORY[bookProgram as ProgramId] === 'gruppe' && (
-        <>
-          <Text style={styles.fieldLabel}>Gruppen-Jahrgang</Text>
-          {bookCustomerBirthYear ? (
-            <View style={styles.birthYearDisplay}>
-              <Text style={styles.birthYearText}>Jg. {bookCustomerBirthYear}</Text>
-              <Text style={styles.birthYearHint}>(aus Geburtsdatum)</Text>
-            </View>
-          ) : (
-            <View style={styles.birthYearWarning}>
-              <Text style={styles.birthYearWarningText}>
-                {selectedBookCustomer ? '⚠ Kein Geburtsdatum hinterlegt.' : '⚠ Zuerst einen Kunden auswählen.'}
-              </Text>
-            </View>
-          )}
-          <Text style={styles.fieldLabel}>Qualitätsstufe der Gruppe</Text>
-          <View style={styles.chipRow}>
-            {(['anfaenger', 'amateur', 'profi', 'experte'] as PlayerLevel[]).map(lvl => (
-              <TouchableOpacity
-                key={lvl}
-                style={[styles.chip, bookSessionLevel === lvl && { borderColor: LEVEL_COLORS[lvl], backgroundColor: LEVEL_COLORS[lvl] + '22' }]}
-                onPress={() => setBookSessionLevel(bookSessionLevel === lvl ? null : lvl)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.chipText, bookSessionLevel === lvl && { color: LEVEL_COLORS[lvl], fontWeight: '700' }]}>
-                  {LEVEL_LABELS[lvl]}
-                </Text>
               </TouchableOpacity>
             ))}
           </View>
