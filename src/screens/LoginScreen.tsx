@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  Animated, Easing, KeyboardAvoidingView, Platform, ScrollView, Image,
+  Animated, Easing, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { C } from '../constants/colors';
@@ -58,11 +58,6 @@ export function LoginScreen({ onLogin }: Props) {
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
           {/* Logo */}
           <View style={styles.logoWrap}>
-            <Image
-              source={require('../../assets/icon.png')}
-              style={styles.logoImage}
-              resizeMode="contain"
-            />
             <Text style={styles.studioName}>PK-Fußballschule</Text>
             <Text style={styles.studioCity}>Hattersheim am Main</Text>
           </View>
@@ -129,11 +124,6 @@ const styles = StyleSheet.create({
   logoWrap: {
     alignItems: 'center',
     marginBottom: 48,
-  },
-  logoImage: {
-    width: 110,
-    height: 110,
-    marginBottom: 16,
   },
   studioName: {
     fontSize: 22,
