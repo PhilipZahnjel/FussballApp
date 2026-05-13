@@ -105,7 +105,7 @@ export function germanHolidays(year: number): Set<string> {
 }
 
 const LEVEL_LABEL: Record<PlayerLevel, string> = {
-  gruen: 'Grün', gelb: 'Gelb', orange: 'Orange', rot: 'Rot',
+  anfaenger: 'Anfänger', amateur: 'Amateur', profi: 'Profi', experte: 'Experte',
 };
 
 /**
@@ -134,31 +134,31 @@ export function checkGroupSessionCompatibility(
     levels.includes(sL) && years.includes(sBY);
 
   switch (playerLevel) {
-    case 'rot':
-      if (ok(['rot'],    [pBY - 1, pBY, pBY + 1])) return { allowed: true };
-      if (ok(['orange'], [pBY - 1, pBY]))           return { allowed: true };
-      if (ok(['gelb'],   [pBY - 2]))                return { allowed: true };
+    case 'experte':
+      if (ok(['experte'], [pBY - 1, pBY, pBY + 1])) return { allowed: true };
+      if (ok(['profi'],   [pBY - 1, pBY]))           return { allowed: true };
+      if (ok(['amateur'], [pBY - 2]))                return { allowed: true };
       break;
 
-    case 'orange':
-      if (ok(['orange'], [pBY - 1, pBY, pBY + 1])) return { allowed: true };
-      if (ok(['rot'],    [pBY, pBY + 1]))            return { allowed: true };
-      if (ok(['gelb'],   [pBY - 1]))                 return { allowed: true };
-      if (ok(['gruen'],  [pBY - 2]))                 return { allowed: true };
+    case 'profi':
+      if (ok(['profi'],     [pBY - 1, pBY, pBY + 1])) return { allowed: true };
+      if (ok(['experte'],   [pBY, pBY + 1]))            return { allowed: true };
+      if (ok(['amateur'],   [pBY - 1]))                 return { allowed: true };
+      if (ok(['anfaenger'], [pBY - 2]))                 return { allowed: true };
       break;
 
-    case 'gelb':
-      if (ok(['gelb'],  [pBY - 1, pBY, pBY + 1])) return { allowed: true };
-      if (ok(['rot'],   [pBY + 2]))                 return { allowed: true };
-      if (ok(['orange'],[pBY, pBY + 1]))            return { allowed: true };
-      if (ok(['gruen'], [pBY - 1, pBY]))            return { allowed: true };
+    case 'amateur':
+      if (ok(['amateur'],   [pBY - 1, pBY, pBY + 1])) return { allowed: true };
+      if (ok(['experte'],   [pBY + 2]))                 return { allowed: true };
+      if (ok(['profi'],     [pBY, pBY + 1]))            return { allowed: true };
+      if (ok(['anfaenger'], [pBY - 1, pBY]))            return { allowed: true };
       break;
 
-    case 'gruen':
-      if (ok(['gruen'], [pBY - 1, pBY, pBY + 1])) return { allowed: true };
-      // rot: nie erlaubt
-      if (ok(['orange'],[pBY + 2]))                return { allowed: true };
-      if (ok(['gelb'],  [pBY, pBY + 1]))           return { allowed: true };
+    case 'anfaenger':
+      if (ok(['anfaenger'], [pBY - 1, pBY, pBY + 1])) return { allowed: true };
+      // experte: nie erlaubt
+      if (ok(['profi'],   [pBY + 2]))                return { allowed: true };
+      if (ok(['amateur'], [pBY, pBY + 1]))           return { allowed: true };
       break;
   }
 

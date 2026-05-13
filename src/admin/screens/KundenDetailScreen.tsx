@@ -14,7 +14,7 @@ const PROGRAM_COLORS: Record<string, string> = {
   torhueter_individual: '#E87676', torhueter_gruppe: '#9B59B6',
 };
 
-const LEVELS: PlayerLevel[] = ['gruen', 'gelb', 'orange', 'rot'];
+const LEVELS: PlayerLevel[] = ['anfaenger', 'amateur', 'profi', 'experte'];
 
 const PERMISSION_FLAGS: { key: keyof BookingPermissions; label: string }[] = [
   { key: 'can_book_individual', label: 'Individualtraining' },
@@ -454,7 +454,7 @@ export function KundenDetailScreen({
                 )}
                 <Text style={styles.fieldLabel}>Qualitätsstufe der Gruppe</Text>
                 <View style={styles.slotRow}>
-                  {(['gruen', 'gelb', 'orange', 'rot'] as PlayerLevel[]).map(lvl => (
+                  {(['anfaenger', 'amateur', 'profi', 'experte'] as PlayerLevel[]).map(lvl => (
                     <TouchableOpacity
                       key={lvl}
                       style={[styles.slotChip, bookSessionLevel === lvl && { borderColor: LEVEL_COLORS[lvl], backgroundColor: LEVEL_COLORS[lvl] + '22' }]}

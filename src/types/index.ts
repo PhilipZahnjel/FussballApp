@@ -24,21 +24,21 @@ export type TrainerSchedule = {
   time: string;
 };
 
-export type PlayerLevel = 'gruen' | 'gelb' | 'orange' | 'rot';
+export type PlayerLevel = 'anfaenger' | 'amateur' | 'profi' | 'experte';
 export type PlayerType = 'torwart' | 'feldspieler';
 
 export const LEVEL_COLORS: Record<PlayerLevel, string> = {
-  gruen:  '#4CAF50',
-  gelb:   '#FFC107',
-  orange: '#FF9800',
-  rot:    '#F44336',
+  anfaenger: '#4CAF50',
+  amateur:   '#FFC107',
+  profi:     '#FF9800',
+  experte:   '#F44336',
 };
 
 export const LEVEL_LABELS: Record<PlayerLevel, string> = {
-  gruen:  'Grün',
-  gelb:   'Gelb',
-  orange: 'Orange',
-  rot:    'Rot',
+  anfaenger: 'Anfänger',
+  amateur:   'Amateur',
+  profi:     'Profi',
+  experte:   'Experte',
 };
 
 export type ProgramCategory = 'individual' | 'gruppe';

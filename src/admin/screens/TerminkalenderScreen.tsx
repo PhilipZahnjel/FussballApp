@@ -268,7 +268,7 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
           )}
           <Text style={styles.fieldLabel}>Qualitätsstufe der Gruppe</Text>
           <View style={styles.chipRow}>
-            {(['gruen', 'gelb', 'orange', 'rot'] as PlayerLevel[]).map(lvl => (
+            {(['anfaenger', 'amateur', 'profi', 'experte'] as PlayerLevel[]).map(lvl => (
               <TouchableOpacity
                 key={lvl}
                 style={[styles.chip, bookSessionLevel === lvl && { borderColor: LEVEL_COLORS[lvl], backgroundColor: LEVEL_COLORS[lvl] + '22' }]}
