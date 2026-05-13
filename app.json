@@ -1,27 +1,31 @@
 {
   "expo": {
-    "name": "Muster EMS Studio",
-    "slug": "muster-studio-termine",
+    "name": "PK-Fußballschule",
+    "slug": "pk-fussballschule",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
+      "image": "./assets/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#4a6655"
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "de.musterstudio.termine"
+      "bundleIdentifier": "de.pkfussballschule.app"
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#4a6655"
       },
-      "package": "de.musterstudio.termine"
+      "package": "de.pkfussballschule.app"
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "favicon": "./web/favicon.png"
     }
   }
 }
