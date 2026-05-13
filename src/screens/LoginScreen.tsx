@@ -126,10 +126,10 @@ const styles = StyleSheet.create({
     marginBottom: 48,
   },
   studioName: {
-    fontSize: 22,
+    fontSize: 32,
     fontWeight: '800',
     color: '#fff',
-    letterSpacing: -0.3,
+    letterSpacing: -0.5,
   },
   studioCity: {
     fontSize: 14,
