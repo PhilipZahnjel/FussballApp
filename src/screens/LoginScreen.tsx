@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  Animated, Easing, KeyboardAvoidingView, Platform, ScrollView,
+  Animated, Easing, KeyboardAvoidingView, Platform, ScrollView, Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { C } from '../constants/colors';
@@ -58,9 +58,11 @@ export function LoginScreen({ onLogin }: Props) {
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
           {/* Logo */}
           <View style={styles.logoWrap}>
-            <GlassCard style={styles.logoCard}>
-              <Text style={styles.logoIcon}>⚽</Text>
-            </GlassCard>
+            <Image
+              source={require('../../assets/icon.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
             <Text style={styles.studioName}>PK-Fußballschule</Text>
             <Text style={styles.studioCity}>Hattersheim am Main</Text>
           </View>
@@ -128,18 +130,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 48,
   },
-  logoCard: {
-    width: 72,
-    height: 72,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
+  logoImage: {
+    width: 110,
+    height: 110,
     marginBottom: 16,
-  },
-  logoIcon: {
-    fontSize: 32,
-    textAlign: 'center',
-    paddingVertical: 16,
   },
   studioName: {
     fontSize: 22,
