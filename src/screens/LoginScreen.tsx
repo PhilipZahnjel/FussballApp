@@ -59,10 +59,10 @@ export function LoginScreen({ onLogin }: Props) {
           {/* Logo */}
           <View style={styles.logoWrap}>
             <GlassCard style={styles.logoCard}>
-              <Text style={styles.logoIcon}>⚡</Text>
+              <Text style={styles.logoIcon}>⚽</Text>
             </GlassCard>
-            <Text style={styles.studioName}>Muster EMS Studio</Text>
-            <Text style={styles.studioCity}>Musterstadt</Text>
+            <Text style={styles.studioName}>PK-Fußballschule</Text>
+            <Text style={styles.studioCity}>Hattersheim am Main</Text>
           </View>
 
           {/* Form */}
