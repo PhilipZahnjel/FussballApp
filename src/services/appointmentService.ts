@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 
-const SELECT = 'id, date, time, status, program, user_id, trainer_id, session_birth_year, session_level';
+const SELECT = 'id, date, time, status, program, user_id, trainer_id, session_birth_year, session_level, created_at';
 
 export type AppointmentInsert = {
   user_id: string;

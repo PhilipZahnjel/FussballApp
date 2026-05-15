@@ -104,8 +104,12 @@ export function useAppointments(profile: Profile | null) {
     if (!dailyConflict.allowed) return { error: { message: dailyConflict.reason! } };
 
     const { data: profileData } = await ProfileService.fetchById(user.id);
+    const birthYear = profile?.birth_date ? parseInt(profile.birth_date.slice(0, 4)) : null;
+    const level = profile?.level ?? null;
     const { data, error } = await AppointmentService.insert({
       date, time, status: 'confirmed', user_id: user.id, program,
+      ...(birthYear ? { session_birth_year: birthYear } : {}),
+      ...(level ? { session_level: level } : {}),
     });
 
     if (data && !error) {

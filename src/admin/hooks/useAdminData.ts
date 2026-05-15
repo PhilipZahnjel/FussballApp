@@ -6,6 +6,7 @@ import { TokenService } from '../../services/tokenService';
 import { TrainerScheduleService } from '../../services/trainerScheduleService';
 import { CustomerService, CreateCustomerParams } from '../services/customerService';
 import { PROGRAM_CATEGORY, ProgramId } from '../../constants/programs';
+import { canJoinGroupSlot } from '../../utils/bookingRules';
 import { supabase } from '../../lib/supabase';
 
 export type CustomerProfile = {
@@ -118,8 +119,6 @@ export function useAdminData() {
   const addAppointmentForCustomer = async (
     userId: string, date: string, time: string, program: string,
     trainerId?: string | null,
-    sessionBirthYear?: number | null,
-    sessionLevel?: string | null,
   ) => {
     const { data: conflicts } = await AppointmentService.checkDailyConflict(userId, date);
     if (conflicts && conflicts.length >= 2) {
@@ -142,11 +141,30 @@ export function useAdminData() {
       }
     }
 
+    const customer = customers.find(c => c.id === userId);
+    const birthYear = customer?.birth_date ? parseInt(customer.birth_date.slice(0, 4)) : null;
+    const level = customer?.level ?? null;
+
+    if (PROGRAM_CATEGORY[program as ProgramId] === 'gruppe' && birthYear && level) {
+      const slotAppts = allAppointments.filter(
+        a => a.date === date && a.time === time && a.program === program && a.status === 'confirmed',
+      );
+      const existingPlayers = slotAppts
+        .filter(a => a.session_birth_year != null && a.session_level)
+        .map(a => ({ birthYear: a.session_birth_year!, level: a.session_level as PlayerLevel }));
+      if (existingPlayers.length > 0) {
+        const check = canJoinGroupSlot(
+          { birthYear, level }, existingPlayers, parseInt(date.slice(0, 4)),
+        );
+        if (!check.allowed) return { error: { message: check.reason ?? 'Gruppe nicht kompatibel.' } };
+      }
+    }
+
     const { data, error } = await AppointmentService.insert({
       user_id: userId, date, time, status: 'confirmed', program,
       ...(trainerId ? { trainer_id: trainerId } : {}),
-      ...(sessionBirthYear != null ? { session_birth_year: sessionBirthYear } : {}),
-      ...(sessionLevel ? { session_level: sessionLevel } : {}),
+      ...(birthYear ? { session_birth_year: birthYear } : {}),
+      ...(level ? { session_level: level } : {}),
     });
 
     if (data && !error) {

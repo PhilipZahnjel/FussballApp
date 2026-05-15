@@ -13,7 +13,7 @@ export function useTrainerSchedules() {
   const [trainers, setTrainers] = useState<TrainerWithSpecialty[]>([]);
 
   useEffect(() => {
-    Promise.all([
+    const load = () => Promise.all([
       supabase.from('trainer_schedules').select('*'),
       supabase
         .from('profiles')
@@ -24,6 +24,15 @@ export function useTrainerSchedules() {
       if (s.data) setTrainerSchedules(s.data as TrainerSchedule[]);
       if (t.data) setTrainers(t.data as TrainerWithSpecialty[]);
     });
+
+    load();
+
+    const channel = supabase
+      .channel('trainer-schedules-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trainer_schedules' }, load)
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   return { trainerSchedules, trainers };

@@ -36,7 +36,7 @@ interface Props {
   tokenCounts?: { individual: number; gruppe: number };
   onBack: () => void;
   onCancelAppointment: (id: string) => Promise<{ error: any }>;
-  onAddAppointment: (userId: string, date: string, time: string, program: string, trainerId?: string | null, sessionBirthYear?: number | null, sessionLevel?: string | null) => Promise<{ error: any }>;
+  onAddAppointment: (userId: string, date: string, time: string, program: string, trainerId?: string | null) => Promise<{ error: any }>;
   onSaveLevel: (customerId: string, level: PlayerLevel | null) => Promise<{ error: any }>;
   onSaveBookingPermissions: (customerId: string, permissions: Partial<BookingPermissions>) => Promise<{ error: any }>;
   onSaveProfile: (customerId: string, fields: Partial<Pick<CustomerProfile, 'player_type' | 'parent_name' | 'location' | 'birth_date' | 'phone' | 'address'>>) => Promise<{ error: any }>;
@@ -101,7 +101,6 @@ export function KundenDetailScreen({
   const [bookProgram, setBookProgram] = useState<string>(PROGRAMS[0].id);
   const [bookTime, setBookTime] = useState(SLOTS[0]);
   const [bookTrainerId, setBookTrainerId] = useState<string | null>(null);
-  const [bookSessionLevel, setBookSessionLevel] = useState<PlayerLevel | null>(null);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
 
@@ -144,13 +143,10 @@ export function KundenDetailScreen({
     const confirmedOnDay = appointments.filter(a => a.date === bookDate && a.status === 'confirmed');
     if (confirmedOnDay.length > 0) { setBookingError('Bereits ein Termin an diesem Tag.'); return; }
     setBookingLoading(true);
-    const isGruppe = PROGRAM_CATEGORY[bookProgram as ProgramId] === 'gruppe';
-    const sBy = isGruppe ? birthYear : null;
-    const sLvl = isGruppe ? bookSessionLevel : null;
-    const { error } = await onAddAppointment(customer.id, bookDate, bookTime, bookProgram, bookTrainerId, sBy, sLvl);
+    const { error } = await onAddAppointment(customer.id, bookDate, bookTime, bookProgram, bookTrainerId);
     setBookingLoading(false);
     if (error) setBookingError(error.message ?? 'Buchung fehlgeschlagen.');
-    else { setShowBooking(false); setBookDate(''); setBookingError(null); setBookTrainerId(null); setBookSessionLevel(null); }
+    else { setShowBooking(false); setBookDate(''); setBookingError(null); setBookTrainerId(null); }
   };
 
   const doSetLevel = async (level: PlayerLevel | null) => {
@@ -439,35 +435,10 @@ export function KundenDetailScreen({
               </>
             )}
 
-            {PROGRAM_CATEGORY[bookProgram as ProgramId] === 'gruppe' && (
-              <>
-                <Text style={styles.fieldLabel}>Gruppen-Jahrgang</Text>
-                {birthYear ? (
-                  <View style={styles.birthYearDisplay}>
-                    <Text style={styles.birthYearText}>Jg. {birthYear}</Text>
-                    <Text style={styles.birthYearHint}>(aus Geburtsdatum)</Text>
-                  </View>
-                ) : (
-                  <View style={styles.birthYearWarning}>
-                    <Text style={styles.birthYearWarningText}>⚠ Bitte zuerst Geburtsdatum im Profil eintragen.</Text>
-                  </View>
-                )}
-                <Text style={styles.fieldLabel}>Qualitätsstufe der Gruppe</Text>
-                <View style={styles.slotRow}>
-                  {(['anfaenger', 'amateur', 'profi', 'experte'] as PlayerLevel[]).map(lvl => (
-                    <TouchableOpacity
-                      key={lvl}
-                      style={[styles.slotChip, bookSessionLevel === lvl && { borderColor: LEVEL_COLORS[lvl], backgroundColor: LEVEL_COLORS[lvl] + '22' }]}
-                      onPress={() => setBookSessionLevel(bookSessionLevel === lvl ? null : lvl)}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={[styles.slotChipText, bookSessionLevel === lvl && { color: LEVEL_COLORS[lvl], fontWeight: '700' }]}>
-                        {LEVEL_LABELS[lvl]}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </>
+            {PROGRAM_CATEGORY[bookProgram as ProgramId] === 'gruppe' && !birthYear && (
+              <View style={styles.birthYearWarning}>
+                <Text style={styles.birthYearWarningText}>⚠ Bitte zuerst Geburtsdatum im Profil eintragen (wird für Gruppenkompatibilität benötigt).</Text>
+              </View>
             )}
 
             {bookingError && <Text style={styles.fieldError}>{bookingError}</Text>}

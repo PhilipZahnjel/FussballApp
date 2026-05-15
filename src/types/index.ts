@@ -10,6 +10,7 @@ export type Appointment = {
   trainer_id?: string | null;
   session_level?: string | null;
   session_birth_year?: number | null;
+  created_at?: string;
 };
 
 export type Tab = 'home' | 'termine' | 'buchen' | 'infos' | 'profil';

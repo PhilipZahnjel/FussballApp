@@ -13,7 +13,7 @@ import { todayStr, fmtDate, fmtShort, DE_MONTHS, DE_DAYS_SHORT } from '../consta
 import { SLOTS } from '../constants/slots';
 import { PROGRAMS, PROGRAM_CATEGORY, ProgramId } from '../constants/programs';
 import { Profile } from '../hooks/useProfile';
-import { germanHolidays, canJoinGroupSlot } from '../utils/bookingRules';
+import { germanHolidays, canJoinGroupSlot, reconstructGroups } from '../utils/bookingRules';
 
 interface Props {
   appointments: Appointment[];
@@ -294,35 +294,87 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
     const playerLevel = profile?.level ?? null;
     const sessionYear = selDate ? parseInt(selDate.slice(0, 4)) : new Date().getFullYear();
 
-    const capacity = currentProgram?.capacity ?? 1;
+    const baseCapacity = currentProgram?.capacity ?? 1;
+
+    // Trainer-Verfügbarkeit filtern (vor SlotGroup, damit Kapazität pro Slot berechenbar ist)
+    const TORWART_IDS = ['torhueter_individual', 'torhueter_gruppe'];
+    const neededSpecialty = selProgram && TORWART_IDS.includes(selProgram) ? 'torwart' : 'spieler';
+    const jsDay = selDate ? new Date(selDate).getDay() : 0;
+    const dayOfWeek = jsDay === 0 ? 7 : jsDay;
+    const relevantIds = trainers
+      .filter(t => t.trainer_specialty === neededSpecialty)
+      .map(t => t.id);
+    const hasMatchingTrainer = relevantIds.length > 0;
+    const scheduledTimes = trainerSchedules
+      .filter(s => relevantIds.includes(s.trainer_id) && s.day_of_week === dayOfWeek)
+      .map(s => s.time);
+
+    // Kapazität = Basis × Anzahl Trainer, die an diesem Tag+Zeit verfügbar sind.
+    // Kein Trainer konfiguriert → Basiskap. unverändert.
+    const getSlotCapacity = (time: string): number => {
+      if (!hasMatchingTrainer) return baseCapacity;
+      const count = trainerSchedules.filter(
+        s => relevantIds.includes(s.trainer_id) && s.day_of_week === dayOfWeek && s.time === time,
+      ).length;
+      return count > 0 ? baseCapacity * count : 0;
+    };
+
+    const allowedSlots = hasMatchingTrainer
+      ? SLOTS.filter(s => scheduledTimes.includes(s))
+      : SLOTS;
+
+    const GROUP_SIZE = 4;
+
     const SlotGroup = ({ label, slots }: { label: string; slots: string[] }) => (
       <View style={{ marginBottom: 20 }}>
         <Text style={styles.slotGroupLabel}>{label}</Text>
         <View style={styles.slotGrid}>
           {slots.map(t => {
+            const totalCapacity = getSlotCapacity(t);
             const slotAppts = appointments.filter(a => a.date === selDate && a.time === t && a.program === selProgram && a.status === 'confirmed');
             const booked = slotAppts.length;
             const userBooked = myAppointments.some(a => a.date === selDate && a.time === t && a.status === 'confirmed');
             const isPast = isToday && t <= nowStr;
 
-            // Gruppen-Kompatibilität paarweise prüfen — nicht passende Slots gar nicht anzeigen
-            if (isGroup && !isPast && !userBooked && booked > 0 && playerBirthYear && playerLevel) {
+            // First-Fit Gruppen-Zuweisung
+            let freeInGroup = GROUP_SIZE;
+            if (isGroup && !isPast && !userBooked && playerBirthYear && playerLevel) {
               const existingPlayers = slotAppts
                 .filter(a => a.session_birth_year != null && a.session_level)
-                .map(a => ({ birthYear: a.session_birth_year!, level: a.session_level as any }));
-              if (existingPlayers.length > 0) {
-                const check = canJoinGroupSlot(
-                  { birthYear: playerBirthYear, level: playerLevel },
-                  existingPlayers,
-                  sessionYear,
-                );
-                if (!check.allowed) return null;
+                .map(a => ({ birthYear: a.session_birth_year!, level: a.session_level as any, created_at: a.created_at }));
+              const groups = reconstructGroups(existingPlayers, GROUP_SIZE, sessionYear);
+              const trainerCount = relevantIds.length || 1;
+
+              let targetGroupIndex = -1;
+              for (let i = 0; i < groups.length; i++) {
+                if (groups[i].length < GROUP_SIZE) {
+                  if (canJoinGroupSlot({ birthYear: playerBirthYear, level: playerLevel }, groups[i], sessionYear).allowed) {
+                    targetGroupIndex = i;
+                    break;
+                  }
+                }
               }
+              if (targetGroupIndex === -1) {
+                if (groups.length >= trainerCount) return null;
+                targetGroupIndex = groups.length;
+              }
+              freeInGroup = GROUP_SIZE - (groups[targetGroupIndex]?.length ?? 0);
+            } else if (isGroup) {
+              const rem = booked % GROUP_SIZE;
+              freeInGroup = rem === 0 ? GROUP_SIZE : GROUP_SIZE - rem;
             }
 
-            const full = booked >= capacity || userBooked || isPast;
+            const full = booked >= totalCapacity || userBooked || isPast;
             const sel = selTime === t;
-            const free = capacity - booked;
+
+            const subLabel = (() => {
+              if (isPast) return 'Vergangen';
+              if (userBooked) return 'Bereits gebucht';
+              if (booked >= totalCapacity) return 'Ausgebucht';
+              if (isGroup) return freeInGroup === 1 ? '1 Platz frei' : `${freeInGroup} Plätze frei`;
+              return 'Verfügbar';
+            })();
+
             return (
               <TouchableOpacity
                 key={t}
@@ -332,12 +384,9 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
                 style={[styles.slot, sel && styles.slotSelected, full && styles.slotFull]}
               >
                 <Text style={[styles.slotTime, full && styles.slotTimeDimmed]}>{t}</Text>
-                <Text style={[styles.slotSub, full && styles.slotSubDimmed, !full && free === 1 && { color: '#FFD580' }]}>
-                  {isPast ? 'Vergangen'
-                    : userBooked ? 'Bereits gebucht'
-                    : booked >= capacity ? 'Ausgebucht'
-                    : free === 1 ? '1 Platz frei'
-                    : `${free} Plätze frei`}
+                <Text style={[styles.slotSub, full && styles.slotSubDimmed,
+                  !full && isGroup && freeInGroup === 1 && { color: '#FFD580' }]}>
+                  {subLabel}
                 </Text>
               </TouchableOpacity>
             );
@@ -346,26 +395,17 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
       </View>
     );
 
-    // Trainer-Verfügbarkeit filtern
-    const TORWART_IDS = ['torhueter_individual', 'torhueter_gruppe'];
-    const neededSpecialty = selProgram && TORWART_IDS.includes(selProgram) ? 'torwart' : 'spieler';
-    const jsDay = selDate ? new Date(selDate).getDay() : 0;
-    const dayOfWeek = jsDay === 0 ? 7 : jsDay;
-    const relevantIds = trainers
-      .filter(t => t.trainer_specialty === neededSpecialty)
-      .map(t => t.id);
-    const scheduledTimes = trainerSchedules
-      .filter(s => relevantIds.includes(s.trainer_id) && s.day_of_week === dayOfWeek)
-      .map(s => s.time);
-    const allowedSlots = scheduledTimes.length > 0
-      ? SLOTS.filter(s => scheduledTimes.includes(s))
-      : SLOTS;
-
     return (
       <FadeUp>
         <BackBtn onPress={() => setStep('date')} />
         <SectionTitle t="Uhrzeit wählen" sub={selDate ? fmtShort(selDate) : ''} />
-        <SlotGroup label="Verfügbare Zeiten" slots={allowedSlots} />
+        {allowedSlots.length === 0 ? (
+          <Text style={{ color: '#888', textAlign: 'center', marginTop: 24, fontSize: 15 }}>
+            An diesem Tag sind keine Zeiten verfügbar.
+          </Text>
+        ) : (
+          <SlotGroup label="Verfügbare Zeiten" slots={allowedSlots} />
+        )}
         {selTime && <Btn label="Weiter" onPress={() => setStep('confirm')} variant="primary" />}
       </FadeUp>
     );

@@ -104,31 +104,29 @@ export function germanHolidays(year: number): Set<string> {
   ]);
 }
 
-const LEVEL_LABEL: Record<PlayerLevel, string> = {
-  anfaenger: 'Anfänger', amateur: 'Amateur', profi: 'Profi', experte: 'Experte',
-};
-
 /**
- * Prüft ob ein Spieler in eine Gruppen-Session passt.
- * sessionYear = Jahr des Termins (für Altersberechnung).
- * Spieler unter 7 Jahren können jede Gruppe buchen.
- * Ab 7 Jahren gelten die Qualitätsstufen-Jahrgangs-Regeln.
+ * Prüft ob zwei Spieler in dieselbe Gruppe passen (bidirektional aufrufen).
+ * playerBirthYear/Level = prüfender Spieler, existingBirthYear/Level = bestehender Spieler.
  */
 export function checkGroupSessionCompatibility(
   playerBirthYear: number,
   playerLevel: PlayerLevel,
-  sessionBirthYear: number,
-  sessionLevel: PlayerLevel,
+  existingBirthYear: number,
+  existingLevel: PlayerLevel,
   sessionYear: number,
 ): { allowed: boolean; reason?: string } {
   const playerAge = sessionYear - playerBirthYear;
+  const existingAge = sessionYear - existingBirthYear;
 
-  // 0–6 Jahre: darf jede Alters-/Qualitätsgruppe buchen
-  if (playerAge < 7) return { allowed: true };
+  // 0–6 nur mit 0–6, 7+ nur mit 7+
+  if (playerAge < 7 && existingAge < 7) return { allowed: true };
+  if (playerAge < 7 || existingAge < 7) {
+    return { allowed: false, reason: 'Altersgruppen 0–6 und 7+ können nicht kombiniert werden.' };
+  }
 
   const pBY = playerBirthYear;
-  const sBY = sessionBirthYear;
-  const sL  = sessionLevel;
+  const sBY = existingBirthYear;
+  const sL  = existingLevel;
 
   const ok = (levels: PlayerLevel[], years: number[]) =>
     levels.includes(sL) && years.includes(sBY);
@@ -164,8 +162,61 @@ export function checkGroupSessionCompatibility(
 
   return {
     allowed: false,
-    reason: `Gruppe ${LEVEL_LABEL[sessionLevel]} Jg. ${sessionBirthYear} passt nicht zu deiner Stufe.`,
+    reason: `Jahrgang ${existingBirthYear} (${existingLevel}) passt nicht zur Stufe des Spielers.`,
   };
+}
+
+/**
+ * Prüft ob ein neuer Spieler mit ALLEN bestehenden Spielern im Slot kompatibel ist (bidirektional).
+ */
+export function canJoinGroupSlot(
+  newPlayer: { birthYear: number; level: PlayerLevel },
+  existingPlayers: Array<{ birthYear: number; level: PlayerLevel }>,
+  sessionYear: number,
+): { allowed: boolean; reason?: string } {
+  for (const existing of existingPlayers) {
+    const c1 = checkGroupSessionCompatibility(
+      newPlayer.birthYear, newPlayer.level,
+      existing.birthYear, existing.level,
+      sessionYear,
+    );
+    if (!c1.allowed) return c1;
+
+    const c2 = checkGroupSessionCompatibility(
+      existing.birthYear, existing.level,
+      newPlayer.birthYear, newPlayer.level,
+      sessionYear,
+    );
+    if (!c2.allowed) return { allowed: false, reason: 'Gruppe nicht kompatibel.' };
+  }
+  return { allowed: true };
+}
+
+/**
+ * Rekonstruiert Gruppen aus bestehenden Buchungen per First-Fit-Algorithmus.
+ * Jede Buchung wird der ersten kompatiblen Gruppe zugewiesen, die noch Platz hat.
+ */
+export function reconstructGroups(
+  bookings: Array<{ birthYear: number; level: PlayerLevel; created_at?: string }>,
+  groupSize: number,
+  sessionYear: number,
+): Array<Array<{ birthYear: number; level: PlayerLevel }>> {
+  const sorted = [...bookings].sort((a, b) =>
+    (a.created_at ?? '').localeCompare(b.created_at ?? ''),
+  );
+  const groups: Array<Array<{ birthYear: number; level: PlayerLevel }>> = [];
+  for (const booking of sorted) {
+    let assigned = false;
+    for (const group of groups) {
+      if (group.length < groupSize && canJoinGroupSlot(booking, group, sessionYear).allowed) {
+        group.push(booking);
+        assigned = true;
+        break;
+      }
+    }
+    if (!assigned) groups.push([{ birthYear: booking.birthYear, level: booking.level }]);
+  }
+  return groups;
 }
 
 export function isBookableDay(dateStr: string): boolean {
