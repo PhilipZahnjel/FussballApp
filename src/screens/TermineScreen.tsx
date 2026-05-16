@@ -32,7 +32,7 @@ function ApptCard({ appt, onCancel }: { appt: Appointment; onCancel: (id: string
   const dimmed = appt.status === 'cancelled' || appt.date < ts;
   const upcoming = appt.status === 'confirmed' && appt.date >= ts;
   const program = PROGRAMS.find(p => p.id === appt.program);
-  const programColor = PROGRAM_COLORS[appt.program] ?? C.accent;
+  const programColor = PROGRAM_COLORS[appt.program] ?? C.accentLight;
 
   const handleStornPress = () => {
     if (isWithinCancellationDeadline(appt.date, appt.time)) {
@@ -44,17 +44,21 @@ function ApptCard({ appt, onCancel }: { appt: Appointment; onCancel: (id: string
   };
 
   return (
-    <Card style={[styles.apptCard, dimmed ? { opacity: 0.55 } : undefined]}>
+    <Card style={[styles.apptCard, dimmed ? { opacity: 0.5 } : undefined]}>
       <View style={styles.apptMain}>
-        <View style={[styles.colorBar, { backgroundColor: appt.status === 'cancelled' ? '#ccc' : programColor }]} />
+        <View style={[styles.colorBar, { backgroundColor: appt.status === 'cancelled' ? '#CBD5E1' : programColor }]} />
         <View style={styles.apptContent}>
           <View style={styles.apptHeader}>
-            <Text style={[styles.apptTitle, { color: appt.status === 'cancelled' ? C.textMid : programColor }]}>
+            <Text style={[styles.apptTitle, { color: appt.status === 'cancelled' ? C.textMid : C.text }]}>
               {program?.name ?? 'Training'}
             </Text>
-            {appt.status === 'cancelled' && (
+            {appt.status === 'cancelled' ? (
               <View style={styles.cancelBadge}>
                 <Text style={styles.cancelBadgeText}>Storniert</Text>
+              </View>
+            ) : (
+              <View style={[styles.programBadge, { backgroundColor: programColor + '18', borderColor: programColor + '40' }]}>
+                <Text style={[styles.programBadgeText, { color: programColor }]}>{program?.duration ?? 55} Min.</Text>
               </View>
             )}
           </View>
@@ -64,7 +68,7 @@ function ApptCard({ appt, onCancel }: { appt: Appointment; onCancel: (id: string
           </View>
           <View style={styles.apptMeta}>
             <Text style={styles.apptMetaIcon}>🕐</Text>
-            <Text style={styles.apptMetaText}>{appt.time} Uhr · {program?.duration ?? 20} Min.</Text>
+            <Text style={styles.apptMetaText}>{appt.time} Uhr</Text>
           </View>
         </View>
       </View>
@@ -140,17 +144,14 @@ export function TermineScreen({ appointments, cancelAppointment, activeTokens, s
   const prevMonth = () => { const d = new Date(calY, calM - 1); setCalM(d.getMonth()); setCalY(d.getFullYear()); };
   const nextMonth = () => { const d = new Date(calY, calM + 1); setCalM(d.getMonth()); setCalY(d.getFullYear()); };
 
-  // Calendar grid
   const daysInMonth = new Date(calY, calM + 1, 0).getDate();
   const firstDow = (new Date(calY, calM, 1).getDay() + 6) % 7;
   const cells: (number | null)[] = [];
   for (let i = 0; i < firstDow; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
 
-  // Appointments per day (only confirmed)
   const confirmedAppts = appointments.filter(a => a.status === 'confirmed');
 
-  // Filtered list
   const listAppts = selectedDate
     ? appointments.filter(a => a.date === selectedDate)
     : null;
@@ -186,7 +187,7 @@ export function TermineScreen({ appointments, cancelAppointment, activeTokens, s
           </View>
         )}
 
-        {/* ── Kalender ─────────────────────────────────────── */}
+        {/* Kalender */}
         <Card style={styles.calCard}>
           <View style={styles.monthNav}>
             <TouchableOpacity onPress={prevMonth} style={styles.navBtn} activeOpacity={0.8}>
@@ -238,7 +239,7 @@ export function TermineScreen({ appointments, cancelAppointment, activeTokens, s
                         {dayAppts.slice(0, 3).map((a, idx) => (
                           <View
                             key={idx}
-                            style={[styles.dot, { backgroundColor: isSel ? 'rgba(255,255,255,0.9)' : (PROGRAM_COLORS[a.program] ?? C.accent) }]}
+                            style={[styles.dot, { backgroundColor: isSel ? 'rgba(255,255,255,0.9)' : (PROGRAM_COLORS[a.program] ?? C.accentLight) }]}
                           />
                         ))}
                       </View>
@@ -250,7 +251,7 @@ export function TermineScreen({ appointments, cancelAppointment, activeTokens, s
           </View>
         </Card>
 
-        {/* ── Legende ───────────────────────────────────────── */}
+        {/* Legende */}
         <View style={styles.legend}>
           {PROGRAMS.map(p => (
             <View key={p.id} style={styles.legendItem}>
@@ -260,7 +261,7 @@ export function TermineScreen({ appointments, cancelAppointment, activeTokens, s
           ))}
         </View>
 
-        {/* ── Termine Liste ─────────────────────────────────── */}
+        {/* Termine Liste */}
         {selectedDate ? (
           <>
             <View style={styles.filterHeader}>
@@ -302,14 +303,20 @@ export function TermineScreen({ appointments, cancelAppointment, activeTokens, s
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { paddingHorizontal: 20 },
-  screenTitle: { fontSize: 28, fontWeight: '800', color: '#fff', letterSpacing: -0.4, marginBottom: 20 },
-  bookBtn: { marginBottom: 12 },
-  tokenBanner: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: 12, marginBottom: 16, gap: 6 },
+  screenTitle: { fontSize: 28, fontWeight: '800', color: C.text, letterSpacing: -0.4, marginBottom: 20 },
+  tokenBanner: {
+    backgroundColor: 'rgba(21,34,56,0.07)',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 16,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(21,34,56,0.12)',
+  },
   tokenRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   tokenIcon: { fontSize: 15 },
-  tokenText: { fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.9)', flex: 1 },
+  tokenText: { fontSize: 13, fontWeight: '600', color: C.text, flex: 1 },
 
-  // Kalender
   calCard: { marginBottom: 12, overflow: 'hidden' },
   monthNav: {
     flexDirection: 'row',
@@ -326,7 +333,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: C.accentBg,
     borderWidth: 1,
-    borderColor: 'rgba(90,140,106,0.2)',
+    borderColor: 'rgba(21,34,56,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -346,31 +353,28 @@ const styles = StyleSheet.create({
   dotRow: { flexDirection: 'row', gap: 2, marginTop: 2 },
   dot: { width: 5, height: 5, borderRadius: 3 },
 
-  // Legende
   legend: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendDot: { width: 9, height: 9, borderRadius: 5 },
-  legendText: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: '500' },
+  legendText: { fontSize: 12, color: C.textFaint, fontWeight: '500' },
 
-  // Filter-Header
   filterHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 14,
   },
-  filterLabel: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  filterLabel: { fontSize: 16, fontWeight: '700', color: C.text },
   clearBtn: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: C.accentBg,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: 'rgba(21,34,56,0.14)',
   },
-  clearBtnText: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.8)' },
+  clearBtnText: { fontSize: 12, fontWeight: '600', color: C.textMid },
 
-  // Liste
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700',
@@ -381,15 +385,19 @@ const styles = StyleSheet.create({
   },
   emptyText: { textAlign: 'center', color: C.textFaint, fontSize: 15, paddingTop: 24 },
 
-  // Appointment Card
   apptCard: { marginBottom: 12 },
   apptMain: { flexDirection: 'row', padding: 18, gap: 12, alignItems: 'flex-start' },
-  colorBar: { width: 3, borderRadius: 2, alignSelf: 'stretch', marginTop: 2 },
+  colorBar: { width: 4, borderRadius: 2, alignSelf: 'stretch', marginTop: 2 },
   apptContent: { flex: 1 },
   apptHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  apptTitle: { fontSize: 17, fontWeight: '800' },
+  apptTitle: { fontSize: 17, fontWeight: '800', color: C.text },
   cancelBadge: { backgroundColor: C.redBg, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 3 },
   cancelBadgeText: { fontSize: 11, fontWeight: '700', color: C.red },
+  programBadge: {
+    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 3,
+    borderWidth: 1,
+  },
+  programBadgeText: { fontSize: 11, fontWeight: '700' },
   apptMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
   apptMetaIcon: { fontSize: 13 },
   apptMetaText: { fontSize: 14, color: C.textMid, fontWeight: '500' },
@@ -404,20 +412,20 @@ const styles = StyleSheet.create({
   calBtn: {
     flex: 1, height: 42, borderRadius: 12,
     backgroundColor: C.accentBg, borderWidth: 1,
-    borderColor: 'rgba(90,140,106,0.2)',
+    borderColor: 'rgba(21,34,56,0.12)',
     alignItems: 'center', justifyContent: 'center',
   },
   calBtnLabel: { fontSize: 13, fontWeight: '700', color: C.accent },
   stornBtn: {
     flex: 1, height: 42, borderRadius: 12,
     backgroundColor: C.redBg, borderWidth: 1,
-    borderColor: 'rgba(212,90,90,0.2)',
+    borderColor: 'rgba(220,38,38,0.20)',
     alignItems: 'center', justifyContent: 'center',
   },
   stornBtnLabel: { fontSize: 13, fontWeight: '700', color: C.red },
   deadlineErrorBox: {
     margin: 14, marginBottom: 0, padding: 14, borderRadius: 12,
-    backgroundColor: C.redBg, borderWidth: 1, borderColor: 'rgba(212,90,90,0.25)',
+    backgroundColor: C.redBg, borderWidth: 1, borderColor: 'rgba(220,38,38,0.25)',
   },
   deadlineErrorTitle: { fontSize: 14, fontWeight: '800', color: C.red, marginBottom: 6 },
   deadlineErrorText: { fontSize: 13, color: C.red, lineHeight: 19, opacity: 0.85 },
@@ -429,7 +437,7 @@ const styles = StyleSheet.create({
   deadlineErrorConfirmText: { fontSize: 12, fontWeight: '700', color: '#fff' },
   deadlineErrorClose: {
     flex: 1, paddingVertical: 8, borderRadius: 8,
-    backgroundColor: 'rgba(0,0,0,0.07)', alignItems: 'center',
+    backgroundColor: 'rgba(21,34,56,0.06)', alignItems: 'center',
   },
   deadlineErrorCloseText: { fontSize: 12, fontWeight: '700', color: C.red },
   confirmSection: { borderTopWidth: 1, borderTopColor: C.cardBorder, padding: 16, paddingHorizontal: 20 },
@@ -444,7 +452,7 @@ const styles = StyleSheet.create({
   cancelYesLabel: { fontSize: 15, fontWeight: '700', color: '#fff' },
   cancelNoBtn: {
     flex: 1, height: 46, borderRadius: 12,
-    backgroundColor: '#f2f4f3', borderWidth: 1, borderColor: C.cardBorder,
+    backgroundColor: C.accentBg, borderWidth: 1, borderColor: C.cardBorder,
     alignItems: 'center', justifyContent: 'center',
   },
   cancelNoLabel: { fontSize: 15, fontWeight: '600', color: C.textMid },

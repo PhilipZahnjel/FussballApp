@@ -5,12 +5,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { C } from '../constants/colors';
-import { GlassCard } from '../components/GlassCard';
 import { Card } from '../components/Card';
 import { Btn } from '../components/Btn';
 import { useProfile } from '../hooks/useProfile';
 import { supabase } from '../lib/supabase';
 import { STUDIO } from '../constants/studio';
+
 interface Props {
   onLogout: () => void;
 }
@@ -63,7 +63,6 @@ export function ProfilScreen({ onLogout }: Props) {
   const [pwErr, setPwErr] = useState('');
   const [pwSuccess, setPwSuccess] = useState(false);
 
-  // Erreichbarkeit editieren
   const [editContact, setEditContact] = useState(false);
   const [editPhone, setEditPhone] = useState('');
   const [contactLoading, setContactLoading] = useState(false);
@@ -110,7 +109,6 @@ export function ProfilScreen({ onLogout }: Props) {
       .eq('id', user.id);
 
     if (!error) {
-      // Benachrichtigung an Admin
       await supabase.from('notifications').insert({
         title: 'Kontaktdaten geändert',
         body: `Kunde ${profile?.full_name ?? ''} (Nr. ${profile?.customer_number}) hat seine Telefonnummer geändert auf: ${editPhone.trim()}`,
@@ -126,6 +124,7 @@ export function ProfilScreen({ onLogout }: Props) {
   };
 
   const playerTypeLabel = profile?.player_type === 'torwart' ? 'Torwart' : profile?.player_type === 'feldspieler' ? 'Feldspieler' : '—';
+  const avatarEmoji = profile?.player_type === 'torwart' ? '🧤' : '⚽';
 
   return (
     <ScrollView
@@ -137,23 +136,29 @@ export function ProfilScreen({ onLogout }: Props) {
       <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
         <Text style={styles.screenTitle}>Profil</Text>
 
-        {/* Avatar */}
-        <GlassCard style={styles.avatarCard}>
+        {/* Avatar Card */}
+        <View style={styles.avatarCard}>
           <View style={styles.avatarCircle}>
-            <Text style={styles.avatarIcon}>
-              {profile?.player_type === 'torwart' ? '🧤' : '⚽'}
-            </Text>
+            <Text style={styles.avatarIcon}>{avatarEmoji}</Text>
           </View>
           <Text style={styles.userName}>{loading ? '…' : (profile?.full_name ?? '—')}</Text>
-          <Text style={styles.userDetail}>{playerTypeLabel}</Text>
-          {profile?.birth_date && (
-            <Text style={styles.userDetail}>{calcAge(profile.birth_date)}</Text>
-          )}
-          {profile?.location && (
-            <Text style={styles.userDetail}>📍 {profile.location}</Text>
-          )}
-          <Text style={styles.userDetail}>Kundennummer: {profile?.customer_number ?? '—'}</Text>
-        </GlassCard>
+          <Text style={styles.userType}>{playerTypeLabel}</Text>
+          <View style={styles.userChips}>
+            {profile?.birth_date && (
+              <View style={styles.chip}>
+                <Text style={styles.chipText}>{calcAge(profile.birth_date)}</Text>
+              </View>
+            )}
+            {profile?.location && (
+              <View style={styles.chip}>
+                <Text style={styles.chipText}>📍 {profile.location}</Text>
+              </View>
+            )}
+            <View style={styles.chip}>
+              <Text style={styles.chipText}>Nr. {profile?.customer_number ?? '—'}</Text>
+            </View>
+          </View>
+        </View>
 
         {/* Erreichbarkeit */}
         <SectionCard title="Erreichbarkeit">
@@ -165,7 +170,7 @@ export function ProfilScreen({ onLogout }: Props) {
                 value={editPhone}
                 onChangeText={setEditPhone}
                 placeholder="0170 1234567"
-                placeholderTextColor="rgba(0,0,0,0.3)"
+                placeholderTextColor={C.textFaint}
                 keyboardType="phone-pad"
               />
               <Text style={styles.editHint}>E-Mail-Änderungen bitte beim Kundenservice anfragen.</Text>
@@ -209,7 +214,6 @@ export function ProfilScreen({ onLogout }: Props) {
           )}
         </SectionCard>
 
-
         {/* Allgemein */}
         <SectionCard title="Allgemein">
           <InfoRow label="Kundennummer" value={profile?.customer_number?.toString() ?? ''} />
@@ -231,7 +235,7 @@ export function ProfilScreen({ onLogout }: Props) {
               <TextInput
                 style={styles.pwInput}
                 placeholder="Neues Passwort"
-                placeholderTextColor="rgba(0,0,0,0.3)"
+                placeholderTextColor={C.textFaint}
                 secureTextEntry
                 value={newPw}
                 onChangeText={v => { setNewPw(v); setPwErr(''); }}
@@ -239,7 +243,7 @@ export function ProfilScreen({ onLogout }: Props) {
               <TextInput
                 style={[styles.pwInput, { marginTop: 10 }]}
                 placeholder="Passwort bestätigen"
-                placeholderTextColor="rgba(0,0,0,0.3)"
+                placeholderTextColor={C.textFaint}
                 secureTextEntry
                 value={confirmPw}
                 onChangeText={v => { setConfirmPw(v); setPwErr(''); }}
@@ -278,27 +282,46 @@ const styles = StyleSheet.create({
   screenTitle: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#fff',
+    color: C.text,
     letterSpacing: -0.4,
     marginBottom: 24,
   },
   avatarCard: {
-    padding: 24,
+    backgroundColor: C.accent,
+    borderRadius: 24,
+    padding: 28,
     alignItems: 'center',
     marginBottom: 16,
+    shadowColor: C.accent,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.22,
+    shadowRadius: 20,
+    elevation: 8,
   },
   avatarCircle: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.25)',
   },
   avatarIcon: { fontSize: 38 },
   userName: { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 4 },
-  userDetail: { fontSize: 14, color: C.textFaint, marginBottom: 2, textAlign: 'center' },
+  userType: { fontSize: 14, color: 'rgba(255,255,255,0.70)', marginBottom: 14 },
+  userChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
+  chip: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.20)',
+  },
+  chipText: { fontSize: 12, color: 'rgba(255,255,255,0.90)', fontWeight: '600' },
   infoCard: { marginBottom: 14 },
   cardSectionHeader: {
     paddingHorizontal: 20,
@@ -309,9 +332,9 @@ const styles = StyleSheet.create({
   cardSectionLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: C.textMid,
+    color: C.textFaint,
     textTransform: 'uppercase',
-    letterSpacing: 0.1,
+    letterSpacing: 0.2,
   },
   infoRow: {
     flexDirection: 'row',
@@ -325,19 +348,19 @@ const styles = StyleSheet.create({
   infoVal: { fontSize: 15, fontWeight: '600', color: C.text, textAlign: 'right', flex: 1 },
   editContactRow: { paddingHorizontal: 20, paddingVertical: 12 },
   editContactForm: { paddingHorizontal: 20, paddingBottom: 16, paddingTop: 12 },
-  editLabel: { fontSize: 12, fontWeight: '700', color: C.textMid, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 },
+  editLabel: { fontSize: 12, fontWeight: '700', color: C.textFaint, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 },
   editInput: {
     height: 48,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: 'rgba(0,0,0,0.15)',
-    backgroundColor: 'rgba(0,0,0,0.04)',
+    borderColor: 'rgba(21,34,56,0.15)',
+    backgroundColor: '#F7FAFD',
     color: C.text,
     fontSize: 15,
     paddingHorizontal: 14,
     marginBottom: 8,
   },
-  editHint: { fontSize: 12, color: C.textMid, marginBottom: 12 },
+  editHint: { fontSize: 12, color: C.textFaint, marginBottom: 12 },
   contactMsg: { fontSize: 13, fontWeight: '600', marginBottom: 8 },
   editContactBtns: { flexDirection: 'row', gap: 10 },
   changePwBtn: {
@@ -346,7 +369,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderWidth: 1,
-    borderColor: C.accent + '44',
+    borderColor: 'rgba(21,34,56,0.12)',
   },
   changePwLabel: { fontSize: 13, fontWeight: '700', color: C.accent },
   pwForm: { paddingHorizontal: 20, paddingBottom: 16 },
@@ -354,8 +377,8 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: 'rgba(0,0,0,0.15)',
-    backgroundColor: 'rgba(0,0,0,0.04)',
+    borderColor: 'rgba(21,34,56,0.15)',
+    backgroundColor: '#F7FAFD',
     color: C.text,
     fontSize: 15,
     paddingHorizontal: 14,
@@ -375,7 +398,9 @@ const styles = StyleSheet.create({
     marginTop: 14,
     height: 48,
     borderRadius: 13,
-    backgroundColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: C.accentBg,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },

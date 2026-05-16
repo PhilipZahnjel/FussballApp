@@ -81,13 +81,13 @@ export default function App() {
       start={{ x: 0.15, y: 0 }}
       end={{ x: 0.85, y: 1 }}
     >
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
 
       {!loggedIn ? (
         <LoginScreen onLogin={() => {}} />
       ) : role === null ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color="#fff" />
+          <ActivityIndicator size="large" color={C.accent} />
         </View>
       ) : (
         <>
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
   },
   webOuter: {
     flex: 1,
-    backgroundColor: C.bgBot,
+    backgroundColor: '#C8D8EE',
     alignItems: 'center',
     justifyContent: 'center',
     // @ts-ignore web-only

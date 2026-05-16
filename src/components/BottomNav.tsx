@@ -10,7 +10,7 @@ interface Props {
 }
 
 function HomeIcon({ active }: { active: boolean }) {
-  const c = active ? C.accentLight : 'rgba(255,255,255,0.4)';
+  const c = active ? C.accent : C.textFaint;
   return (
     <View style={[styles.icon, { alignItems: 'center', justifyContent: 'center' }]}>
       <View style={[styles.houseRoof, { borderBottomColor: c }]} />
@@ -20,7 +20,7 @@ function HomeIcon({ active }: { active: boolean }) {
 }
 
 function ListIcon({ active }: { active: boolean }) {
-  const c = active ? C.accentLight : 'rgba(255,255,255,0.4)';
+  const c = active ? C.accent : C.textFaint;
   return (
     <View style={styles.icon}>
       {[0, 4, 8].map(y => (
@@ -31,7 +31,7 @@ function ListIcon({ active }: { active: boolean }) {
 }
 
 function PlusIcon({ active }: { active: boolean }) {
-  const c = active ? C.accentLight : 'rgba(255,255,255,0.4)';
+  const c = active ? C.accent : C.textFaint;
   return (
     <View style={[styles.icon, { alignItems: 'center', justifyContent: 'center' }]}>
       <View style={[styles.plusH, { backgroundColor: c }]} />
@@ -41,7 +41,7 @@ function PlusIcon({ active }: { active: boolean }) {
 }
 
 function InfoIcon({ active }: { active: boolean }) {
-  const c = active ? C.accentLight : 'rgba(255,255,255,0.4)';
+  const c = active ? C.accent : C.textFaint;
   return (
     <View style={[styles.icon, { alignItems: 'center', justifyContent: 'center' }]}>
       <View style={[styles.infoCircle, { borderColor: c }]}>
@@ -52,7 +52,7 @@ function InfoIcon({ active }: { active: boolean }) {
 }
 
 function ProfilIcon({ active }: { active: boolean }) {
-  const c = active ? C.accentLight : 'rgba(255,255,255,0.4)';
+  const c = active ? C.accent : C.textFaint;
   return (
     <View style={[styles.icon, { alignItems: 'center', justifyContent: 'center' }]}>
       <View style={[styles.head, { borderColor: c }]} />
@@ -80,6 +80,7 @@ export function BottomNav({ tab, setTab }: Props) {
         const labelStyle = active ? styles.itemLabelActive : styles.itemLabelInactive;
         return (
           <TouchableOpacity key={id} style={styles.item} onPress={() => setTab(id)} activeOpacity={0.7}>
+            {active && <View style={styles.activeDot} />}
             {id === 'home' && <HomeIcon active={active} />}
             {id === 'termine' && <ListIcon active={active} />}
             {id === 'buchen' && <PlusIcon active={active} />}
@@ -100,9 +101,21 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: C.navBorder,
     paddingTop: 10,
-    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(20px)' } as any : {}),
+    shadowColor: '#152238',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 8,
   },
   item: { flex: 1, alignItems: 'center', gap: 3, paddingVertical: 4 },
+  activeDot: {
+    position: 'absolute',
+    top: -10,
+    width: 32,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: C.accent,
+  },
   icon: { width: 24, height: 24, justifyContent: 'center' },
   line: { height: 2, borderRadius: 1 },
   houseRoof: { width: 0, height: 0, borderLeftWidth: 9, borderRightWidth: 9, borderBottomWidth: 8, borderLeftColor: 'transparent', borderRightColor: 'transparent', marginBottom: 1 },
@@ -113,6 +126,6 @@ const styles = StyleSheet.create({
   infoI: { fontSize: 11, fontWeight: '800', lineHeight: 14 },
   head: { width: 9, height: 9, borderRadius: 4.5, borderWidth: 1.8, marginBottom: 2 },
   shoulders: { width: 16, height: 7, borderWidth: 1.8, borderTopLeftRadius: 8, borderTopRightRadius: 8, borderBottomWidth: 0 },
-  itemLabelActive: { fontSize: 9, fontWeight: '700', color: C.accentLight, letterSpacing: 0.05 },
-  itemLabelInactive: { fontSize: 9, fontWeight: '700', color: 'rgba(255,255,255,0.4)', letterSpacing: 0.05 },
+  itemLabelActive: { fontSize: 9, fontWeight: '700', color: C.accent, letterSpacing: 0.05 },
+  itemLabelInactive: { fontSize: 9, fontWeight: '500', color: C.textFaint, letterSpacing: 0.05 },
 });

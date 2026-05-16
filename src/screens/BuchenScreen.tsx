@@ -26,7 +26,6 @@ interface Props {
   trainers?: Array<{ id: string; trainer_specialty?: string | null }>;
 }
 
-
 type Step = 'category' | 'program' | 'date' | 'time' | 'confirm' | 'done';
 
 function FadeUp({ children }: { children: React.ReactNode }) {
@@ -97,13 +96,11 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
     ? ['category', 'program', 'date', 'time', 'confirm']
     : ['program', 'date', 'time', 'confirm'];
 
-  // Effective category for program filtering
   const effectiveCategory: 'individual' | 'gruppe' | null =
     selectedCategory ??
     (tokenIndividual && !tokenGruppe ? 'individual' :
      tokenGruppe && !tokenIndividual ? 'gruppe' : null);
 
-  // Skip category step if only one (or zero) token categories
   React.useEffect(() => {
     if (step === 'category' && !hasBothCategories) {
       setStep('program');
@@ -118,7 +115,6 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
     ? PROGRAMS.filter(p => isProgramAllowed(profile, p.id))
     : [];
 
-
   // ── CategoryStep ──────────────────────────────────────────────
   function CategoryStep() {
     return (
@@ -127,9 +123,9 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
         <TouchableOpacity
           onPress={() => { setSelectedCategory('individual'); setStep('program'); }}
           activeOpacity={0.8}
-          style={[styles.categoryCard, { borderColor: '#4A8FE8' }]}
+          style={[styles.categoryCard, { borderLeftColor: '#4A8FE8', borderLeftWidth: 4 }]}
         >
-          <View style={[styles.categoryIcon, { backgroundColor: '#4A8FE8' + '22' }]}>
+          <View style={[styles.categoryIcon, { backgroundColor: '#4A8FE8' + '18' }]}>
             <Text style={styles.categoryEmoji}>🏃</Text>
           </View>
           <View style={styles.categoryBody}>
@@ -138,13 +134,14 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
               <Text style={styles.categoryExpiry}>Gültig bis {fmtDate(tokenIndividual.expires_at.slice(0, 10))}</Text>
             )}
           </View>
+          <Text style={styles.categoryArrow}>›</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => { setSelectedCategory('gruppe'); setStep('program'); }}
           activeOpacity={0.8}
-          style={[styles.categoryCard, { borderColor: '#3DBFA0' }]}
+          style={[styles.categoryCard, { borderLeftColor: '#3DBFA0', borderLeftWidth: 4 }]}
         >
-          <View style={[styles.categoryIcon, { backgroundColor: '#3DBFA0' + '22' }]}>
+          <View style={[styles.categoryIcon, { backgroundColor: '#3DBFA0' + '18' }]}>
             <Text style={styles.categoryEmoji}>👥</Text>
           </View>
           <View style={styles.categoryBody}>
@@ -153,6 +150,7 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
               <Text style={styles.categoryExpiry}>Gültig bis {fmtDate(tokenGruppe.expires_at.slice(0, 10))}</Text>
             )}
           </View>
+          <Text style={styles.categoryArrow}>›</Text>
         </TouchableOpacity>
       </FadeUp>
     );
@@ -169,7 +167,9 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
         <FadeUp>
           <SectionTitle t="Nachholtermin buchen" />
           <View style={styles.noPrograms}>
-            <Text style={styles.noProgramsIcon}>🎫</Text>
+            <View style={styles.noProgramsIconWrap}>
+              <Text style={styles.noProgramsIcon}>🎫</Text>
+            </View>
             <Text style={styles.noProgramsTitle}>Kein Nachholtermin verfügbar</Text>
             <Text style={styles.noProgramsText}>
               Nachholtermine entstehen automatisch, wenn du einen bestehenden Termin stornierst. Du hast aktuell keinen offenen Nachholtermin.
@@ -186,7 +186,9 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
 
         {visiblePrograms.length === 0 ? (
           <View style={styles.noPrograms}>
-            <Text style={styles.noProgramsIcon}>⚽</Text>
+            <View style={styles.noProgramsIconWrap}>
+              <Text style={styles.noProgramsIcon}>⚽</Text>
+            </View>
             <Text style={styles.noProgramsTitle}>Keine Trainingseinheiten verfügbar</Text>
             <Text style={styles.noProgramsText}>Wende dich an deinen Trainer, um Buchungsberechtigungen zu erhalten.</Text>
           </View>
@@ -200,15 +202,21 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
             >
               <View style={[styles.programImagePlaceholder, { backgroundColor: p.color }]}>
                 <Text style={styles.programEmoji}>{p.emoji}</Text>
-              </View>
-              <View style={styles.programBody}>
-                <View style={styles.programTop}>
-                  <Text style={styles.programName}>{p.name}</Text>
-                  <View style={styles.durationBadge}>
-                    <Text style={styles.durationText}>{p.duration} Min.</Text>
+                <View style={styles.programOverlay}>
+                  <View style={[styles.programIconBadge, { backgroundColor: p.color + 'DD' }]}>
+                    <Text style={styles.programEmojiBadge}>{p.emoji}</Text>
+                  </View>
+                  <View>
+                    <Text style={styles.programNameOverlay}>{p.name}</Text>
+                    <Text style={styles.programDurationOverlay}>{p.duration} Min. · {p.capacity === 1 ? '1 Spieler' : `max. ${p.capacity} Spieler`}</Text>
                   </View>
                 </View>
+              </View>
+              <View style={styles.programBody}>
                 <Text style={styles.programDesc}>{p.description}</Text>
+                <View style={styles.programCta}>
+                  <Text style={styles.programCtaText}>Auswählen →</Text>
+                </View>
               </View>
             </TouchableOpacity>
           ))
@@ -228,7 +236,6 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
     const prevMonth = () => { const d = new Date(calY, calM - 1); setCalM(d.getMonth()); setCalY(d.getFullYear()); };
     const nextMonth = () => { const d = new Date(calY, calM + 1); setCalM(d.getMonth()); setCalY(d.getFullYear()); };
 
-    // 4-Wochen-Limit: max. 28 Tage nach Token-Ausstellung
     const activeToken = effectiveCategory === 'individual' ? tokenIndividual
       : effectiveCategory === 'gruppe' ? tokenGruppe
       : (tokenIndividual ?? tokenGruppe);
@@ -318,7 +325,6 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
 
     const baseCapacity = currentProgram?.capacity ?? 1;
 
-    // Trainer-Verfügbarkeit filtern (vor SlotGroup, damit Kapazität pro Slot berechenbar ist)
     const TORWART_IDS = ['torhueter_individual', 'torhueter_gruppe'];
     const neededSpecialty = selProgram && TORWART_IDS.includes(selProgram) ? 'torwart' : 'spieler';
     const jsDay = selDate ? new Date(selDate).getDay() : 0;
@@ -331,8 +337,6 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
       .filter(s => relevantIds.includes(s.trainer_id) && s.day_of_week === dayOfWeek)
       .map(s => s.time);
 
-    // Kapazität = Basis × Anzahl Trainer, die an diesem Tag+Zeit verfügbar sind.
-    // Kein Trainer konfiguriert → Basiskap. unverändert.
     const getSlotCapacity = (time: string): number => {
       if (!hasMatchingTrainer) return baseCapacity;
       const count = trainerSchedules.filter(
@@ -358,7 +362,6 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
             const userBooked = myAppointments.some(a => a.date === selDate && a.time === t && a.status === 'confirmed');
             const isPast = isToday && t <= nowStr;
 
-            // First-Fit Gruppen-Zuweisung
             let freeInGroup = GROUP_SIZE;
             if (isGroup && !isPast && !userBooked && playerBirthYear && playerLevel) {
               const existingPlayers = slotAppts
@@ -405,9 +408,10 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
                 activeOpacity={0.8}
                 style={[styles.slot, sel && styles.slotSelected, full && styles.slotFull]}
               >
-                <Text style={[styles.slotTime, full && styles.slotTimeDimmed]}>{t}</Text>
+                <Text style={[styles.slotTime, full && styles.slotTimeDimmed, sel && styles.slotTimeSelected]}>{t}</Text>
                 <Text style={[styles.slotSub, full && styles.slotSubDimmed,
-                  !full && isGroup && freeInGroup === 1 && { color: '#FFD580' }]}>
+                  sel && styles.slotSubSelected,
+                  !full && isGroup && freeInGroup === 1 && { color: '#D97706' }]}>
                   {subLabel}
                 </Text>
               </TouchableOpacity>
@@ -422,7 +426,7 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
         <BackBtn onPress={() => setStep('date')} />
         <SectionTitle t="Uhrzeit wählen" sub={selDate ? fmtShort(selDate) : ''} />
         {allowedSlots.length === 0 ? (
-          <Text style={{ color: '#888', textAlign: 'center', marginTop: 24, fontSize: 15 }}>
+          <Text style={{ color: C.textFaint, textAlign: 'center', marginTop: 24, fontSize: 15 }}>
             An diesem Tag sind keine Zeiten verfügbar.
           </Text>
         ) : (
@@ -514,7 +518,7 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
           <Text style={styles.bookingLabel}>Nachholtermin buchen</Text>
           <View style={styles.progress}>
             {STEPS.map((s, i) => (
-              <View key={s} style={[styles.progressBar, { backgroundColor: i <= stepIdx ? C.accentLight : 'rgba(255,255,255,0.2)' }]} />
+              <View key={s} style={[styles.progressBar, { backgroundColor: i <= stepIdx ? C.accent : 'rgba(21,34,56,0.12)' }]} />
             ))}
           </View>
         </>
@@ -532,64 +536,86 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { paddingHorizontal: 20, paddingBottom: 24 },
-  bookingLabel: { fontSize: 13, fontWeight: '700', color: C.textFaint, letterSpacing: 0.1, marginBottom: 8 },
+  bookingLabel: { fontSize: 13, fontWeight: '700', color: C.textFaint, letterSpacing: 0.1, marginBottom: 8, textTransform: 'uppercase' },
   progress: { flexDirection: 'row', gap: 5, marginBottom: 28 },
   progressBar: { flex: 1, height: 3, borderRadius: 2 },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 20, alignSelf: 'flex-start' },
-  backArrow: { fontSize: 20, color: C.accentLight, fontWeight: '600' },
-  backLabel: { fontSize: 15, fontWeight: '600', color: C.accentLight },
-  sectionTitle: { fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
+  backArrow: { fontSize: 20, color: C.accent, fontWeight: '600' },
+  backLabel: { fontSize: 15, fontWeight: '600', color: C.accent },
+  sectionTitle: { fontSize: 22, fontWeight: '800', color: C.text, letterSpacing: -0.3 },
   sectionSub: { fontSize: 15, color: C.textFaint, marginTop: 4 },
-  tokenBanner: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: 12, marginBottom: 14, gap: 6 },
-  tokenRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  tokenIcon: { fontSize: 15 },
-  tokenText: { fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.9)', flex: 1 },
-  quotaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
-  quotaChip: { backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
-  quotaText: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.8)' },
   categoryCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    gap: 14,
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    borderWidth: 2,
-    padding: 20,
-    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    padding: 18,
+    marginBottom: 12,
+    shadowColor: '#152238',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  categoryIcon: { width: 56, height: 56, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  categoryEmoji: { fontSize: 28 },
+  categoryIcon: { width: 52, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  categoryEmoji: { fontSize: 26 },
   categoryBody: { flex: 1 },
   categoryName: { fontSize: 16, fontWeight: '800' },
-  categoryExpiry: { fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 4 },
+  categoryExpiry: { fontSize: 12, color: C.textFaint, marginTop: 3 },
+  categoryArrow: { fontSize: 22, color: C.textFaint, fontWeight: '300' },
   noPrograms: { alignItems: 'center', paddingTop: 40, paddingHorizontal: 20 },
-  noProgramsIcon: { fontSize: 48, marginBottom: 16 },
-  noProgramsTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 10, textAlign: 'center' },
-  noProgramsText: { fontSize: 14, color: C.textFaint, textAlign: 'center', lineHeight: 20 },
+  noProgramsIconWrap: {
+    width: 72, height: 72, borderRadius: 20,
+    backgroundColor: C.accentBg,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+  },
+  noProgramsIcon: { fontSize: 36 },
+  noProgramsTitle: { fontSize: 18, fontWeight: '800', color: C.text, marginBottom: 10, textAlign: 'center' },
+  noProgramsText: { fontSize: 14, color: C.textFaint, textAlign: 'center', lineHeight: 21 },
   programCard: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
     marginBottom: 14,
     overflow: 'hidden',
+    shadowColor: '#152238',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.07,
+    shadowRadius: 10,
+    elevation: 3,
   },
-  programImagePlaceholder: { width: '100%', height: 100, alignItems: 'center', justifyContent: 'center' },
-  programEmoji: { fontSize: 42 },
-  programBody: { padding: 16 },
-  programTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
-  durationBadge: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+  programImagePlaceholder: { width: '100%', height: 110, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  programEmoji: { fontSize: 48, opacity: 0.25 },
+  programOverlay: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: 'rgba(0,0,0,0.38)',
+  },
+  programIconBadge: {
+    width: 36, height: 36, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center',
     flexShrink: 0,
   },
-  durationText: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.85)' },
-  programName: { fontSize: 16, fontWeight: '800', color: '#fff', flex: 1 },
-  programDesc: { fontSize: 13, color: C.textFaint, lineHeight: 19 },
+  programEmojiBadge: { fontSize: 18 },
+  programNameOverlay: { fontSize: 16, fontWeight: '800', color: '#fff' },
+  programDurationOverlay: { fontSize: 12, color: 'rgba(255,255,255,0.80)', marginTop: 1 },
+  programBody: { padding: 16, paddingBottom: 14 },
+  programDesc: { fontSize: 13, color: C.textMid, lineHeight: 19, marginBottom: 12 },
+  programCta: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 14, paddingVertical: 7,
+    backgroundColor: C.accentBg,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(21,34,56,0.12)',
+  },
+  programCtaText: { fontSize: 13, fontWeight: '700', color: C.accent },
   monthNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingHorizontal: 18, borderBottomWidth: 1, borderBottomColor: C.cardBorder },
-  navBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: C.accentBg, borderWidth: 1, borderColor: 'rgba(90,140,106,0.2)', alignItems: 'center', justifyContent: 'center' },
+  navBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: C.accentBg, borderWidth: 1, borderColor: 'rgba(21,34,56,0.12)', alignItems: 'center', justifyContent: 'center' },
   navBtnText: { fontSize: 20, fontWeight: '700', color: C.accent },
   monthLabel: { fontSize: 17, fontWeight: '700', color: C.text },
   calBody: { padding: 14, paddingBottom: 16 },
@@ -601,35 +627,64 @@ const styles = StyleSheet.create({
   dayCellSelected: { backgroundColor: C.accent },
   dayCellToday: { backgroundColor: C.accentBg },
   dayText: { fontSize: 15, color: C.text, fontWeight: '400' },
-  dayTextDisabled: { color: '#ccc' },
+  dayTextDisabled: { color: '#CBD5E1' },
   dayTextSelected: { color: '#fff', fontWeight: '700' },
   dayTextToday: { color: C.accent, fontWeight: '700' },
   slotGroupLabel: { fontSize: 12, fontWeight: '700', color: C.textFaint, textTransform: 'uppercase', letterSpacing: 0.1, marginBottom: 10 },
   slotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  slot: { width: '30.5%', height: 64, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)', backgroundColor: 'rgba(255,255,255,0.1)' },
-  slotSelected: { borderColor: 'rgba(255,255,255,0.8)', backgroundColor: 'rgba(255,255,255,0.28)' },
-  slotFull: { borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'rgba(0,0,0,0.12)' },
-  slotTime: { fontSize: 16, fontWeight: '700', color: 'rgba(255,255,255,0.85)' },
-  slotTimeDimmed: { color: 'rgba(255,255,255,0.3)' },
-  slotSub: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.5)', marginTop: 3 },
-  slotSubDimmed: { color: 'rgba(255,255,255,0.25)' },
+  slot: {
+    width: '30.5%', height: 64, borderRadius: 14,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.5, borderColor: 'rgba(21,34,56,0.14)',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#152238',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  slotSelected: { borderColor: C.accent, backgroundColor: C.accent },
+  slotFull: { borderColor: 'rgba(21,34,56,0.06)', backgroundColor: 'rgba(21,34,56,0.03)' },
+  slotTime: { fontSize: 16, fontWeight: '700', color: C.text },
+  slotTimeSelected: { color: '#fff' },
+  slotTimeDimmed: { color: 'rgba(21,34,56,0.25)' },
+  slotSub: { fontSize: 11, fontWeight: '600', color: C.textMid, marginTop: 3 },
+  slotSubSelected: { color: 'rgba(255,255,255,0.75)' },
+  slotSubDimmed: { color: C.textFaint },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15 },
   summaryRowBorder: { borderBottomWidth: 1, borderBottomColor: C.cardBorder },
   summaryKey: { fontSize: 15, color: C.textMid },
   summaryVal: { fontSize: 15, fontWeight: '700', color: C.text, textAlign: 'right', maxWidth: '55%' },
   doneWrap: { alignItems: 'center', paddingTop: 30 },
-  checkCircle: { width: 96, height: 96, borderRadius: 48, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center', marginBottom: 24, shadowColor: C.accent, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.4, shadowRadius: 30, elevation: 12 },
+  checkCircle: {
+    width: 96, height: 96, borderRadius: 48,
+    backgroundColor: C.accent,
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 24,
+    shadowColor: C.accent,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.30,
+    shadowRadius: 20,
+    elevation: 10,
+  },
   checkMark: { color: '#fff', fontSize: 40, fontWeight: '700' },
-  doneTitle: { fontSize: 28, fontWeight: '800', color: '#fff', marginBottom: 8, letterSpacing: -0.4 },
-  doneMeta: { fontSize: 16, color: C.textFaint, marginBottom: 4 },
+  doneTitle: { fontSize: 28, fontWeight: '800', color: C.text, marginBottom: 8, letterSpacing: -0.4 },
+  doneMeta: { fontSize: 16, color: C.textMid, marginBottom: 4 },
   emailNote: { paddingHorizontal: 20, paddingVertical: 14, marginVertical: 32, alignSelf: 'stretch' },
-  emailNoteText: { fontSize: 15, color: C.textGlass, textAlign: 'center' },
-  bookedDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#000', marginTop: 2 },
+  emailNoteText: { fontSize: 15, color: C.text, textAlign: 'center', fontWeight: '500' },
+  bookedDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: C.accentLight, marginTop: 2 },
   tokenDeadlineHint: {
     marginTop: 10, paddingHorizontal: 14, paddingVertical: 10,
-    backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 10,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: C.accentBg, borderRadius: 10,
+    borderWidth: 1, borderColor: 'rgba(21,34,56,0.12)',
   },
-  tokenDeadlineText: { fontSize: 13, color: 'rgba(255,255,255,0.75)', fontWeight: '600', textAlign: 'center' },
-  errorText: { fontSize: 14, color: '#FF6B6B', textAlign: 'center', marginBottom: 12, fontWeight: '600' },
+  tokenDeadlineText: { fontSize: 13, color: C.textMid, fontWeight: '600', textAlign: 'center' },
+  errorText: { fontSize: 14, color: C.red, textAlign: 'center', marginBottom: 12, fontWeight: '600' },
+  tokenBanner: { backgroundColor: C.accentBg, borderRadius: 12, padding: 12, marginBottom: 14, gap: 6 },
+  tokenRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  tokenIcon: { fontSize: 15 },
+  tokenText: { fontSize: 13, fontWeight: '600', color: C.text, flex: 1 },
+  quotaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
+  quotaChip: { backgroundColor: C.accentBg, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
+  quotaText: { fontSize: 12, fontWeight: '700', color: C.textMid },
 });
