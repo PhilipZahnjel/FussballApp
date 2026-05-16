@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Linking, ActivityIndicator,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
+  Linking, ActivityIndicator, Platform,
 } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { TrainerProfile } from '../hooks/useAdminData';
@@ -11,6 +12,7 @@ type TrainerVideo = {
   title: string;
   url: string;
   description: string | null;
+  storage_path: string | null;
   created_at: string;
 };
 
@@ -24,20 +26,29 @@ export function TrainerVideosScreen({ trainers }: Props) {
   );
   const [videos, setVideos] = useState<TrainerVideo[]>([]);
   const [loadingVideos, setLoadingVideos] = useState(false);
+
+  // Formular
   const [showForm, setShowForm] = useState(false);
+  const [uploadMode, setUploadMode] = useState<'file' | 'url'>('file');
   const [formTitle, setFormTitle] = useState('');
   const [formUrl, setFormUrl] = useState('');
   const [formDesc, setFormDesc] = useState('');
-  const [formLoading, setFormLoading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Löschen
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!selectedTrainerId) return;
     setLoadingVideos(true);
     supabase
       .from('trainer_videos')
-      .select('id, trainer_id, title, url, description, created_at')
+      .select('id, trainer_id, title, url, description, storage_path, created_at')
       .eq('trainer_id', selectedTrainerId)
       .order('created_at', { ascending: false })
       .then(({ data }) => {
@@ -46,39 +57,85 @@ export function TrainerVideosScreen({ trainers }: Props) {
       });
   }, [selectedTrainerId]);
 
+  const resetForm = () => {
+    setFormTitle('');
+    setFormUrl('');
+    setFormDesc('');
+    setSelectedFile(null);
+    setFormError(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const handleAddVideo = async () => {
     setFormError(null);
     if (!formTitle.trim()) { setFormError('Bitte einen Titel eingeben.'); return; }
-    if (!formUrl.trim()) { setFormError('Bitte eine URL eingeben.'); return; }
+    if (uploadMode === 'url' && !formUrl.trim()) { setFormError('Bitte eine URL eingeben.'); return; }
+    if (uploadMode === 'file' && !selectedFile) { setFormError('Bitte eine Videodatei auswählen.'); return; }
     if (!selectedTrainerId) return;
 
-    setFormLoading(true);
+    setUploading(true);
     const { data: { user } } = await supabase.auth.getUser();
+
+    let videoUrl = formUrl.trim();
+    let storagePath: string | null = null;
+
+    if (uploadMode === 'file' && selectedFile) {
+      const ext = selectedFile.name.split('.').pop() ?? 'mp4';
+      storagePath = `${selectedTrainerId}/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('trainer-videos')
+        .upload(storagePath, selectedFile, { contentType: selectedFile.type, upsert: false });
+      if (uploadError) {
+        setFormError(`Upload fehlgeschlagen: ${uploadError.message}`);
+        setUploading(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from('trainer-videos').getPublicUrl(storagePath);
+      videoUrl = urlData.publicUrl;
+    }
+
     const { data, error } = await supabase
       .from('trainer_videos')
       .insert({
         trainer_id: selectedTrainerId,
         title: formTitle.trim(),
-        url: formUrl.trim(),
+        url: videoUrl,
         description: formDesc.trim() || null,
+        storage_path: storagePath,
         created_by: user?.id ?? null,
       })
-      .select('id, trainer_id, title, url, description, created_at')
+      .select('id, trainer_id, title, url, description, storage_path, created_at')
       .single();
-    setFormLoading(false);
+
+    setUploading(false);
+
     if (error) { setFormError(error.message); return; }
     if (data) {
       setVideos(prev => [data as TrainerVideo, ...prev]);
-      setFormTitle('');
-      setFormUrl('');
-      setFormDesc('');
+      resetForm();
       setShowForm(false);
     }
   };
 
   const handleDelete = async (id: string) => {
     setDeleteError(null);
+    setDeletingId(id);
+    const video = videos.find(v => v.id === id);
+
+    // Datei aus Storage löschen (falls vorhanden)
+    if (video?.storage_path) {
+      const { error: storageError } = await supabase.storage
+        .from('trainer-videos')
+        .remove([video.storage_path]);
+      if (storageError) {
+        setDeleteError(`Speicher-Fehler: ${storageError.message}`);
+        setDeletingId(null);
+        return;
+      }
+    }
+
     const { error } = await supabase.from('trainer_videos').delete().eq('id', id);
+    setDeletingId(null);
     if (error) { setDeleteError(error.message); return; }
     setVideos(prev => prev.filter(v => v.id !== id));
   };
@@ -87,6 +144,21 @@ export function TrainerVideosScreen({ trainers }: Props) {
 
   return (
     <View style={styles.root}>
+      {/* Verstecktes File-Input (nur Web) */}
+      {Platform.OS === 'web' && (
+        <input
+          ref={fileInputRef as any}
+          type="file"
+          accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska"
+          style={{ display: 'none' }}
+          onChange={(e: any) => {
+            const file = e.target.files?.[0] ?? null;
+            setSelectedFile(file);
+            setFormError(null);
+          }}
+        />
+      )}
+
       {/* Trainer-Sidebar */}
       <View style={styles.trainerList}>
         <Text style={styles.trainerListTitle}>Trainer</Text>
@@ -97,7 +169,12 @@ export function TrainerVideosScreen({ trainers }: Props) {
           <TouchableOpacity
             key={t.id}
             style={[styles.trainerItem, selectedTrainerId === t.id && styles.trainerItemActive]}
-            onPress={() => { setSelectedTrainerId(t.id); setShowForm(false); setDeleteError(null); }}
+            onPress={() => {
+              setSelectedTrainerId(t.id);
+              setShowForm(false);
+              resetForm();
+              setDeleteError(null);
+            }}
             activeOpacity={0.7}
           >
             <View style={styles.trainerAvatar}>
@@ -105,7 +182,10 @@ export function TrainerVideosScreen({ trainers }: Props) {
                 {t.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
               </Text>
             </View>
-            <Text style={[styles.trainerName, selectedTrainerId === t.id && styles.trainerNameActive]} numberOfLines={1}>
+            <Text
+              style={[styles.trainerName, selectedTrainerId === t.id && styles.trainerNameActive]}
+              numberOfLines={1}
+            >
               {t.full_name}
             </Text>
           </TouchableOpacity>
@@ -123,7 +203,7 @@ export function TrainerVideosScreen({ trainers }: Props) {
               </View>
               <TouchableOpacity
                 style={styles.addBtn}
-                onPress={() => { setShowForm(v => !v); setFormError(null); }}
+                onPress={() => { setShowForm(v => !v); resetForm(); }}
                 activeOpacity={0.7}
               >
                 <Text style={styles.addBtnText}>{showForm ? '✕ Abbrechen' : '+ Video hinzufügen'}</Text>
@@ -132,6 +212,28 @@ export function TrainerVideosScreen({ trainers }: Props) {
 
             {showForm && (
               <View style={styles.form}>
+                {/* Modus-Toggle */}
+                <View style={styles.modeRow}>
+                  <TouchableOpacity
+                    style={[styles.modeChip, uploadMode === 'file' && styles.modeChipActive]}
+                    onPress={() => { setUploadMode('file'); setFormError(null); }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.modeChipText, uploadMode === 'file' && styles.modeChipTextActive]}>
+                      Datei hochladen
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modeChip, uploadMode === 'url' && styles.modeChipActive]}
+                    onPress={() => { setUploadMode('url'); setFormError(null); }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.modeChipText, uploadMode === 'url' && styles.modeChipTextActive]}>
+                      URL eingeben
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
                 <Text style={styles.fieldLabel}>Titel *</Text>
                 <TextInput
                   style={styles.input}
@@ -140,15 +242,40 @@ export function TrainerVideosScreen({ trainers }: Props) {
                   placeholder="z.B. Dribbling-Übung"
                   placeholderTextColor="#9CA3AF"
                 />
-                <Text style={styles.fieldLabel}>URL *</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formUrl}
-                  onChangeText={setFormUrl}
-                  placeholder="https://youtube.com/..."
-                  placeholderTextColor="#9CA3AF"
-                  autoCapitalize="none"
-                />
+
+                {uploadMode === 'file' ? (
+                  <>
+                    <Text style={styles.fieldLabel}>Videodatei * (max. 50 MB)</Text>
+                    <TouchableOpacity
+                      style={styles.filePickerBtn}
+                      onPress={() => (fileInputRef.current as any)?.click()}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.filePickerIcon}>📁</Text>
+                      <Text style={styles.filePickerText} numberOfLines={1}>
+                        {selectedFile ? selectedFile.name : 'Datei auswählen...'}
+                      </Text>
+                      {selectedFile && (
+                        <Text style={styles.filePickerSize}>
+                          ({(selectedFile.size / 1024 / 1024).toFixed(1)} MB)
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.fieldLabel}>URL * (YouTube, Vimeo, Direktlink)</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={formUrl}
+                      onChangeText={setFormUrl}
+                      placeholder="https://..."
+                      placeholderTextColor="#9CA3AF"
+                      autoCapitalize="none"
+                    />
+                  </>
+                )}
+
                 <Text style={styles.fieldLabel}>Beschreibung (optional)</Text>
                 <TextInput
                   style={[styles.input, styles.inputMulti]}
@@ -159,14 +286,20 @@ export function TrainerVideosScreen({ trainers }: Props) {
                   multiline
                   numberOfLines={3}
                 />
+
                 {formError && <Text style={styles.fieldError}>{formError}</Text>}
+
                 <TouchableOpacity
-                  style={[styles.saveBtn, formLoading && { opacity: 0.6 }]}
+                  style={[styles.saveBtn, uploading && { opacity: 0.6 }]}
                   onPress={handleAddVideo}
-                  disabled={formLoading}
+                  disabled={uploading}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.saveBtnText}>{formLoading ? 'Hinzufügen...' : 'Video hinzufügen'}</Text>
+                  <Text style={styles.saveBtnText}>
+                    {uploading
+                      ? (uploadMode === 'file' ? 'Wird hochgeladen...' : 'Hinzufügen...')
+                      : 'Video hinzufügen'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -185,9 +318,18 @@ export function TrainerVideosScreen({ trainers }: Props) {
               videos.map(v => (
                 <View key={v.id} style={styles.videoCard}>
                   <View style={styles.videoInfo}>
-                    <Text style={styles.videoTitle}>{v.title}</Text>
+                    <View style={styles.videoTitleRow}>
+                      <Text style={styles.videoTitle}>{v.title}</Text>
+                      {v.storage_path && (
+                        <View style={styles.uploadedBadge}>
+                          <Text style={styles.uploadedBadgeText}>Hochgeladen</Text>
+                        </View>
+                      )}
+                    </View>
                     {v.description && <Text style={styles.videoDesc}>{v.description}</Text>}
-                    <Text style={styles.videoUrl} numberOfLines={1}>{v.url}</Text>
+                    {!v.storage_path && (
+                      <Text style={styles.videoUrl} numberOfLines={1}>{v.url}</Text>
+                    )}
                   </View>
                   <View style={styles.videoActions}>
                     <TouchableOpacity
@@ -198,11 +340,14 @@ export function TrainerVideosScreen({ trainers }: Props) {
                       <Text style={styles.openBtnText}>Öffnen</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={styles.deleteBtn}
+                      style={[styles.deleteBtn, deletingId === v.id && { opacity: 0.5 }]}
                       onPress={() => handleDelete(v.id)}
+                      disabled={deletingId === v.id}
                       activeOpacity={0.7}
                     >
-                      <Text style={styles.deleteBtnText}>Löschen</Text>
+                      <Text style={styles.deleteBtnText}>
+                        {deletingId === v.id ? '...' : 'Löschen'}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -241,9 +386,18 @@ const styles = StyleSheet.create({
   addBtnText: { fontSize: 13, fontWeight: '700', color: '#4A7FD4' },
 
   form: { backgroundColor: '#fff', borderRadius: 14, padding: 20, marginBottom: 20, shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 6, elevation: 2 },
+  modeRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
+  modeChip: { flex: 1, paddingVertical: 9, borderRadius: 8, borderWidth: 1.5, borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', alignItems: 'center' },
+  modeChipActive: { borderColor: '#4A7FD4', backgroundColor: 'rgba(74,127,212,0.08)' },
+  modeChipText: { fontSize: 13, fontWeight: '700', color: '#9CA3AF' },
+  modeChipTextActive: { color: '#4A7FD4' },
   fieldLabel: { fontSize: 12, fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, marginTop: 12 },
   input: { backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: '#111827', outlineWidth: 0 } as any,
   inputMulti: { minHeight: 72, textAlignVertical: 'top' },
+  filePickerBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#F9FAFB', borderWidth: 1.5, borderColor: '#E5E7EB', borderRadius: 8, borderStyle: 'dashed', paddingHorizontal: 14, paddingVertical: 14 } as any,
+  filePickerIcon: { fontSize: 20 },
+  filePickerText: { flex: 1, fontSize: 14, color: '#374151', fontWeight: '500', minWidth: 0 },
+  filePickerSize: { fontSize: 12, color: '#9CA3AF', flexShrink: 0 },
   fieldError: { fontSize: 13, color: '#EF4444', fontWeight: '600', marginTop: 10 },
   saveBtn: { backgroundColor: '#4A7FD4', borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 16 },
   saveBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
@@ -255,7 +409,10 @@ const styles = StyleSheet.create({
 
   videoCard: { backgroundColor: '#fff', borderRadius: 14, padding: 18, marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 16, shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 6, elevation: 2 },
   videoInfo: { flex: 1, minWidth: 0 },
-  videoTitle: { fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 4 },
+  videoTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' },
+  videoTitle: { fontSize: 15, fontWeight: '700', color: '#111827' },
+  uploadedBadge: { backgroundColor: 'rgba(34,197,94,0.1)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
+  uploadedBadgeText: { fontSize: 11, fontWeight: '700', color: '#16A34A' },
   videoDesc: { fontSize: 13, color: '#6B7280', marginBottom: 4 },
   videoUrl: { fontSize: 12, color: '#9CA3AF' },
   videoActions: { flexDirection: 'row', gap: 8, flexShrink: 0 },
