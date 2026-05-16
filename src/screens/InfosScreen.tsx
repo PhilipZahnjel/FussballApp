@@ -52,7 +52,10 @@ export function InfosScreen({ profile }: Props) {
           <ActivityIndicator color={C.accentLight} style={{ marginTop: 40 }} />
         ) : visibleNotifications.length === 0 ? (
           <GlassCard style={styles.emptyCard}>
-            <Text style={styles.emptyEmoji}>📢</Text>
+            <View style={styles.emptyIcon}>
+              <View style={styles.emptyIconBar} />
+              <View style={[styles.emptyIconBar, { width: 20, marginTop: 5 }]} />
+            </View>
             <Text style={styles.emptyTitle}>Keine Infos vorhanden</Text>
             <Text style={styles.emptySub}>Hier erscheinen Neuigkeiten und Infos zu deinem Standort.</Text>
           </GlassCard>
@@ -103,7 +106,8 @@ const styles = StyleSheet.create({
     padding: 28,
     alignItems: 'center',
   },
-  emptyEmoji: { fontSize: 36, marginBottom: 12 },
+  emptyIcon: { alignItems: 'center', marginBottom: 16 },
+  emptyIconBar: { width: 28, height: 3, borderRadius: 2, backgroundColor: C.accent, opacity: 0.4 },
   emptyTitle: { fontSize: 17, fontWeight: '700', color: C.text, marginBottom: 6, textAlign: 'center' },
   emptySub: { fontSize: 14, color: C.textFaint, textAlign: 'center', lineHeight: 20 },
   card: {
@@ -125,7 +129,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(21,34,56,0.12)',
   },
-  locationText: { fontSize: 12, fontWeight: '600', color: C.textMid },
+  locationText: { fontSize: 11, fontWeight: '700', color: C.textMid, textTransform: 'uppercase', letterSpacing: 0.3 },
   cardTitle: { fontSize: 17, fontWeight: '800', color: C.text, marginBottom: 8 },
   cardBody: { fontSize: 14, color: C.textMid, lineHeight: 21 },
 });

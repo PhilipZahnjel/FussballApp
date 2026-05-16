@@ -98,7 +98,7 @@ export function HomeScreen({ appointments, profile, activeTokens, setTab }: Prop
                 <View style={styles.nachholRow}>
                   <View style={[styles.deadlineBadge, { backgroundColor: deadlineColor + '18' }]}>
                     <Text style={[styles.nachholDays, { color: deadlineColor }]}>
-                      {tokenDaysLeft <= 7 ? '🚨' : tokenDaysLeft <= 14 ? '⚠️' : '🎫'} Noch {tokenDaysLeft} {tokenDaysLeft === 1 ? 'Tag' : 'Tage'}
+                      Noch {tokenDaysLeft} {tokenDaysLeft === 1 ? 'Tag' : 'Tage'}
                     </Text>
                   </View>
                 </View>
@@ -125,7 +125,7 @@ export function HomeScreen({ appointments, profile, activeTokens, setTab }: Prop
                 <Text style={styles.nextDate}>{fmtDate(next.date)}</Text>
                 <View style={styles.nextMeta}>
                   <View style={styles.metaChip}>
-                    <Text style={styles.metaChipText}>🕐 {next.time} Uhr</Text>
+                    <Text style={styles.metaChipText}>{next.time} Uhr</Text>
                   </View>
                   <View style={[styles.metaChip, { backgroundColor: programColor + '18', borderColor: programColor + '40' }]}>
                     <Text style={[styles.metaChipText, { color: programColor }]}>
@@ -138,7 +138,7 @@ export function HomeScreen({ appointments, profile, activeTokens, setTab }: Prop
           ) : (
             <GlassCard style={styles.emptyCard}>
               <View style={styles.emptyIconWrap}>
-                <Text style={styles.emptyEmoji}>📅</Text>
+                <View style={styles.emptyIconInner} />
               </View>
               <Text style={styles.emptyTitle}>Kein bevorstehender Termin</Text>
               <Text style={styles.emptySub}>Buche jetzt deinen nächsten Nachholtermin</Text>
@@ -288,15 +288,17 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   emptyIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 18,
+    width: 56,
+    height: 56,
+    borderRadius: 14,
     backgroundColor: C.accentBg,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(21,34,56,0.10)',
   },
-  emptyEmoji: { fontSize: 30 },
+  emptyIconInner: { width: 22, height: 22, borderRadius: 4, borderWidth: 2, borderColor: C.accent },
   emptyTitle: { fontSize: 17, fontWeight: '700', color: C.text, marginBottom: 4, textAlign: 'center' },
   emptySub: { fontSize: 14, color: C.textFaint, textAlign: 'center', lineHeight: 20 },
   btns: { paddingHorizontal: 20 },

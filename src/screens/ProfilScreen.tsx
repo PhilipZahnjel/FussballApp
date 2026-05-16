@@ -124,7 +124,9 @@ export function ProfilScreen({ onLogout }: Props) {
   };
 
   const playerTypeLabel = profile?.player_type === 'torwart' ? 'Torwart' : profile?.player_type === 'feldspieler' ? 'Feldspieler' : '—';
-  const avatarEmoji = profile?.player_type === 'torwart' ? '🧤' : '⚽';
+  const initials = profile?.full_name
+    ? profile.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+    : '?';
 
   return (
     <ScrollView
@@ -139,7 +141,7 @@ export function ProfilScreen({ onLogout }: Props) {
         {/* Avatar Card */}
         <View style={styles.avatarCard}>
           <View style={styles.avatarCircle}>
-            <Text style={styles.avatarIcon}>{avatarEmoji}</Text>
+            <Text style={styles.avatarIcon}>{loading ? '' : initials}</Text>
           </View>
           <Text style={styles.userName}>{loading ? '…' : (profile?.full_name ?? '—')}</Text>
           <Text style={styles.userType}>{playerTypeLabel}</Text>
@@ -151,7 +153,7 @@ export function ProfilScreen({ onLogout }: Props) {
             )}
             {profile?.location && (
               <View style={styles.chip}>
-                <Text style={styles.chipText}>📍 {profile.location}</Text>
+                <Text style={styles.chipText}>{profile.location}</Text>
               </View>
             )}
             <View style={styles.chip}>
@@ -309,7 +311,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.25)',
   },
-  avatarIcon: { fontSize: 38 },
+  avatarIcon: { fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: 1 },
   userName: { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 4 },
   userType: { fontSize: 14, color: 'rgba(255,255,255,0.70)', marginBottom: 14 },
   userChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },

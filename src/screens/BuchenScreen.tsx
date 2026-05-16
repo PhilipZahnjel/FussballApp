@@ -126,7 +126,7 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
           style={[styles.categoryCard, { borderLeftColor: '#4A8FE8', borderLeftWidth: 4 }]}
         >
           <View style={[styles.categoryIcon, { backgroundColor: '#4A8FE8' + '18' }]}>
-            <Text style={styles.categoryEmoji}>🏃</Text>
+            <View style={[styles.categoryShape, { borderColor: '#4A8FE8' }]} />
           </View>
           <View style={styles.categoryBody}>
             <Text style={[styles.categoryName, { color: '#4A8FE8' }]}>Einzeltraining nachholen</Text>
@@ -142,7 +142,10 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
           style={[styles.categoryCard, { borderLeftColor: '#3DBFA0', borderLeftWidth: 4 }]}
         >
           <View style={[styles.categoryIcon, { backgroundColor: '#3DBFA0' + '18' }]}>
-            <Text style={styles.categoryEmoji}>👥</Text>
+            <View style={[styles.categoryShapeGroup, { borderColor: '#3DBFA0' }]}>
+              <View style={[styles.categoryShapeDot, { backgroundColor: '#3DBFA0' }]} />
+              <View style={[styles.categoryShapeDot, { backgroundColor: '#3DBFA0' }]} />
+            </View>
           </View>
           <View style={styles.categoryBody}>
             <Text style={[styles.categoryName, { color: '#3DBFA0' }]}>Gruppentraining nachholen</Text>
@@ -168,7 +171,9 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
           <SectionTitle t="Nachholtermin buchen" />
           <View style={styles.noPrograms}>
             <View style={styles.noProgramsIconWrap}>
-              <Text style={styles.noProgramsIcon}>🎫</Text>
+              <View style={styles.noProgramsBar} />
+              <View style={[styles.noProgramsBar, { width: 24, marginTop: 6 }]} />
+              <View style={[styles.noProgramsBar, { width: 16, marginTop: 6 }]} />
             </View>
             <Text style={styles.noProgramsTitle}>Kein Nachholtermin verfügbar</Text>
             <Text style={styles.noProgramsText}>
@@ -187,7 +192,7 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
         {visiblePrograms.length === 0 ? (
           <View style={styles.noPrograms}>
             <View style={styles.noProgramsIconWrap}>
-              <Text style={styles.noProgramsIcon}>⚽</Text>
+              <View style={styles.noProgramsCircle} />
             </View>
             <Text style={styles.noProgramsTitle}>Keine Trainingseinheiten verfügbar</Text>
             <Text style={styles.noProgramsText}>Wende dich an deinen Trainer, um Buchungsberechtigungen zu erhalten.</Text>
@@ -201,10 +206,9 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
               style={styles.programCard}
             >
               <View style={[styles.programImagePlaceholder, { backgroundColor: p.color }]}>
-                <Text style={styles.programEmoji}>{p.emoji}</Text>
                 <View style={styles.programOverlay}>
-                  <View style={[styles.programIconBadge, { backgroundColor: p.color + 'DD' }]}>
-                    <Text style={styles.programEmojiBadge}>{p.emoji}</Text>
+                  <View style={[styles.programIconBadge, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
+                    <View style={[styles.programIconShape, { borderColor: 'rgba(255,255,255,0.7)' }]} />
                   </View>
                   <View>
                     <Text style={styles.programNameOverlay}>{p.name}</Text>
@@ -498,7 +502,7 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
         <Text style={styles.doneMeta}>{fmtDate(selDate!)}</Text>
         <Text style={styles.doneMeta}>{selTime} Uhr</Text>
         <GlassCard style={styles.emailNote}>
-          <Text style={styles.emailNoteText}>📧 Bestätigung folgt per E-Mail</Text>
+          <Text style={styles.emailNoteText}>Bestätigung folgt per E-Mail</Text>
         </GlassCard>
         <Btn label="Zur Startseite" onPress={() => setTab('home')} variant="primary" style={{ marginBottom: 10, width: '100%' }} />
         <Btn label="Meine Termine" onPress={() => setTab('termine')} variant="ghost" style={{ width: '100%' }} />
@@ -561,7 +565,9 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   categoryIcon: { width: 52, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  categoryEmoji: { fontSize: 26 },
+  categoryShape: { width: 20, height: 20, borderRadius: 10, borderWidth: 2.5 },
+  categoryShapeGroup: { flexDirection: 'row', gap: 4, alignItems: 'center' },
+  categoryShapeDot: { width: 10, height: 10, borderRadius: 5 },
   categoryBody: { flex: 1 },
   categoryName: { fontSize: 16, fontWeight: '800' },
   categoryExpiry: { fontSize: 12, color: C.textFaint, marginTop: 3 },
@@ -571,8 +577,10 @@ const styles = StyleSheet.create({
     width: 72, height: 72, borderRadius: 20,
     backgroundColor: C.accentBg,
     alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+    borderWidth: 1, borderColor: 'rgba(21,34,56,0.10)',
   },
-  noProgramsIcon: { fontSize: 36 },
+  noProgramsBar: { width: 32, height: 3, borderRadius: 2, backgroundColor: C.accent, opacity: 0.5 },
+  noProgramsCircle: { width: 26, height: 26, borderRadius: 13, borderWidth: 2.5, borderColor: C.accent, opacity: 0.5 },
   noProgramsTitle: { fontSize: 18, fontWeight: '800', color: C.text, marginBottom: 10, textAlign: 'center' },
   noProgramsText: { fontSize: 14, color: C.textFaint, textAlign: 'center', lineHeight: 21 },
   programCard: {
@@ -588,19 +596,17 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 3,
   },
-  programImagePlaceholder: { width: '100%', height: 110, alignItems: 'center', justifyContent: 'center', position: 'relative' },
-  programEmoji: { fontSize: 48, opacity: 0.25 },
+  programImagePlaceholder: { width: '100%', height: 100, justifyContent: 'flex-end' },
   programOverlay: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
     padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: 'rgba(0,0,0,0.38)',
+    backgroundColor: 'rgba(0,0,0,0.30)',
   },
   programIconBadge: {
-    width: 36, height: 36, borderRadius: 10,
+    width: 34, height: 34, borderRadius: 9,
     alignItems: 'center', justifyContent: 'center',
     flexShrink: 0,
   },
-  programEmojiBadge: { fontSize: 18 },
+  programIconShape: { width: 16, height: 16, borderRadius: 8, borderWidth: 2 },
   programNameOverlay: { fontSize: 16, fontWeight: '800', color: '#fff' },
   programDurationOverlay: { fontSize: 12, color: 'rgba(255,255,255,0.80)', marginTop: 1 },
   programBody: { padding: 16, paddingBottom: 14 },

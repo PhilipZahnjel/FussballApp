@@ -63,11 +63,11 @@ function ApptCard({ appt, onCancel }: { appt: Appointment; onCancel: (id: string
             )}
           </View>
           <View style={styles.apptMeta}>
-            <Text style={styles.apptMetaIcon}>📅</Text>
+            <Text style={styles.apptMetaLabel}>Datum</Text>
             <Text style={styles.apptMetaText}>{fmtDate(appt.date)}</Text>
           </View>
           <View style={styles.apptMeta}>
-            <Text style={styles.apptMetaIcon}>🕐</Text>
+            <Text style={styles.apptMetaLabel}>Uhrzeit</Text>
             <Text style={styles.apptMetaText}>{appt.time} Uhr</Text>
           </View>
         </View>
@@ -177,7 +177,7 @@ export function TermineScreen({ appointments, cancelAppointment, activeTokens, s
           <View style={styles.tokenBanner}>
             {activeTokens.map(token => (
               <View key={token.id} style={styles.tokenRow}>
-                <Text style={styles.tokenIcon}>🎫</Text>
+                <View style={styles.tokenDot} />
                 <Text style={styles.tokenText}>
                   Nachholtermin verfügbar bis {fmtDate(token.expires_at.slice(0, 10))}
                   {' · '}{token.category === 'individual' ? 'Individualtraining' : 'Gruppentraining'}
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(21,34,56,0.12)',
   },
   tokenRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  tokenIcon: { fontSize: 15 },
+  tokenDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.accentLight, flexShrink: 0 },
   tokenText: { fontSize: 13, fontWeight: '600', color: C.text, flex: 1 },
 
   calCard: { marginBottom: 12, overflow: 'hidden' },
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
   },
   programBadgeText: { fontSize: 11, fontWeight: '700' },
   apptMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
-  apptMetaIcon: { fontSize: 13 },
+  apptMetaLabel: { fontSize: 11, fontWeight: '700', color: C.textFaint, textTransform: 'uppercase', letterSpacing: 0.3, width: 48 },
   apptMetaText: { fontSize: 14, color: C.textMid, fontWeight: '500' },
   actionSection: {
     flexDirection: 'row',

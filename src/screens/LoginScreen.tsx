@@ -60,7 +60,7 @@ export function LoginScreen({ onLogin }: Props) {
           {/* Brand Header */}
           <View style={styles.brand}>
             <View style={styles.logoBadge}>
-              <Text style={styles.badgeEmoji}>⚽</Text>
+              <Text style={styles.badgeMonogram}>PK</Text>
             </View>
             <Text style={styles.studioName}>PK-Fußballschule</Text>
             <Text style={styles.studioCity}>Hattersheim am Main</Text>
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     shadowRadius: 22,
     elevation: 10,
   },
-  badgeEmoji: { fontSize: 42 },
+  badgeMonogram: { fontSize: 28, fontWeight: '900', color: '#fff', letterSpacing: 1 },
   studioName: {
     fontSize: 26,
     fontWeight: '800',
