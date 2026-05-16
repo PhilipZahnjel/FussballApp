@@ -8,6 +8,7 @@ import { Appointment, CancellationToken, Tab } from '../types';
 import { todayStr, fmtDate, DE_MONTHS, DE_DAYS_SHORT } from '../constants/i18n';
 import { PROGRAMS } from '../constants/programs';
 import { exportToCalendar } from '../utils/calendar';
+import { isWithinCancellationDeadline } from '../utils/bookingRules';
 
 interface Props {
   appointments: Appointment[];
@@ -24,20 +25,23 @@ const PROGRAM_COLORS: Record<string, string> = {
   torhueter_gruppe:     '#9B59B6',
 };
 
-function canCancelAppt(appt: Appointment): boolean {
-  const apptDateTime = new Date(`${appt.date}T${appt.time}:00`);
-  const deadline = new Date(apptDateTime.getTime() - 24 * 60 * 60 * 1000);
-  return new Date() < deadline;
-}
-
 function ApptCard({ appt, onCancel }: { appt: Appointment; onCancel: (id: string) => void }) {
   const [expanded, setExpanded] = useState(false);
+  const [deadlineError, setDeadlineError] = useState(false);
   const ts = todayStr();
   const dimmed = appt.status === 'cancelled' || appt.date < ts;
   const upcoming = appt.status === 'confirmed' && appt.date >= ts;
-  const cancellable = upcoming && canCancelAppt(appt);
   const program = PROGRAMS.find(p => p.id === appt.program);
   const programColor = PROGRAM_COLORS[appt.program] ?? C.accent;
+
+  const handleStornPress = () => {
+    if (isWithinCancellationDeadline(appt.date, appt.time)) {
+      setDeadlineError(true);
+    } else {
+      setDeadlineError(false);
+      setExpanded(true);
+    }
+  };
 
   return (
     <Card style={[styles.apptCard, dimmed ? { opacity: 0.55 } : undefined]}>
@@ -79,19 +83,26 @@ function ApptCard({ appt, onCancel }: { appt: Appointment; onCancel: (id: string
             </View>
           </View>
         ) : (
-          <View style={styles.actionSection}>
-            <TouchableOpacity style={styles.calBtn} activeOpacity={0.8} onPress={() => exportToCalendar(appt).catch(console.error)}>
-              <Text style={styles.calBtnLabel}>In Kalender</Text>
-            </TouchableOpacity>
-            {cancellable ? (
-              <TouchableOpacity onPress={() => setExpanded(true)} style={styles.stornBtn} activeOpacity={0.8}>
-                <Text style={styles.stornBtnLabel}>Stornieren</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={[styles.stornBtn, { opacity: 0.4 }]}>
-                <Text style={styles.stornBtnLabel}>Storno nicht mehr möglich</Text>
+          <View>
+            {deadlineError && (
+              <View style={styles.deadlineErrorBox}>
+                <Text style={styles.deadlineErrorTitle}>Stornierung nicht möglich</Text>
+                <Text style={styles.deadlineErrorText}>
+                  Die 3-Stunden-Frist vor dem Termin ist abgelaufen. Eine Stornierung ist nicht mehr möglich.
+                </Text>
+                <TouchableOpacity onPress={() => setDeadlineError(false)} style={styles.deadlineErrorClose} activeOpacity={0.7}>
+                  <Text style={styles.deadlineErrorCloseText}>OK</Text>
+                </TouchableOpacity>
               </View>
             )}
+            <View style={styles.actionSection}>
+              <TouchableOpacity style={styles.calBtn} activeOpacity={0.8} onPress={() => exportToCalendar(appt).catch(console.error)}>
+                <Text style={styles.calBtnLabel}>In Kalender</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleStornPress} style={styles.stornBtn} activeOpacity={0.8}>
+                <Text style={styles.stornBtnLabel}>Stornieren</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )
       )}
@@ -394,6 +405,18 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   stornBtnLabel: { fontSize: 13, fontWeight: '700', color: C.red },
+  deadlineErrorBox: {
+    margin: 14, marginBottom: 0, padding: 14, borderRadius: 12,
+    backgroundColor: C.redBg, borderWidth: 1, borderColor: 'rgba(212,90,90,0.25)',
+  },
+  deadlineErrorTitle: { fontSize: 14, fontWeight: '800', color: C.red, marginBottom: 4 },
+  deadlineErrorText: { fontSize: 13, color: C.red, lineHeight: 19, opacity: 0.85 },
+  deadlineErrorClose: {
+    marginTop: 10, alignSelf: 'flex-end',
+    paddingHorizontal: 14, paddingVertical: 6,
+    borderRadius: 8, backgroundColor: C.red,
+  },
+  deadlineErrorCloseText: { fontSize: 12, fontWeight: '700', color: '#fff' },
   confirmSection: { borderTopWidth: 1, borderTopColor: C.cardBorder, padding: 16, paddingHorizontal: 20 },
   confirmText: { fontSize: 15, color: C.textMid, marginBottom: 14 },
   confirmBtns: { flexDirection: 'row', gap: 10 },

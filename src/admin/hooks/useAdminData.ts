@@ -6,7 +6,7 @@ import { TokenService } from '../../services/tokenService';
 import { TrainerScheduleService } from '../../services/trainerScheduleService';
 import { CustomerService, CreateCustomerParams } from '../services/customerService';
 import { PROGRAM_CATEGORY, ProgramId } from '../../constants/programs';
-import { canJoinGroupSlot } from '../../utils/bookingRules';
+import { canJoinGroupSlot, checkProgramPermission } from '../../utils/bookingRules';
 import { supabase } from '../../lib/supabase';
 
 export type CustomerProfile = {
@@ -123,6 +123,32 @@ export function useAdminData() {
     const { data: conflicts } = await AppointmentService.checkDailyConflict(userId, date);
     if (conflicts && conflicts.length >= 2) {
       return { error: { message: 'Der Kunde hat an diesem Tag bereits zwei Termine.' } };
+    }
+
+    // Programm-Berechtigung des Kunden prüfen
+    const { data: custProfile } = await supabase
+      .from('profiles')
+      .select('can_book_individual, can_book_gruppe, can_book_athletik, can_book_torhueter_individual, can_book_torhueter_gruppe')
+      .eq('id', userId)
+      .single();
+    if (custProfile) {
+      const permCheck = checkProgramPermission(custProfile as any, program as ProgramId);
+      if (!permCheck.allowed) {
+        return { error: { message: permCheck.reason ?? 'Kunde hat keine Berechtigung für dieses Programm.' } };
+      }
+    }
+
+    // Trainerzeiten-Check
+    if (trainerId) {
+      const jsDay = new Date(date + 'T12:00:00').getDay();
+      const dayOfWeek = jsDay === 0 ? 7 : jsDay;
+      const trainerHasSlot = trainerSchedules.some(
+        s => s.trainer_id === trainerId && s.day_of_week === dayOfWeek && s.time === time,
+      );
+      if (!trainerHasSlot) {
+        const trainerName = trainers.find(t => t.id === trainerId)?.full_name ?? 'Trainer';
+        return { error: { message: `${trainerName} hat zu dieser Zeit keinen Unterricht eingeplant.` } };
+      }
     }
 
     if (trainerId) {

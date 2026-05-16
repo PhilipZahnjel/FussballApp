@@ -62,6 +62,12 @@ export function checkMonthlyQuota(
   return { allowed: true };
 }
 
+// true = Frist überschritten, Stornierung nicht mehr möglich
+export function isWithinCancellationDeadline(date: string, time: string): boolean {
+  const apptDateTime = new Date(`${date}T${time}:00`);
+  return apptDateTime.getTime() - Date.now() < 3 * 60 * 60 * 1000;
+}
+
 export function isSlotInPast(slotTime: string, todayStr: string, selectedDate: string): boolean {
   if (selectedDate !== todayStr) return false;
   const now = new Date();
