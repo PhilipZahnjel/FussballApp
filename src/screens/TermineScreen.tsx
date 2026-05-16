@@ -12,7 +12,7 @@ import { isWithinCancellationDeadline } from '../utils/bookingRules';
 
 interface Props {
   appointments: Appointment[];
-  cancelAppointment: (id: string) => Promise<{ error: any }>;
+  cancelAppointment: (id: string, skipToken?: boolean) => Promise<{ error: any }>;
   activeTokens: CancellationToken[];
   setTab: (t: Tab) => void;
 }
@@ -25,7 +25,7 @@ const PROGRAM_COLORS: Record<string, string> = {
   torhueter_gruppe:     '#9B59B6',
 };
 
-function ApptCard({ appt, onCancel }: { appt: Appointment; onCancel: (id: string) => void }) {
+function ApptCard({ appt, onCancel }: { appt: Appointment; onCancel: (id: string, skipToken?: boolean) => void }) {
   const [expanded, setExpanded] = useState(false);
   const [deadlineError, setDeadlineError] = useState(false);
   const ts = todayStr();
@@ -86,13 +86,23 @@ function ApptCard({ appt, onCancel }: { appt: Appointment; onCancel: (id: string
           <View>
             {deadlineError && (
               <View style={styles.deadlineErrorBox}>
-                <Text style={styles.deadlineErrorTitle}>Stornierung nicht möglich</Text>
+                <Text style={styles.deadlineErrorTitle}>Stornierung innerhalb der 3-Stunden-Frist</Text>
                 <Text style={styles.deadlineErrorText}>
-                  Die 3-Stunden-Frist vor dem Termin ist abgelaufen. Eine Stornierung ist nicht mehr möglich.
+                  Du kannst den Termin noch stornieren, erhältst jedoch{' '}
+                  <Text style={{ fontWeight: '800' }}>keinen Nachholtermin</Text>, da die 3-Stunden-Frist abgelaufen ist.
                 </Text>
-                <TouchableOpacity onPress={() => setDeadlineError(false)} style={styles.deadlineErrorClose} activeOpacity={0.7}>
-                  <Text style={styles.deadlineErrorCloseText}>OK</Text>
-                </TouchableOpacity>
+                <View style={styles.deadlineErrorBtns}>
+                  <TouchableOpacity
+                    onPress={() => { setDeadlineError(false); onCancel(appt.id, true); }}
+                    style={styles.deadlineErrorConfirm}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.deadlineErrorConfirmText}>Trotzdem stornieren</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => setDeadlineError(false)} style={styles.deadlineErrorClose} activeOpacity={0.7}>
+                    <Text style={styles.deadlineErrorCloseText}>Abbrechen</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
             <View style={styles.actionSection}>
@@ -409,14 +419,19 @@ const styles = StyleSheet.create({
     margin: 14, marginBottom: 0, padding: 14, borderRadius: 12,
     backgroundColor: C.redBg, borderWidth: 1, borderColor: 'rgba(212,90,90,0.25)',
   },
-  deadlineErrorTitle: { fontSize: 14, fontWeight: '800', color: C.red, marginBottom: 4 },
+  deadlineErrorTitle: { fontSize: 14, fontWeight: '800', color: C.red, marginBottom: 6 },
   deadlineErrorText: { fontSize: 13, color: C.red, lineHeight: 19, opacity: 0.85 },
-  deadlineErrorClose: {
-    marginTop: 10, alignSelf: 'flex-end',
-    paddingHorizontal: 14, paddingVertical: 6,
-    borderRadius: 8, backgroundColor: C.red,
+  deadlineErrorBtns: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  deadlineErrorConfirm: {
+    flex: 1, paddingVertical: 8, borderRadius: 8,
+    backgroundColor: C.red, alignItems: 'center',
   },
-  deadlineErrorCloseText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  deadlineErrorConfirmText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  deadlineErrorClose: {
+    flex: 1, paddingVertical: 8, borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.07)', alignItems: 'center',
+  },
+  deadlineErrorCloseText: { fontSize: 12, fontWeight: '700', color: C.red },
   confirmSection: { borderTopWidth: 1, borderTopColor: C.cardBorder, padding: 16, paddingHorizontal: 20 },
   confirmText: { fontSize: 15, color: C.textMid, marginBottom: 14 },
   confirmBtns: { flexDirection: 'row', gap: 10 },

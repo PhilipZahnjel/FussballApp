@@ -129,7 +129,7 @@ export function useAppointments(profile: Profile | null) {
     return { error };
   };
 
-  const cancelAppointment = async (id: string) => {
+  const cancelAppointment = async (id: string, skipToken = false) => {
     const appt = appointments.find(a => a.id === id);
     const { data: { session } } = await supabase.auth.getSession();
     const user = session?.user;
@@ -142,16 +142,18 @@ export function useAppointments(profile: Profile | null) {
       setAppointments(prev => prev.map(updateAppt));
       setMyAppointments(prev => prev.map(updateAppt));
 
-      const category = getCategory(appt.program);
-      const expiresAt = new Date();
-      expiresAt.setMonth(expiresAt.getMonth() + 1);
-      const { data: tokenData } = await TokenService.insert({
-        user_id: user.id,
-        category,
-        expires_at: expiresAt.toISOString(),
-        source_appointment_id: id,
-      });
-      if (tokenData) setActiveTokens(prev => [...prev, tokenData as CancellationToken]);
+      if (!skipToken) {
+        const category = getCategory(appt.program);
+        const expiresAt = new Date();
+        expiresAt.setMonth(expiresAt.getMonth() + 1);
+        const { data: tokenData } = await TokenService.insert({
+          user_id: user.id,
+          category,
+          expires_at: expiresAt.toISOString(),
+          source_appointment_id: id,
+        });
+        if (tokenData) setActiveTokens(prev => [...prev, tokenData as CancellationToken]);
+      }
 
       const { data: profileData } = await ProfileService.fetchById(user.id);
       EmailService.sendCancellation({
