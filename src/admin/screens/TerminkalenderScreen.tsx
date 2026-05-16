@@ -1,75 +1,123 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, useWindowDimensions } from 'react-native';
-// TextInput retained for customer search field
+import {
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  ActivityIndicator, TextInput, useWindowDimensions,
+} from 'react-native';
 import { CustomerProfile, AdminAppointment, TrainerProfile } from '../hooks/useAdminData';
 import { PROGRAMS, PROGRAM_CATEGORY, ProgramId } from '../../constants/programs';
 import { SLOTS } from '../../constants/slots';
 import { isBookableDay } from '../../utils/bookingRules';
 
-const PROGRAM_COLORS: Record<string, string> = {
-  individual: '#4A8FE8', gruppe: '#3DBFA0', athletik: '#F5A84A',
-  torhueter_individual: '#E87676', torhueter_gruppe: '#9B59B6',
+// ─── Design tokens ───────────────────────────────────────────────────────────
+const C = {
+  bg:           '#ECEEF4',
+  surface:      '#FFFFFF',
+  dark:         '#0F1629',
+  navy:         '#1C2133',
+  navyMid:      '#2D3548',
+  text:         '#111827',
+  textMid:      '#374151',
+  textLight:    '#6B7280',
+  textFaint:    '#9CA3AF',
+  border:       '#E2E5EE',
+  borderLight:  '#F1F3F8',
+  accent:       '#5A8C6A',
+  accentLight:  'rgba(90,140,106,0.1)',
+  accentMid:    'rgba(90,140,106,0.22)',
+  todayCol:     'rgba(90,140,106,0.06)',
+  danger:       '#EF4444',
+  dangerBg:     '#FEF2F2',
+  successBg:    '#F0FDF4',
+  successText:  '#15803D',
+  weekendBg:    'rgba(0,0,0,0.018)',
+  pastOpacity:  0.45,
 };
 
-const DE_DAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
-const DE_MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
-const ALL_SLOTS = SLOTS;
+const PROGRAM_COLORS: Record<string, string> = {
+  individual:          '#4A8FE8',
+  gruppe:              '#3DBFA0',
+  athletik:            '#F5A84A',
+  torhueter_individual:'#E87676',
+  torhueter_gruppe:    '#9B59B6',
+};
+const PROGRAM_BG: Record<string, string> = {
+  individual:          'rgba(74,143,232,0.10)',
+  gruppe:              'rgba(61,191,160,0.10)',
+  athletik:            'rgba(245,168,74,0.10)',
+  torhueter_individual:'rgba(232,118,118,0.10)',
+  torhueter_gruppe:    'rgba(155,89,182,0.10)',
+};
+const PROGRAM_EMOJI: Record<string, string> = {
+  individual: '⚽', gruppe: '👥', athletik: '🏃',
+  torhueter_individual: '🥅', torhueter_gruppe: '🧤',
+};
 
+// ─── Constants ───────────────────────────────────────────────────────────────
+const DE_DAYS       = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+const DE_MONTHS     = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const ALL_SLOTS     = SLOTS;
+const TIME_COL_W    = 68;
+const DAY_COL_MIN   = 118;
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 function pad2(n: number) { return String(n).padStart(2, '0'); }
-function dateStr(d: Date) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
-function fmtDate(ds: string) { const [y, m, d] = ds.split('-'); return `${d}.${m}.${y}`; }
+function dateStr(d: Date) { return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+function fmtDate(ds: string) { const [y,m,d] = ds.split('-'); return `${d}.${m}.${y}`; }
 function fmtDayLong(ds: string) {
   const d = new Date(ds + 'T12:00:00');
   const dow = (d.getDay() + 6) % 7;
   return `${DE_DAYS[dow]}, ${d.getDate()}. ${DE_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
-
 function getWeekStart(ref: Date) {
   const d = new Date(ref);
-  const dow = (d.getDay() + 6) % 7;
-  d.setDate(d.getDate() - dow);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
   d.setHours(0, 0, 0, 0);
   return d;
 }
-
 function addDays(ds: string, n: number) {
   const d = new Date(ds + 'T12:00:00');
   d.setDate(d.getDate() + n);
   return dateStr(d);
 }
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface Props {
-  customers: CustomerProfile[];
-  allAppointments: AdminAppointment[];
-  trainers: TrainerProfile[];
-  loading: boolean;
-  initialDay?: string;
+  customers:           CustomerProfile[];
+  allAppointments:     AdminAppointment[];
+  trainers:            TrainerProfile[];
+  loading:             boolean;
+  initialDay?:         string;
   onCancelAppointment: (id: string) => Promise<{ error: any }>;
-  onAddAppointment: (userId: string, date: string, time: string, program: string, trainerId?: string | null) => Promise<{ error: any }>;
+  onAddAppointment:    (userId: string, date: string, time: string, program: string, trainerId?: string | null) => Promise<{ error: any }>;
 }
 
-export function TerminkalenderScreen({ customers, allAppointments, trainers, loading, initialDay, onCancelAppointment, onAddAppointment }: Props) {
+// ─── Component ───────────────────────────────────────────────────────────────
+export function TerminkalenderScreen({
+  customers, allAppointments, trainers, loading, initialDay,
+  onCancelAppointment, onAddAppointment,
+}: Props) {
   const todayStr = dateStr(new Date());
   const { width: winW } = useWindowDimensions();
 
-  const [viewMode, setViewMode] = useState<'week' | 'day'>(initialDay ? 'day' : 'week');
-  const [dayDate, setDayDate] = useState(initialDay ?? todayStr);
-  const [weekRef, setWeekRef] = useState(new Date());
-  const [selectedApptId, setSelectedApptId] = useState<string | null>(null);
-  const [cancelLoading, setCancelLoading] = useState(false);
-  const [cancelError, setCancelError] = useState<string | null>(null);
-  const [expandedGroupKey, setExpandedGroupKey] = useState<string | null>(null);
+  const [viewMode,        setViewMode]        = useState<'week'|'day'>(initialDay ? 'day' : 'week');
+  const [dayDate,         setDayDate]         = useState(initialDay ?? todayStr);
+  const [weekRef,         setWeekRef]         = useState(new Date());
+  const [selectedApptId,  setSelectedApptId]  = useState<string | null>(null);
+  const [cancelLoading,   setCancelLoading]   = useState(false);
+  const [cancelError,     setCancelError]     = useState<string | null>(null);
+  const [expandedGroupKey,setExpandedGroupKey]= useState<string | null>(null);
 
-  const [bookingDay, setBookingDay] = useState<string | null>(null);
-  const [bookCustomerSearch, setBookCustomerSearch] = useState('');
-  const [bookCustomerId, setBookCustomerId] = useState<string | null>(null);
-  const [bookProgram, setBookProgram] = useState<string>(PROGRAMS[0].id);
-  const [bookTime, setBookTime] = useState(SLOTS[0]);
-  const [bookTrainerId, setBookTrainerId] = useState<string | null>(null);
-  const [bookingLoading, setBookingLoading] = useState(false);
-  const [bookingError, setBookingError] = useState<string | null>(null);
-  const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [bookingDay,       setBookingDay]       = useState<string | null>(null);
+  const [bookCustomerSearch,setBookCustomerSearch]=useState('');
+  const [bookCustomerId,   setBookCustomerId]   = useState<string | null>(null);
+  const [bookProgram,      setBookProgram]      = useState<string>(PROGRAMS[0].id);
+  const [bookTime,         setBookTime]         = useState(SLOTS[0]);
+  const [bookTrainerId,    setBookTrainerId]    = useState<string | null>(null);
+  const [bookingLoading,   setBookingLoading]   = useState(false);
+  const [bookingError,     setBookingError]     = useState<string | null>(null);
+  const [bookingSuccess,   setBookingSuccess]   = useState(false);
 
+  // ── Derived ──────────────────────────────────────────────────────────────
   const weekStart = getWeekStart(weekRef);
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart);
@@ -77,43 +125,36 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
     return d;
   });
 
-  const prevWeek = () => { const d = new Date(weekRef); d.setDate(d.getDate() - 7); setWeekRef(d); };
-  const nextWeek = () => { const d = new Date(weekRef); d.setDate(d.getDate() + 7); setWeekRef(d); };
-  const goToday = () => { setWeekRef(new Date()); setDayDate(todayStr); };
+  const prevWeek = () => { const d = new Date(weekRef); d.setDate(d.getDate()-7); setWeekRef(d); };
+  const nextWeek = () => { const d = new Date(weekRef); d.setDate(d.getDate()+7); setWeekRef(d); };
+  const goToday  = () => { setWeekRef(new Date()); setDayDate(todayStr); };
 
   const weekLabel = (() => {
-    const s = days[0];
-    const e = days[6];
-    if (s.getMonth() === e.getMonth()) return `${s.getDate()}. – ${e.getDate()}. ${DE_MONTHS[s.getMonth()]} ${s.getFullYear()}`;
+    const s = days[0], e = days[6];
+    if (s.getMonth() === e.getMonth())
+      return `${s.getDate()}. – ${e.getDate()}. ${DE_MONTHS[s.getMonth()]} ${s.getFullYear()}`;
     return `${s.getDate()}. ${DE_MONTHS[s.getMonth()]} – ${e.getDate()}. ${DE_MONTHS[e.getMonth()]} ${e.getFullYear()}`;
   })();
 
   const switchToDay = (ds: string) => {
-    setDayDate(ds);
-    setViewMode('day');
-    setBookingDay(null);
-    setSelectedApptId(null);
+    setDayDate(ds); setViewMode('day');
+    setBookingDay(null); setSelectedApptId(null); setExpandedGroupKey(null);
   };
 
   const handleCancelAppt = async (id: string) => {
-    setCancelLoading(true);
-    setCancelError(null);
+    setCancelLoading(true); setCancelError(null);
     const { error } = await onCancelAppointment(id);
     setCancelLoading(false);
     if (error) setCancelError(error.message ?? 'Fehler beim Stornieren.');
-    else setSelectedApptId(null);
+    else { setSelectedApptId(null); setExpandedGroupKey(null); }
   };
 
   const openBookingDay = (ds: string, presetTime?: string) => {
     setBookingDay(ds);
-    setBookCustomerSearch('');
-    setBookCustomerId(null);
-    setBookProgram(PROGRAMS[0].id);
-    setBookTime(presetTime ?? SLOTS[0]);
-    setBookTrainerId(null);
-    setBookingError(null);
-    setBookingSuccess(false);
-    setSelectedApptId(null);
+    setBookCustomerSearch(''); setBookCustomerId(null);
+    setBookProgram(PROGRAMS[0].id); setBookTime(presetTime ?? SLOTS[0]);
+    setBookTrainerId(trainers[0]?.id ?? null); setBookingError(null); setBookingSuccess(false);
+    setSelectedApptId(null); setExpandedGroupKey(null);
   };
 
   const filteredCustomers = bookCustomerSearch.trim().length >= 1
@@ -123,146 +164,216 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
       ).slice(0, 5)
     : [];
 
-  const selectedBookCustomer = bookCustomerId ? customers.find(c => c.id === bookCustomerId) : null;
+  const selectedBookCustomer = bookCustomerId
+    ? customers.find(c => c.id === bookCustomerId) : null;
 
   const doBook = async () => {
-    if (!bookCustomerId || !bookingDay) {
-      setBookingError('Bitte einen Kunden auswählen.');
-      return;
-    }
-    setBookingLoading(true);
-    setBookingError(null);
-    setBookingSuccess(false);
+    if (!bookCustomerId || !bookingDay) { setBookingError('Bitte einen Kunden auswählen.'); return; }
+    if (!bookTrainerId) { setBookingError('Bitte einen Trainer auswählen.'); return; }
+    setBookingLoading(true); setBookingError(null); setBookingSuccess(false);
     const { error } = await onAddAppointment(bookCustomerId, bookingDay, bookTime, bookProgram, bookTrainerId);
     setBookingLoading(false);
-    if (error) {
-      setBookingError(error.message ?? 'Buchung fehlgeschlagen.');
-    } else {
-      setBookingSuccess(true);
-      setBookCustomerId(null);
-      setBookCustomerSearch('');
-    }
+    if (error) setBookingError(error.message ?? 'Buchung fehlgeschlagen.');
+    else { setBookingSuccess(true); setBookCustomerId(null); setBookCustomerSearch(''); }
   };
 
-  if (loading) return <ActivityIndicator style={{ flex: 1 }} color="#5A8C6A" />;
+  if (loading) return <ActivityIndicator style={{ flex: 1 }} color={C.accent} size="large" />;
 
-  // ── Buchungsformular (geteilt zwischen Wochen- und Tagesansicht) ──
+  // ── Column widths ─────────────────────────────────────────────────────────
+  const sidebarW   = winW >= 768 ? 220 : 0;
+  const gridAvailW = winW - sidebarW - 32;
+  const dayColW    = Math.max(DAY_COL_MIN, Math.floor((gridAvailW - TIME_COL_W) / 7));
+
+  // ── Shared: Page Header ───────────────────────────────────────────────────
+  const pageHeader = (
+    <View style={s.pageHeader}>
+      <View style={s.pageHeaderLeft}>
+        <Text style={s.pageTitle}>Terminkalender</Text>
+        <Text style={s.pageSubtitle}>
+          {viewMode === 'week' ? weekLabel : fmtDayLong(dayDate)}
+        </Text>
+      </View>
+      <View style={s.pageHeaderRight}>
+        <View style={s.navGroup}>
+          <TouchableOpacity
+            style={s.navBtn}
+            onPress={viewMode === 'week' ? prevWeek : () => setDayDate(addDays(dayDate, -1))}
+            activeOpacity={0.7}
+          >
+            <Text style={s.navBtnText}>‹</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={s.todayBtn}
+            onPress={() => { goToday(); if (viewMode === 'day') setDayDate(todayStr); }}
+            activeOpacity={0.7}
+          >
+            <Text style={s.todayBtnText}>Heute</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={s.navBtn}
+            onPress={viewMode === 'week' ? nextWeek : () => setDayDate(addDays(dayDate, 1))}
+            activeOpacity={0.7}
+          >
+            <Text style={s.navBtnText}>›</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={s.viewToggle}>
+          <TouchableOpacity
+            style={[s.viewBtn, viewMode === 'week' && s.viewBtnActive]}
+            onPress={() => setViewMode('week')}
+            activeOpacity={0.7}
+          >
+            <Text style={[s.viewBtnText, viewMode === 'week' && s.viewBtnTextActive]}>Woche</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[s.viewBtn, viewMode === 'day' && s.viewBtnActive]}
+            onPress={() => switchToDay(dayDate)}
+            activeOpacity={0.7}
+          >
+            <Text style={[s.viewBtnText, viewMode === 'day' && s.viewBtnTextActive]}>Tag</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+
+  // ── Shared: Booking Panel ─────────────────────────────────────────────────
   const bookingPanel = bookingDay ? (
-    <View style={styles.bookingPanel}>
-      <Text style={styles.bookingPanelTitle}>Termin buchen · {fmtDate(bookingDay)}</Text>
+    <View style={s.bookPanel}>
+      <View style={s.bookPanelHead}>
+        <View>
+          <Text style={s.bookPanelTitle}>Termin buchen</Text>
+          <Text style={s.bookPanelDate}>{fmtDate(bookingDay)}</Text>
+        </View>
+        <TouchableOpacity onPress={() => setBookingDay(null)} style={s.bookPanelClose} activeOpacity={0.7}>
+          <Text style={s.bookPanelCloseText}>✕</Text>
+        </TouchableOpacity>
+      </View>
 
       {bookingSuccess && (
-        <View style={styles.successBox}>
-          <Text style={styles.successText}>✓ Termin erfolgreich gebucht.</Text>
+        <View style={s.successBanner}>
+          <Text style={s.successBannerText}>✓  Termin erfolgreich gebucht</Text>
         </View>
       )}
 
-      <Text style={styles.fieldLabel}>Kunde suchen</Text>
+      {/* Kunde */}
+      <Text style={s.fieldLabel}>Kunde</Text>
       {selectedBookCustomer ? (
-        <View style={styles.selectedCustomerRow}>
-          <Text style={styles.selectedCustomerName}>{selectedBookCustomer.full_name} #{selectedBookCustomer.customer_number}</Text>
+        <View style={s.selectedCustomer}>
+          <View style={[s.selectedCustomerAvatar, { backgroundColor: C.accentMid }]}>
+            <Text style={s.selectedCustomerInitial}>
+              {(selectedBookCustomer.full_name ?? '?')[0].toUpperCase()}
+            </Text>
+          </View>
+          <Text style={s.selectedCustomerName}>{selectedBookCustomer.full_name}</Text>
+          <Text style={s.selectedCustomerNum}>#{selectedBookCustomer.customer_number}</Text>
           <TouchableOpacity onPress={() => { setBookCustomerId(null); setBookCustomerSearch(''); }} activeOpacity={0.7}>
-            <Text style={styles.clearCustomer}>✕</Text>
+            <Text style={s.clearBtn}>✕</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <>
           <TextInput
-            style={styles.input}
+            style={s.input}
             value={bookCustomerSearch}
             onChangeText={setBookCustomerSearch}
-            placeholder="Name oder Kundennummer..."
-            placeholderTextColor="#9CA3AF"
+            placeholder="Name oder Kundennummer…"
+            placeholderTextColor={C.textFaint}
           />
           {filteredCustomers.map(c => (
             <TouchableOpacity
               key={c.id}
-              style={styles.customerSuggestion}
+              style={s.suggestion}
               onPress={() => { setBookCustomerId(c.id); setBookCustomerSearch(''); }}
               activeOpacity={0.7}
             >
-              <Text style={styles.customerSuggestionText}>{c.full_name} · #{c.customer_number}</Text>
+              <Text style={s.suggestionName}>{c.full_name}</Text>
+              <Text style={s.suggestionNum}>#{c.customer_number}</Text>
             </TouchableOpacity>
           ))}
         </>
       )}
 
-      <Text style={styles.fieldLabel}>Programm</Text>
-      <View style={styles.chipRow}>
-        {PROGRAMS.map(p => (
-          <TouchableOpacity
-            key={p.id}
-            style={[styles.chip, bookProgram === p.id && styles.chipActive]}
-            onPress={() => setBookProgram(p.id)}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.chipText, bookProgram === p.id && styles.chipTextActive]}>{p.name}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <Text style={styles.fieldLabel}>Uhrzeit</Text>
-      <View style={styles.chipRow}>
-        {ALL_SLOTS.map(t => (
-          <TouchableOpacity
-            key={t}
-            style={[styles.chip, bookTime === t && styles.chipActive]}
-            onPress={() => setBookTime(t)}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.chipText, bookTime === t && styles.chipTextActive]}>{t}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {trainers.length > 0 && (
-        <>
-          <Text style={styles.fieldLabel}>Trainer (optional)</Text>
-          <View style={styles.chipRow}>
+      {/* Programm */}
+      <Text style={[s.fieldLabel, { marginTop: 16 }]}>Programm</Text>
+      <View style={s.programGrid}>
+        {PROGRAMS.map(p => {
+          const color  = PROGRAM_COLORS[p.id] ?? C.accent;
+          const active = bookProgram === p.id;
+          return (
             <TouchableOpacity
-              style={[styles.chip, bookTrainerId === null && styles.chipActive]}
-              onPress={() => setBookTrainerId(null)}
+              key={p.id}
+              style={[s.programChip, { borderColor: active ? color : C.border },
+                active && { backgroundColor: color }]}
+              onPress={() => setBookProgram(p.id)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.chipText, bookTrainerId === null && styles.chipTextActive]}>Kein Trainer</Text>
+              <Text style={s.programChipEmoji}>{PROGRAM_EMOJI[p.id]}</Text>
+              <Text style={[s.programChipText, active && { color: '#fff' }]}>{p.name}</Text>
             </TouchableOpacity>
-            {trainers.map(t => (
+          );
+        })}
+      </View>
+
+      {/* Uhrzeit + Trainer */}
+      <View style={s.bookRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={s.fieldLabel}>Uhrzeit</Text>
+          <View style={s.chipRow}>
+            {ALL_SLOTS.map(t => (
               <TouchableOpacity
-                key={t.id}
-                style={[styles.chip, bookTrainerId === t.id && styles.chipActive]}
-                onPress={() => setBookTrainerId(t.id)}
+                key={t}
+                style={[s.chip, bookTime === t && s.chipActive]}
+                onPress={() => setBookTime(t)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.chipText, bookTrainerId === t.id && styles.chipTextActive]}>{t.full_name}</Text>
+                <Text style={[s.chipText, bookTime === t && s.chipTextActive]}>{t}</Text>
               </TouchableOpacity>
             ))}
           </View>
-        </>
-      )}
+        </View>
 
-      {bookingError && <Text style={styles.bookingError}>{bookingError}</Text>}
+        <View style={{ flex: 1 }}>
+          <Text style={s.fieldLabel}>Trainer *</Text>
+          {trainers.length === 0 ? (
+            <Text style={s.errorText}>Kein Trainer vorhanden – Buchung nicht möglich.</Text>
+          ) : (
+            <View style={s.chipRow}>
+              {trainers.map(t => (
+                <TouchableOpacity
+                  key={t.id}
+                  style={[s.chip, bookTrainerId === t.id && s.chipActive]}
+                  onPress={() => setBookTrainerId(t.id)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[s.chipText, bookTrainerId === t.id && s.chipTextActive]}>
+                    {t.full_name.split(' ')[0]}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+      </View>
 
-      <View style={styles.chipRow}>
+      {bookingError && <Text style={s.errorText}>{bookingError}</Text>}
+
+      <View style={s.bookActions}>
         <TouchableOpacity
-          style={[styles.bookBtn, (bookingLoading || !bookCustomerId) && { opacity: 0.5 }, { flex: 1 }]}
+          style={[s.bookBtn, (bookingLoading || !bookCustomerId || !bookTrainerId || trainers.length === 0) && { opacity: 0.45 }]}
           onPress={doBook}
           activeOpacity={0.7}
-          disabled={bookingLoading || !bookCustomerId}
+          disabled={bookingLoading || !bookCustomerId || !bookTrainerId || trainers.length === 0}
         >
-          <Text style={styles.bookBtnText}>{bookingLoading ? 'Buchen...' : 'Termin buchen'}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.cancelPanelBtn]}
-          onPress={() => setBookingDay(null)}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.cancelPanelBtnText}>Abbrechen</Text>
+          <Text style={s.bookBtnText}>{bookingLoading ? 'Buchen…' : 'Termin buchen'}</Text>
         </TouchableOpacity>
       </View>
     </View>
   ) : null;
 
-  // ── TAGESANSICHT ──
+  // ════════════════════════════════════════════════════════════════════════════
+  // TAGESANSICHT
+  // ════════════════════════════════════════════════════════════════════════════
   if (viewMode === 'day') {
     const dayAppts = allAppointments
       .filter(a => a.date === dayDate && a.status === 'confirmed')
@@ -271,42 +382,37 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
     const isPast = dayDate < todayStr;
     const canBook = !isPast && isBookableDay(dayDate);
 
-    return (
-      <View style={styles.root}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Terminkalender</Text>
-          <View style={styles.nav}>
-            <TouchableOpacity style={styles.navBtn} onPress={() => setDayDate(addDays(dayDate, -1))} activeOpacity={0.7}>
-              <Text style={styles.navBtnText}>‹</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.todayBtn} onPress={() => { goToday(); setDayDate(todayStr); }} activeOpacity={0.7}>
-              <Text style={styles.todayBtnText}>Heute</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.navBtn} onPress={() => setDayDate(addDays(dayDate, 1))} activeOpacity={0.7}>
-              <Text style={styles.navBtnText}>›</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.viewToggle}>
-            <TouchableOpacity style={styles.viewToggleBtn} onPress={() => setViewMode('week')} activeOpacity={0.7}>
-              <Text style={styles.viewToggleBtnText}>Wochenansicht</Text>
-            </TouchableOpacity>
-            <View style={[styles.viewToggleBtn, styles.viewToggleBtnActive]}>
-              <Text style={[styles.viewToggleBtnText, styles.viewToggleBtnTextActive]}>Tagesansicht</Text>
-            </View>
-          </View>
-        </View>
+    const unassignedDayAppts = dayAppts.filter(a => !a.trainer_id);
+    const trainerCols = trainers as TrainerProfile[];
+    const pseudoUnassigned: TrainerProfile = { id: '__unassigned__', full_name: 'Ohne Trainer', trainer_specialty: null } as any;
+    const cols = unassignedDayAppts.length > 0 ? [...trainerCols, pseudoUnassigned] : trainerCols;
+    const numCols = cols.length || 1;
+    const availW  = winW - sidebarW - 32 - TIME_COL_W;
+    const colW    = Math.max(150, Math.floor(availW / numCols));
 
-        <ScrollView style={styles.scroll} contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 }]}>
-          <View style={styles.dayViewHeader}>
-            <Text style={styles.dayViewTitle}>{fmtDayLong(dayDate)}</Text>
-            {dayDate === todayStr && <View style={styles.todayBadge}><Text style={styles.todayBadgeText}>Heute</Text></View>}
+    const selAppt   = selectedApptId ? dayAppts.find(a => a.id === selectedApptId) : null;
+    const selCust   = selAppt ? customers.find(c => c.id === selAppt.user_id) : null;
+    const selProg   = selAppt ? PROGRAMS.find(p => p.id === selAppt.program) : null;
+    const selTrainer= selAppt?.trainer_id ? trainers.find(t => t.id === selAppt.trainer_id) : null;
+    const selColor  = selAppt ? (PROGRAM_COLORS[selAppt.program] ?? C.accent) : C.accent;
+
+    return (
+      <View style={s.root}>
+        {pageHeader}
+        <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent}>
+
+          {/* Day top bar */}
+          <View style={s.dayTopBar}>
+            {dayDate === todayStr && (
+              <View style={s.todayBadge}><Text style={s.todayBadgeText}>Heute</Text></View>
+            )}
             {canBook && (
               <TouchableOpacity
-                style={styles.addDayViewBtn}
+                style={s.addBtn}
                 onPress={() => bookingDay === dayDate ? setBookingDay(null) : openBookingDay(dayDate)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.addDayViewBtnText}>{bookingDay === dayDate ? '✕ Abbrechen' : '+ Termin buchen'}</Text>
+                <Text style={s.addBtnText}>{bookingDay === dayDate ? '✕ Abbrechen' : '+ Termin buchen'}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -314,261 +420,332 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
           {bookingDay === dayDate && bookingPanel}
 
           {dayAppts.length === 0 && !bookingDay && (
-            <View style={styles.emptyDayView}>
-              <Text style={styles.emptyDayViewText}>Keine bestätigten Termine für diesen Tag.</Text>
+            <View style={s.emptyState}>
+              <Text style={s.emptyIcon}>📅</Text>
+              <Text style={s.emptyText}>Keine bestätigten Termine</Text>
             </View>
           )}
 
-          {dayAppts.length > 0 && (() => {
-            const cols = trainers as TrainerProfile[];
-            const numCols = cols.length || 1;
-            // Fenster minus Sidebar (220px Desktop / 0px Mobile) minus ScrollView-Padding (32px) minus Zeitspalte
-            const sidebarW = winW >= 768 ? 220 : 0;
-            const availW = winW - sidebarW - 32 - TIME_COL_W;
-            const colW = Math.max(150, Math.floor(availW / numCols));
-
-            const selAppt = selectedApptId ? dayAppts.find(a => a.id === selectedApptId) : null;
-            const selCust = selAppt ? customers.find(c => c.id === selAppt.user_id) : null;
-            const selProg = selAppt ? PROGRAMS.find(p => p.id === selAppt.program) : null;
-            const selTrainer = selAppt?.trainer_id ? trainers.find(t => t.id === selAppt.trainer_id) : null;
-            const selColor = selAppt ? (PROGRAM_COLORS[selAppt.program] ?? '#5A8C6A') : '#5A8C6A';
-            const colStyle = { width: colW };
-
-            return (
-              <View>
-                <ScrollView horizontal={colW === 150} showsHorizontalScrollIndicator={true}>
-                  <View>
-                    {/* Header */}
-                    <View style={[gStyles.row, gStyles.headerRow]}>
-                      <View style={gStyles.timeCol}>
-                        <Text style={gStyles.headerText}>Zeit</Text>
-                      </View>
-                      {cols.map(t => (
-                        <View key={t.id} style={[gStyles.trainerCol, colStyle]}>
-                          <Text style={gStyles.headerText} numberOfLines={1}>{t.full_name}</Text>
-                          {t.trainer_specialty && (
-                            <View style={[gStyles.specialtyBadge, { backgroundColor: t.trainer_specialty === 'torwart' ? '#9B59B6' : '#4A8FE8' }]}>
-                              <Text style={gStyles.specialtyText}>{t.trainer_specialty === 'torwart' ? 'Torwart' : 'Spieler'}</Text>
-                            </View>
-                          )}
-                        </View>
-                      ))}
+          {dayAppts.length > 0 && (
+            <View style={s.gridCard}>
+              <ScrollView horizontal={colW === 150} showsHorizontalScrollIndicator>
+                <View>
+                  {/* Trainer header row */}
+                  <View style={[dg.row, dg.headRow]}>
+                    <View style={[dg.timeCell, { width: TIME_COL_W }]}>
+                      <Text style={dg.headLabel}>Zeit</Text>
                     </View>
-
-                    {/* Slot rows */}
-                    {ALL_SLOTS.map((slot, i) => (
-                      <View key={slot} style={[gStyles.row, i % 2 === 1 && gStyles.rowAlt]}>
-                        <View style={gStyles.timeCol}>
-                          <Text style={gStyles.timeText}>{slot}</Text>
-                        </View>
-                        {cols.map(t => {
-                          const cellAppts = dayAppts.filter(a => a.trainer_id === t.id && a.time === slot);
-                          return (
-                            <View key={t.id} style={[gStyles.cell, colStyle]}>
-                              {cellAppts.map(a => {
-                                const cust = customers.find(c => c.id === a.user_id);
-                                const color = PROGRAM_COLORS[a.program] ?? '#5A8C6A';
-                                const isSel = selectedApptId === a.id;
-                                return (
-                                  <TouchableOpacity
-                                    key={a.id}
-                                    style={[gStyles.tag, { backgroundColor: color }, isSel && gStyles.tagSelected]}
-                                    onPress={() => { setSelectedApptId(isSel ? null : a.id); setCancelError(null); setBookingDay(null); }}
-                                    activeOpacity={0.85}
-                                  >
-                                    <Text style={gStyles.tagText} numberOfLines={1}>{cust?.full_name ?? '—'}</Text>
-                                  </TouchableOpacity>
-                                );
-                              })}
-                            </View>
-                          );
-                        })}
+                    {cols.map(t => (
+                      <View key={t.id} style={[dg.trainerCell, { width: colW }]}>
+                        <Text style={dg.trainerName} numberOfLines={1}>{t.full_name}</Text>
+                        {t.trainer_specialty && (
+                          <View style={[dg.specialtyPill, {
+                            backgroundColor: t.trainer_specialty === 'torwart' ? '#9B59B6' : '#4A8FE8'
+                          }]}>
+                            <Text style={dg.specialtyText}>
+                              {t.trainer_specialty === 'torwart' ? 'Torwart' : 'Spieler'}
+                            </Text>
+                          </View>
+                        )}
                       </View>
                     ))}
                   </View>
-                </ScrollView>
 
-                {selAppt && (
-                  <View style={gStyles.selPanel}>
-                    <View style={[gStyles.selBar, { backgroundColor: selColor }]} />
-                    <View style={gStyles.selInfo}>
-                      <Text style={gStyles.selName}>{selCust?.full_name ?? '—'}</Text>
-                      <Text style={gStyles.selSub}>
-                        {selProg?.name} · {selAppt.time} Uhr{selTrainer ? ` · ${selTrainer.full_name}` : ''}
-                      </Text>
-                      {cancelError && <Text style={styles.apptActionError}>{cancelError}</Text>}
-                      <TouchableOpacity
-                        style={[gStyles.stornBtn, cancelLoading && { opacity: 0.6 }]}
-                        onPress={() => handleCancelAppt(selAppt.id)}
-                        activeOpacity={0.7}
-                        disabled={cancelLoading}
-                      >
-                        <Text style={gStyles.stornBtnText}>{cancelLoading ? 'Stornieren...' : 'Termin stornieren'}</Text>
-                      </TouchableOpacity>
+                  {/* Slot rows */}
+                  {ALL_SLOTS.map((slot, i) => (
+                    <View key={slot} style={[dg.row, i % 2 === 1 && dg.rowAlt]}>
+                      <View style={[dg.timeCell, { width: TIME_COL_W }]}>
+                        <Text style={dg.timeText}>{slot}</Text>
+                      </View>
+                      {cols.map(t => {
+                        const cellAppts = t.id === '__unassigned__'
+                          ? dayAppts.filter(a => !a.trainer_id && a.time === slot)
+                          : dayAppts.filter(a => a.trainer_id === t.id && a.time === slot);
+                        return (
+                          <View key={t.id} style={[dg.cell, { width: colW }]}>
+                            {cellAppts.map(a => {
+                              const cust  = customers.find(c => c.id === a.user_id);
+                              const color = PROGRAM_COLORS[a.program] ?? C.accent;
+                              const bg    = PROGRAM_BG[a.program]    ?? C.accentLight;
+                              const isSel = selectedApptId === a.id;
+                              return (
+                                <TouchableOpacity
+                                  key={a.id}
+                                  style={[dg.apptTag, { borderLeftColor: color },
+                                    isSel ? { backgroundColor: color } : { backgroundColor: bg }]}
+                                  onPress={() => { setSelectedApptId(isSel ? null : a.id); setCancelError(null); setBookingDay(null); }}
+                                  activeOpacity={0.85}
+                                >
+                                  <Text style={[dg.apptTagEmoji]}>{PROGRAM_EMOJI[a.program] ?? '⚽'}</Text>
+                                  <Text style={[dg.apptTagText, { color: isSel ? '#fff' : color }]} numberOfLines={1}>
+                                    {cust?.full_name ?? '—'}
+                                  </Text>
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </View>
+                        );
+                      })}
                     </View>
-                    <TouchableOpacity onPress={() => setSelectedApptId(null)} style={gStyles.selClose}>
-                      <Text style={gStyles.selCloseText}>✕</Text>
+                  ))}
+                </View>
+              </ScrollView>
+
+              {/* Detail panel for selected appointment */}
+              {selAppt && (
+                <View style={s.detailPanel}>
+                  <View style={[s.detailAccent, { backgroundColor: selColor }]} />
+                  <View style={s.detailBody}>
+                    <Text style={s.detailProgram}>{PROGRAM_EMOJI[selAppt.program]} {selProg?.name}</Text>
+                    <Text style={s.detailName}>{selCust?.full_name ?? '—'}</Text>
+                    <Text style={s.detailMeta}>
+                      {selAppt.time} Uhr{selTrainer ? ` · ${selTrainer.full_name}` : ''}
+                    </Text>
+                    {cancelError && <Text style={s.errorText}>{cancelError}</Text>}
+                    <TouchableOpacity
+                      style={[s.stornBtn, cancelLoading && { opacity: 0.6 }]}
+                      onPress={() => handleCancelAppt(selAppt.id)}
+                      activeOpacity={0.7}
+                      disabled={cancelLoading}
+                    >
+                      <Text style={s.stornBtnText}>{cancelLoading ? 'Stornieren…' : 'Termin stornieren'}</Text>
                     </TouchableOpacity>
                   </View>
-                )}
-              </View>
-            );
-          })()}
+                  <TouchableOpacity onPress={() => setSelectedApptId(null)} style={s.detailClose}>
+                    <Text style={s.detailCloseText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )}
         </ScrollView>
       </View>
     );
   }
 
-  // ── WOCHENANSICHT ──
+  // ════════════════════════════════════════════════════════════════════════════
+  // WOCHENANSICHT — Time Grid
+  // ════════════════════════════════════════════════════════════════════════════
+
+  // Resolve expanded detail
+  const expandedDetail = expandedGroupKey ? (() => {
+    const parts = expandedGroupKey.split('|');
+    const [expDate, expTime, expProg, expTrainerId] = parts;
+    const appts = allAppointments.filter(a =>
+      a.date === expDate && a.time === expTime &&
+      a.program === expProg && (a.trainer_id ?? '') === expTrainerId &&
+      a.status === 'confirmed'
+    );
+    return appts.length ? appts : null;
+  })() : null;
+
   return (
-    <View style={styles.root}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Terminkalender</Text>
-        <View style={styles.nav}>
-          <TouchableOpacity style={styles.navBtn} onPress={prevWeek} activeOpacity={0.7}>
-            <Text style={styles.navBtnText}>‹</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.todayBtn} onPress={goToday} activeOpacity={0.7}>
-            <Text style={styles.todayBtnText}>Heute</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.navBtn} onPress={nextWeek} activeOpacity={0.7}>
-            <Text style={styles.navBtnText}>›</Text>
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.weekLabel}>{weekLabel}</Text>
-        <View style={styles.viewToggle}>
-          <View style={[styles.viewToggleBtn, styles.viewToggleBtnActive]}>
-            <Text style={[styles.viewToggleBtnText, styles.viewToggleBtnTextActive]}>Wochenansicht</Text>
-          </View>
-          <TouchableOpacity style={styles.viewToggleBtn} onPress={() => switchToDay(todayStr)} activeOpacity={0.7}>
-            <Text style={styles.viewToggleBtnText}>Tagesansicht</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+    <View style={s.root}>
+      {pageHeader}
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.grid}>
-          {days.map((day, i) => {
-            const ds = dateStr(day);
-            const dayAppts = allAppointments
-              .filter(a => a.date === ds && a.status === 'confirmed')
-              .sort((a, b) => a.time.localeCompare(b.time));
-            const isToday = ds === todayStr;
-            const isWeekend = i >= 5;
-            const isBookingThis = bookingDay === ds;
-            const isPast = ds < todayStr;
-            const canBook = !isPast && isBookableDay(ds);
+      <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent}>
+        {/* ── Calendar grid card ── */}
+        <View style={s.gridCard}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={{ minWidth: gridAvailW }}>
 
-            return (
-              <View key={ds} style={[styles.dayCol, isWeekend && styles.dayColWeekend]}>
-                <TouchableOpacity
-                  style={[styles.dayHeader, isToday && styles.dayHeaderToday]}
-                  onPress={() => switchToDay(ds)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.dayName, isToday && styles.dayNameToday]}>{DE_DAYS[i]}</Text>
-                  <Text style={[styles.dayNum, isToday && styles.dayNumToday]}>{day.getDate()}</Text>
-                  {canBook && (
+              {/* ── Day header row ── */}
+              <View style={wg.headRow}>
+                <View style={{ width: TIME_COL_W }} />
+                {days.map((day, i) => {
+                  const ds       = dateStr(day);
+                  const isToday  = ds === todayStr;
+                  const isPast   = ds < todayStr;
+                  const isWeekend= i >= 5;
+                  const canBook  = !isPast && isBookableDay(ds);
+                  const count    = allAppointments.filter(a => a.date === ds && a.status === 'confirmed').length;
+
+                  return (
                     <TouchableOpacity
-                      style={[styles.addDayBtn, isToday && styles.addDayBtnToday]}
-                      onPress={(e) => { e.stopPropagation?.(); isBookingThis ? setBookingDay(null) : openBookingDay(ds); }}
-                      activeOpacity={0.7}
+                      key={ds}
+                      style={[
+                        wg.dayHead, { width: dayColW },
+                        isToday   && wg.dayHeadToday,
+                        isWeekend && !isToday && wg.dayHeadWeekend,
+                      ]}
+                      onPress={() => switchToDay(ds)}
+                      activeOpacity={0.75}
                     >
-                      <Text style={[styles.addDayBtnText, isToday && styles.addDayBtnTextToday]}>
-                        {isBookingThis ? '✕' : '+'}
+                      <Text style={[wg.dayName, isToday && wg.dayNameToday, isPast && !isToday && wg.faded]}>
+                        {DE_DAYS[i]}
                       </Text>
+                      <Text style={[wg.dayNum, isToday && wg.dayNumToday, isPast && !isToday && wg.faded]}>
+                        {day.getDate()}
+                      </Text>
+                      {count > 0 && (
+                        <View style={[wg.countBadge, isToday && wg.countBadgeToday]}>
+                          <Text style={[wg.countText, isToday && wg.countTextToday]}>{count}</Text>
+                        </View>
+                      )}
+                      {canBook && (
+                        <TouchableOpacity
+                          style={[wg.addBtn, isToday && wg.addBtnToday]}
+                          onPress={(e) => { e.stopPropagation?.(); bookingDay === ds ? setBookingDay(null) : openBookingDay(ds); }}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={[wg.addBtnText, isToday && wg.addBtnTextToday]}>
+                            {bookingDay === ds ? '✕' : '+'}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
                     </TouchableOpacity>
-                  )}
-                </TouchableOpacity>
-                <View style={styles.dayAppts}>
-                  {dayAppts.length === 0 ? (
-                    <View style={styles.emptyDay} />
-                  ) : (() => {
-                    const grouped = new Map<string, typeof dayAppts>();
-                    dayAppts.forEach(a => {
-                      const key = `${a.time}|${a.program}|${a.trainer_id ?? ''}`;
+                  );
+                })}
+              </View>
+
+              {/* ── Slot rows ── */}
+              {ALL_SLOTS.map((slot, slotIdx) => (
+                <View key={slot} style={[wg.slotRow, slotIdx % 2 === 1 && wg.slotRowAlt]}>
+                  <View style={[wg.timeCell, { width: TIME_COL_W }]}>
+                    <Text style={wg.timeText}>{slot}</Text>
+                  </View>
+
+                  {days.map((day, i) => {
+                    const ds       = dateStr(day);
+                    const isToday  = ds === todayStr;
+                    const isPast   = ds < todayStr;
+                    const isWeekend= i >= 5;
+                    const slotAppts= allAppointments.filter(
+                      a => a.date === ds && a.time === slot && a.status === 'confirmed'
+                    );
+
+                    // Group by program+trainer
+                    const grouped = new Map<string, typeof slotAppts>();
+                    slotAppts.forEach(a => {
+                      const key = `${ds}|${a.time}|${a.program}|${a.trainer_id ?? ''}`;
                       if (!grouped.has(key)) grouped.set(key, []);
                       grouped.get(key)!.push(a);
                     });
-                    return Array.from(grouped.entries()).map(([key, appts]) => {
-                      const first = appts[0];
-                      const color = PROGRAM_COLORS[first.program] ?? '#5A8C6A';
-                      const prog = PROGRAMS.find(p => p.id === first.program);
-                      const trainer = first.trainer_id ? trainers.find(t => t.id === first.trainer_id) : null;
-                      const isGruppe = PROGRAM_CATEGORY[first.program as ProgramId] === 'gruppe';
-                      const cap = isGruppe ? 4 : 1;
-                      const isExpanded = expandedGroupKey === key;
 
-                      return (
-                        <View key={key}>
-                          <TouchableOpacity
-                            style={[styles.compactCard, { borderLeftColor: color }, isExpanded && styles.compactCardExpanded]}
-                            onPress={() => { setExpandedGroupKey(isExpanded ? null : key); setCancelError(null); setBookingDay(null); }}
-                            activeOpacity={0.7}
-                          >
-                            <View style={[styles.compactColorDot, { backgroundColor: color }]} />
-                            <View style={styles.compactInfo}>
-                              <View style={styles.compactTopRow}>
-                                <Text style={styles.compactTime}>{first.time}</Text>
-                                <Text style={[styles.compactProg, { color }]} numberOfLines={1}>{prog?.name ?? first.program}</Text>
+                    return (
+                      <View
+                        key={ds}
+                        style={[
+                          wg.cell, { width: dayColW },
+                          isToday   && wg.cellToday,
+                          isWeekend && wg.cellWeekend,
+                          isPast    && !isToday && wg.cellPast,
+                        ]}
+                      >
+                        {Array.from(grouped.entries()).map(([key, appts]) => {
+                          const first   = appts[0];
+                          const color   = PROGRAM_COLORS[first.program] ?? C.accent;
+                          const bg      = PROGRAM_BG[first.program]    ?? C.accentLight;
+                          const prog    = PROGRAMS.find(p => p.id === first.program);
+                          const trainer = first.trainer_id ? trainers.find(t => t.id === first.trainer_id) : null;
+                          const isGrp   = PROGRAM_CATEGORY[first.program as ProgramId] === 'gruppe';
+                          const cap     = isGrp ? 4 : 1;
+                          const isSel   = expandedGroupKey === key;
+
+                          return (
+                            <TouchableOpacity
+                              key={key}
+                              style={[
+                                wg.apptBlock,
+                                { borderLeftColor: color },
+                                isSel ? { backgroundColor: color } : { backgroundColor: bg },
+                              ]}
+                              onPress={() => {
+                                setExpandedGroupKey(isSel ? null : key);
+                                setCancelError(null); setBookingDay(null);
+                              }}
+                              activeOpacity={0.8}
+                            >
+                              <View style={wg.apptBlockTop}>
+                                <Text style={[wg.apptEmoji]}>{PROGRAM_EMOJI[first.program]}</Text>
+                                <Text style={[wg.apptProg, { color: isSel ? '#fff' : color }]} numberOfLines={1}>
+                                  {prog?.name ?? first.program}
+                                </Text>
                               </View>
-                              {isGruppe ? (
-                                <Text style={styles.compactMeta}>{appts.length}/{cap} Teiln.</Text>
-                              ) : (
-                                <Text style={styles.compactMeta} numberOfLines={1}>
-                                  {customers.find(c => c.id === first.user_id)?.full_name ?? '—'}
+                              <Text style={[wg.apptMeta, isSel && wg.apptMetaSel]} numberOfLines={1}>
+                                {isGrp
+                                  ? `${appts.length}/${cap} Teiln.`
+                                  : (customers.find(c => c.id === first.user_id)?.full_name ?? '—')}
+                              </Text>
+                              {trainer && (
+                                <Text style={[wg.apptTrainer, isSel && wg.apptTrainerSel]} numberOfLines={1}>
+                                  {trainer.full_name}
                                 </Text>
                               )}
-                              {trainer && <Text style={styles.compactTrainerLabel} numberOfLines={1}>{trainer.full_name}</Text>}
-                            </View>
-                            <Text style={styles.expandArrow}>{isExpanded ? '▴' : '▾'}</Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    );
+                  })}
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+        </View>
+
+        {/* ── Expanded detail panel ── */}
+        {expandedGroupKey && expandedDetail && expandedDetail.length > 0 && (() => {
+          const first   = expandedDetail[0];
+          const color   = PROGRAM_COLORS[first.program] ?? C.accent;
+          const prog    = PROGRAMS.find(p => p.id === first.program);
+          const trainer = first.trainer_id ? trainers.find(t => t.id === first.trainer_id) : null;
+          const isGrp   = PROGRAM_CATEGORY[first.program as ProgramId] === 'gruppe';
+
+          return (
+            <View style={s.detailPanel}>
+              <View style={[s.detailAccent, { backgroundColor: color }]} />
+              <View style={s.detailBody}>
+                <Text style={s.detailProgram}>
+                  {PROGRAM_EMOJI[first.program]} {prog?.name}
+                </Text>
+                <Text style={s.detailMeta}>
+                  {first.time} Uhr{trainer ? ` · ${trainer.full_name}` : ''}
+                </Text>
+
+                {isGrp ? (
+                  <View style={s.participantList}>
+                    {expandedDetail.map(a => {
+                      const cust   = customers.find(c => c.id === a.user_id);
+                      const isThis = selectedApptId === a.id;
+                      return (
+                        <View key={a.id} style={s.participantRow}>
+                          <View style={[s.participantDot, { backgroundColor: color }]} />
+                          <Text style={s.participantName} numberOfLines={1}>{cust?.full_name ?? '—'}</Text>
+                          {cancelError && isThis && <Text style={s.errorText}>{cancelError}</Text>}
+                          <TouchableOpacity
+                            style={[s.miniStornBtn, cancelLoading && isThis && { opacity: 0.5 }]}
+                            onPress={() => { setSelectedApptId(a.id); handleCancelAppt(a.id); }}
+                            activeOpacity={0.7}
+                            disabled={cancelLoading && isThis}
+                          >
+                            <Text style={s.miniStornBtnText}>{cancelLoading && isThis ? '…' : 'Stornieren'}</Text>
                           </TouchableOpacity>
-
-                          {isExpanded && isGruppe && (
-                            <View style={styles.expandedParticipants}>
-                              {appts.map(a => {
-                                const cust = customers.find(c => c.id === a.user_id);
-                                const isThis = selectedApptId === a.id;
-                                return (
-                                  <View key={a.id} style={styles.participantRow}>
-                                    <Text style={styles.participantName} numberOfLines={1}>{cust?.full_name ?? '—'}</Text>
-                                    {cancelError && isThis && <Text style={styles.apptActionError}>{cancelError}</Text>}
-                                    <TouchableOpacity
-                                      style={[styles.miniStornBtn, cancelLoading && isThis && { opacity: 0.5 }]}
-                                      onPress={() => { setSelectedApptId(a.id); handleCancelAppt(a.id); }}
-                                      activeOpacity={0.7}
-                                      disabled={cancelLoading && isThis}
-                                    >
-                                      <Text style={styles.miniStornBtnText}>{cancelLoading && isThis ? '...' : '✕'}</Text>
-                                    </TouchableOpacity>
-                                  </View>
-                                );
-                              })}
-                            </View>
-                          )}
-
-                          {isExpanded && !isGruppe && (
-                            <View style={styles.apptActions}>
-                              {cancelError && <Text style={styles.apptActionError}>{cancelError}</Text>}
-                              <TouchableOpacity
-                                style={[styles.stornBtn, cancelLoading && { opacity: 0.6 }]}
-                                onPress={() => handleCancelAppt(first.id)}
-                                activeOpacity={0.7}
-                                disabled={cancelLoading}
-                              >
-                                <Text style={styles.stornBtnText}>{cancelLoading ? 'Stornieren...' : 'Termin stornieren'}</Text>
-                              </TouchableOpacity>
-                            </View>
-                          )}
                         </View>
                       );
-                    });
-                  })()}
-                </View>
+                    })}
+                  </View>
+                ) : (
+                  <View>
+                    <Text style={s.detailName}>{customers.find(c => c.id === first.user_id)?.full_name ?? '—'}</Text>
+                    {cancelError && <Text style={s.errorText}>{cancelError}</Text>}
+                    <TouchableOpacity
+                      style={[s.stornBtn, cancelLoading && { opacity: 0.6 }]}
+                      onPress={() => handleCancelAppt(first.id)}
+                      activeOpacity={0.7}
+                      disabled={cancelLoading}
+                    >
+                      <Text style={s.stornBtnText}>{cancelLoading ? 'Stornieren…' : 'Termin stornieren'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
-            );
-          })}
-        </View>
+              <TouchableOpacity onPress={() => setExpandedGroupKey(null)} style={s.detailClose}>
+                <Text style={s.detailCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        })()}
 
         {bookingPanel}
       </ScrollView>
@@ -576,136 +753,268 @@ export function TerminkalenderScreen({ customers, allAppointments, trainers, loa
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#F4F6F9' },
-  header: { padding: 32, paddingBottom: 20, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 16 },
-  title: { fontSize: 26, fontWeight: '800', color: '#111827' },
-  nav: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  navBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center' },
-  navBtnText: { fontSize: 20, fontWeight: '600', color: '#374151' },
-  todayBtn: { paddingHorizontal: 14, height: 36, borderRadius: 10, backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center' },
-  todayBtnText: { fontSize: 13, fontWeight: '700', color: '#374151' },
-  weekLabel: { fontSize: 15, fontWeight: '600', color: '#6B7280' },
-  viewToggle: { flexDirection: 'row', gap: 4, backgroundColor: '#E5E7EB', borderRadius: 10, padding: 3 },
-  viewToggleBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8 },
-  viewToggleBtnActive: { backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.06, shadowOffset: { width: 0, height: 1 }, shadowRadius: 3, elevation: 1 },
-  viewToggleBtnText: { fontSize: 13, fontWeight: '600', color: '#6B7280' },
-  viewToggleBtnTextActive: { color: '#111827' },
-  scroll: { flex: 1 },
-  scrollContent: { padding: 16, paddingTop: 0, paddingBottom: 40 },
+// ─── Styles: Page chrome ──────────────────────────────────────────────────────
+const s = StyleSheet.create({
+  root:           { flex: 1, backgroundColor: C.bg },
+  scroll:         { flex: 1 },
+  scrollContent:  { padding: 16, paddingTop: 0, paddingBottom: 48 },
 
-  // Wochenansicht
-  grid: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', marginBottom: 16 },
-  dayCol: { flex: 1, minWidth: 120, backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.04, shadowOffset: { width: 0, height: 1 }, shadowRadius: 4, elevation: 1 },
-  dayColWeekend: { opacity: 0.65 },
-  dayHeader: { padding: 10, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#F3F4F6', backgroundColor: '#FAFAFA' },
-  dayHeaderToday: { backgroundColor: '#5A8C6A' },
-  dayName: { fontSize: 11, fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5 },
-  dayNameToday: { color: 'rgba(255,255,255,0.8)' },
-  dayNum: { fontSize: 20, fontWeight: '800', color: '#111827', marginTop: 2 },
-  dayNumToday: { color: '#fff' },
-  addDayBtn: { marginTop: 6, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(90,140,106,0.15)', alignItems: 'center', justifyContent: 'center' },
-  addDayBtnToday: { backgroundColor: 'rgba(255,255,255,0.2)' },
-  addDayBtnText: { fontSize: 14, fontWeight: '800', color: '#5A8C6A', lineHeight: 18 },
-  addDayBtnTextToday: { color: '#fff' },
-  dayAppts: { padding: 6, gap: 5, minHeight: 60 },
-  emptyDay: { height: 40 },
-  // compact card styles (week view Option B)
-  compactCard: { backgroundColor: '#F9FAFB', borderRadius: 8, paddingVertical: 7, paddingHorizontal: 8, borderLeftWidth: 3, flexDirection: 'row', alignItems: 'center', gap: 7 },
-  compactCardExpanded: { backgroundColor: '#EEF8F2' },
-  compactColorDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
-  compactInfo: { flex: 1, gap: 1 },
-  compactTopRow: { flexDirection: 'row', alignItems: 'center', gap: 5, flexWrap: 'wrap' },
-  compactTime: { fontSize: 11, fontWeight: '800', color: '#374151' },
-  compactProg: { fontSize: 10, fontWeight: '700' },
-  compactMeta: { fontSize: 10, color: '#6B7280', fontWeight: '600' },
-  compactTrainerLabel: { fontSize: 10, color: '#9CA3AF' },
-  expandArrow: { fontSize: 9, color: '#9CA3AF', flexShrink: 0 },
-  expandedParticipants: { backgroundColor: '#FEF2F2', borderRadius: 7, padding: 8, marginTop: 3, gap: 5 },
-  participantRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  participantName: { flex: 1, fontSize: 11, color: '#374151', fontWeight: '600' },
-  miniStornBtn: { backgroundColor: '#EF4444', borderRadius: 5, paddingHorizontal: 7, paddingVertical: 3 },
+  // Page header
+  pageHeader: {
+    paddingHorizontal: 28, paddingVertical: 20,
+    backgroundColor: C.surface,
+    borderBottomWidth: 1, borderBottomColor: C.border,
+    flexDirection: 'row', alignItems: 'center',
+    flexWrap: 'wrap', gap: 14,
+  },
+  pageHeaderLeft:  { flex: 1, minWidth: 200 },
+  pageHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
+  pageTitle:    { fontSize: 22, fontWeight: '800', color: C.text, letterSpacing: -0.4 },
+  pageSubtitle: { fontSize: 13, fontWeight: '500', color: C.textLight, marginTop: 2 },
+
+  // Navigation
+  navGroup:    { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  navBtn: {
+    width: 34, height: 34, borderRadius: 9,
+    backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  navBtnText:  { fontSize: 18, fontWeight: '600', color: C.textMid, lineHeight: 20 },
+  todayBtn: {
+    paddingHorizontal: 13, height: 34, borderRadius: 9,
+    backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  todayBtnText: { fontSize: 13, fontWeight: '700', color: C.textMid },
+
+  // View toggle
+  viewToggle:      { flexDirection: 'row', backgroundColor: C.bg, borderRadius: 9, padding: 3, gap: 2 },
+  viewBtn:         { paddingHorizontal: 13, paddingVertical: 6, borderRadius: 7 },
+  viewBtnActive:   { backgroundColor: C.surface, shadowColor: '#000', shadowOpacity: 0.07, shadowOffset: { width: 0, height: 1 }, shadowRadius: 3, elevation: 1 },
+  viewBtnText:     { fontSize: 13, fontWeight: '600', color: C.textLight },
+  viewBtnTextActive:{ color: C.text },
+
+  // Calendar grid card
+  gridCard: {
+    backgroundColor: C.surface,
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginBottom: 14,
+    shadowColor: '#1C2133',
+    shadowOpacity: 0.07,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+
+  // Day view top bar
+  dayTopBar:     { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' },
+  todayBadge:    { backgroundColor: C.accent, borderRadius: 7, paddingHorizontal: 10, paddingVertical: 4 },
+  todayBadgeText:{ fontSize: 12, fontWeight: '700', color: '#fff' },
+  addBtn:        { backgroundColor: 'rgba(74,127,212,0.09)', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: 'rgba(74,127,212,0.2)' },
+  addBtnText:    { fontSize: 13, fontWeight: '700', color: '#4A7FD4' },
+
+  // Empty state
+  emptyState:    { backgroundColor: C.surface, borderRadius: 14, padding: 48, alignItems: 'center', gap: 10 },
+  emptyIcon:     { fontSize: 32 },
+  emptyText:     { fontSize: 15, color: C.textFaint, fontWeight: '500' },
+
+  // Detail panel (selected appointment)
+  detailPanel: {
+    flexDirection: 'row', alignItems: 'flex-start',
+    backgroundColor: C.surface,
+    borderRadius: 12, padding: 16, marginBottom: 14,
+    gap: 14,
+    shadowColor: '#000', shadowOpacity: 0.06, shadowOffset: { width: 0, height: 2 }, shadowRadius: 6, elevation: 2,
+    borderWidth: 1, borderColor: C.border,
+  },
+  detailAccent:  { width: 4, alignSelf: 'stretch', borderRadius: 2, minHeight: 48 },
+  detailBody:    { flex: 1, gap: 3 },
+  detailProgram: { fontSize: 13, fontWeight: '700', color: C.textLight },
+  detailName:    { fontSize: 17, fontWeight: '800', color: C.text },
+  detailMeta:    { fontSize: 13, color: C.textLight },
+  detailClose:   { padding: 4 },
+  detailCloseText:{ fontSize: 17, color: C.textFaint, fontWeight: '700' },
+
+  // Participant list (group)
+  participantList: { gap: 6, marginTop: 10 },
+  participantRow:  { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  participantDot:  { width: 7, height: 7, borderRadius: 4, flexShrink: 0 },
+  participantName: { flex: 1, fontSize: 13, fontWeight: '600', color: C.textMid },
+
+  miniStornBtn:     { backgroundColor: C.danger, borderRadius: 6, paddingHorizontal: 9, paddingVertical: 4 },
   miniStornBtnText: { fontSize: 11, fontWeight: '700', color: '#fff' },
-  apptActions: { backgroundColor: '#FEF2F2', borderRadius: 8, padding: 10, marginTop: 3, gap: 6 },
-  apptActionInfo: { fontSize: 12, color: '#374151', fontWeight: '600' },
-  apptActionError: { fontSize: 12, color: '#DC2626', fontWeight: '600' },
-  stornBtn: { backgroundColor: '#EF4444', borderRadius: 7, paddingVertical: 7, alignItems: 'center' },
-  stornBtnText: { fontSize: 12, fontWeight: '700', color: '#fff' },
 
-  // Tagesansicht
-  dayViewHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' },
-  dayViewTitle: { fontSize: 20, fontWeight: '800', color: '#111827', flex: 1 },
-  todayBadge: { backgroundColor: '#5A8C6A', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  todayBadgeText: { fontSize: 12, fontWeight: '700', color: '#fff' },
-  addDayViewBtn: { backgroundColor: 'rgba(74,127,212,0.1)', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: 'rgba(74,127,212,0.2)' },
-  addDayViewBtnText: { fontSize: 13, fontWeight: '700', color: '#4A7FD4' },
-  emptyDayView: { backgroundColor: '#fff', borderRadius: 14, padding: 40, alignItems: 'center' },
-  emptyDayViewText: { fontSize: 14, color: '#9CA3AF' },
-  slotBlock: { flexDirection: 'row', gap: 12, marginBottom: 8, alignItems: 'flex-start' },
-  slotTimeCol: { width: 50, paddingTop: 14, alignItems: 'flex-end' },
-  slotTime: { fontSize: 12, fontWeight: '700', color: '#9CA3AF' },
-  slotAppts: { flex: 1, gap: 6 },
-  dayApptCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, borderLeftWidth: 4, flexDirection: 'row', alignItems: 'center', gap: 12, shadowColor: '#000', shadowOpacity: 0.04, shadowOffset: { width: 0, height: 1 }, shadowRadius: 4, elevation: 1 },
-  dayApptCardSelected: { backgroundColor: '#EEF8F2' },
-  dayApptColorBar: { width: 4, height: 40, borderRadius: 2 },
-  dayApptInfo: { flex: 1 },
-  dayApptProg: { fontSize: 14, fontWeight: '800', marginBottom: 2 },
-  dayApptCustomer: { fontSize: 13, color: '#374151', fontWeight: '600' },
-  dayApptTrainer: { fontSize: 12, color: '#6B7280', marginTop: 2 },
-  dayApptTime: { fontSize: 13, fontWeight: '700', color: '#6B7280' },
+  stornBtn:     { backgroundColor: C.danger, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 16, alignSelf: 'flex-start', marginTop: 8 },
+  stornBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
 
-  // Buchungsformular
-  bookingPanel: { backgroundColor: '#fff', borderRadius: 14, padding: 20, marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 6, elevation: 2 },
-  bookingPanelTitle: { fontSize: 16, fontWeight: '800', color: '#111827', marginBottom: 16 },
-  successBox: { backgroundColor: '#F0FDF4', borderRadius: 8, padding: 12, marginBottom: 12 },
-  successText: { fontSize: 13, fontWeight: '700', color: '#15803D' },
-  fieldLabel: { fontSize: 12, fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, marginTop: 14 },
-  input: { backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: '#111827', outlineWidth: 0 } as any,
-  customerSuggestion: { backgroundColor: '#F9FAFB', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginTop: 4 },
-  customerSuggestionText: { fontSize: 14, color: '#111827', fontWeight: '600' },
-  selectedCustomerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(90,140,106,0.08)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10 },
-  selectedCustomerName: { fontSize: 14, fontWeight: '700', color: '#111827' },
-  clearCustomer: { fontSize: 16, color: '#9CA3AF', fontWeight: '700' },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
-  chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, borderWidth: 1.5, borderColor: '#E5E7EB', backgroundColor: '#fff' },
-  chipActive: { borderColor: '#5A8C6A', backgroundColor: 'rgba(90,140,106,0.1)' },
-  chipText: { fontSize: 13, color: '#6B7280', fontWeight: '600' },
-  chipTextActive: { color: '#5A8C6A' },
-  bookingError: { fontSize: 13, color: '#EF4444', fontWeight: '600', marginTop: 10 },
-  bookBtn: { backgroundColor: '#5A8C6A', borderRadius: 10, paddingVertical: 13, alignItems: 'center', marginTop: 16 },
+  errorText:    { fontSize: 12, color: C.danger, fontWeight: '600', marginTop: 6 },
+
+  // ── Booking panel ──────────────────────────────────────────────────────────
+  bookPanel: {
+    backgroundColor: C.surface, borderRadius: 14, padding: 22, marginBottom: 16,
+    shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 8, elevation: 2,
+    borderWidth: 1, borderColor: C.border,
+  },
+  bookPanelHead:      { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 18 },
+  bookPanelTitle:     { fontSize: 17, fontWeight: '800', color: C.text },
+  bookPanelDate:      { fontSize: 13, color: C.textLight, marginTop: 2 },
+  bookPanelClose:     { padding: 4 },
+  bookPanelCloseText: { fontSize: 17, color: C.textFaint, fontWeight: '700' },
+
+  successBanner: { backgroundColor: C.successBg, borderRadius: 8, padding: 12, marginBottom: 14 },
+  successBannerText: { fontSize: 13, fontWeight: '700', color: C.successText },
+
+  fieldLabel: { fontSize: 11, fontWeight: '700', color: C.textFaint, textTransform: 'uppercase', letterSpacing: 0.7, marginBottom: 8 },
+
+  // Customer search
+  selectedCustomer: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: C.accentLight, borderRadius: 9,
+    paddingHorizontal: 12, paddingVertical: 10,
+  },
+  selectedCustomerAvatar: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  selectedCustomerInitial:{ fontSize: 13, fontWeight: '800', color: C.accent },
+  selectedCustomerName:   { flex: 1, fontSize: 14, fontWeight: '700', color: C.text },
+  selectedCustomerNum:    { fontSize: 12, color: C.textLight },
+  clearBtn:               { fontSize: 15, color: C.textFaint, fontWeight: '700', padding: 2 },
+  input: {
+    backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 9,
+    paddingHorizontal: 13, paddingVertical: 10, fontSize: 14, color: C.text,
+    outlineWidth: 0,
+  } as any,
+  suggestion: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: C.bg, borderRadius: 8,
+    paddingHorizontal: 13, paddingVertical: 10, marginTop: 4,
+  },
+  suggestionName: { flex: 1, fontSize: 14, color: C.text, fontWeight: '600' },
+  suggestionNum:  { fontSize: 12, color: C.textLight },
+
+  // Program chips
+  programGrid:      { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  programChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9,
+    borderWidth: 1.5, backgroundColor: C.surface,
+  },
+  programChipEmoji: { fontSize: 14 },
+  programChipText:  { fontSize: 12, fontWeight: '700', color: C.textMid },
+
+  // Time / trainer chips
+  bookRow:  { flexDirection: 'row', gap: 20, marginTop: 16, flexWrap: 'wrap' },
+  chipRow:  { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 2 },
+  chip:     { paddingHorizontal: 11, paddingVertical: 6, borderRadius: 8, borderWidth: 1.5, borderColor: C.border, backgroundColor: C.surface },
+  chipActive:    { borderColor: C.accent, backgroundColor: C.accentLight },
+  chipText:      { fontSize: 12, fontWeight: '600', color: C.textLight },
+  chipTextActive:{ color: C.accent },
+
+  bookActions: { marginTop: 18 },
+  bookBtn: {
+    backgroundColor: C.accent, borderRadius: 10,
+    paddingVertical: 13, alignItems: 'center',
+  },
   bookBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
-  cancelPanelBtn: { backgroundColor: '#F3F4F6', borderRadius: 10, paddingVertical: 13, paddingHorizontal: 16, alignItems: 'center', marginTop: 16 },
-  cancelPanelBtnText: { fontSize: 14, fontWeight: '600', color: '#6B7280' },
-  birthYearDisplay: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(74,127,212,0.08)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 4 },
-  birthYearText: { fontSize: 15, fontWeight: '700', color: '#4A7FD4' },
-  birthYearHint: { fontSize: 12, color: '#9CA3AF' },
-  birthYearWarning: { backgroundColor: '#FEF3C7', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 4 },
-  birthYearWarningText: { fontSize: 13, color: '#92400E' },
 });
 
-const TIME_COL_W = 90;
+// ─── Styles: Day grid ─────────────────────────────────────────────────────────
+const dg = StyleSheet.create({
+  row:       { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: C.borderLight, minHeight: 60 },
+  rowAlt:    { backgroundColor: '#FAFBFE' },
+  headRow:   { backgroundColor: C.navy, borderBottomWidth: 0, minHeight: 52 },
+  timeCell:  { justifyContent: 'center', alignItems: 'center', paddingVertical: 10, borderRightWidth: 1, borderRightColor: C.border },
+  trainerCell:{ justifyContent: 'center', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#2D3548', gap: 5 },
+  headLabel: { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 0.5 },
+  trainerName:{ fontSize: 13, fontWeight: '700', color: '#fff', textAlign: 'center' },
+  specialtyPill:{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5 },
+  specialtyText:{ fontSize: 10, fontWeight: '700', color: '#fff' },
+  timeText:  { fontSize: 13, fontWeight: '600', color: C.textLight },
+  cell:      { paddingHorizontal: 5, paddingVertical: 5, gap: 4, borderRightWidth: 1, borderRightColor: C.borderLight, justifyContent: 'center' },
+  apptTag: {
+    borderLeftWidth: 3, borderRadius: 6,
+    paddingHorizontal: 8, paddingVertical: 5,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+  },
+  apptTagEmoji:{ fontSize: 11 },
+  apptTagText: { fontSize: 12, fontWeight: '700', flex: 1 },
+});
 
-const gStyles = StyleSheet.create({
-  row: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#E5E9EF', minHeight: 64 },
-  rowAlt: { backgroundColor: '#F8FAFB' },
-  headerRow: { backgroundColor: '#1C2133', borderBottomWidth: 0, minHeight: 52 },
-  timeCol: { width: TIME_COL_W, justifyContent: 'center', alignItems: 'center', paddingVertical: 10, borderRightWidth: 1, borderRightColor: '#E5E7EB' },
-  timeText: { fontSize: 14, fontWeight: '700', color: '#6B7280' },
-  headerText: { fontSize: 13, fontWeight: '700', color: '#fff', textAlign: 'center' },
-  trainerCol: { justifyContent: 'center', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: '#2D3548', gap: 5 },
-  specialtyBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  specialtyText: { fontSize: 11, fontWeight: '700', color: '#fff' },
-  cell: { paddingHorizontal: 6, paddingVertical: 6, gap: 4, borderRightWidth: 1, borderRightColor: '#E5E9EF', justifyContent: 'center' },
-  tag: { borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5 },
-  tagSelected: { borderWidth: 2, borderColor: '#111827', opacity: 0.85 },
-  tagText: { fontSize: 13, fontWeight: '700', color: '#fff' },
-  selPanel: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, padding: 16, marginTop: 12, gap: 14, shadowColor: '#000', shadowOpacity: 0.06, shadowOffset: { width: 0, height: 2 }, shadowRadius: 6, elevation: 2 },
-  selBar: { width: 5, height: 48, borderRadius: 3, flexShrink: 0 },
-  selInfo: { flex: 1, gap: 4 },
-  selName: { fontSize: 16, fontWeight: '800', color: '#111827' },
-  selSub: { fontSize: 14, color: '#6B7280' },
-  stornBtn: { backgroundColor: '#EF4444', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 16, alignSelf: 'flex-start', marginTop: 6 },
-  stornBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
-  selClose: { padding: 6 },
-  selCloseText: { fontSize: 18, color: '#9CA3AF', fontWeight: '700' },
+// ─── Styles: Week grid ────────────────────────────────────────────────────────
+const wg = StyleSheet.create({
+  // Day header row (dark navy)
+  headRow: {
+    flexDirection: 'row',
+    backgroundColor: C.navy,
+    borderBottomWidth: 2, borderBottomColor: C.navyMid,
+  },
+  dayHead: {
+    alignItems: 'center', paddingVertical: 12, paddingHorizontal: 4, gap: 3,
+    borderRightWidth: 1, borderRightColor: '#2A3147',
+  },
+  dayHeadToday:   { backgroundColor: C.accent },
+  dayHeadWeekend: { backgroundColor: 'rgba(0,0,0,0.18)' },
+  dayName: {
+    fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.55)',
+    textTransform: 'uppercase', letterSpacing: 0.8,
+  },
+  dayNameToday: { color: 'rgba(255,255,255,0.85)' },
+  dayNum:       { fontSize: 20, fontWeight: '800', color: '#fff' },
+  dayNumToday:  { color: '#fff' },
+  faded:        { opacity: 0.4 },
+
+  // Appointment count badge
+  countBadge: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 10, paddingHorizontal: 7, paddingVertical: 1, marginTop: 2,
+  },
+  countBadgeToday: { backgroundColor: 'rgba(255,255,255,0.25)' },
+  countText:       { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.8)' },
+  countTextToday:  { color: '#fff' },
+
+  // Add button in day header
+  addBtn: {
+    width: 20, height: 20, borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center', justifyContent: 'center', marginTop: 3,
+  },
+  addBtnToday:     { backgroundColor: 'rgba(255,255,255,0.25)' },
+  addBtnText:      { fontSize: 13, fontWeight: '800', color: 'rgba(255,255,255,0.7)', lineHeight: 16 },
+  addBtnTextToday: { color: '#fff' },
+
+  // Slot rows
+  slotRow:    { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: C.borderLight, minHeight: 96 },
+  slotRowAlt: { backgroundColor: '#FAFBFE' },
+
+  // Time column cell
+  timeCell: {
+    justifyContent: 'center', alignItems: 'center',
+    paddingVertical: 8, borderRightWidth: 1, borderRightColor: C.border,
+  },
+  timeText: { fontSize: 12, fontWeight: '600', color: C.textFaint },
+
+  // Day cells
+  cell: {
+    paddingHorizontal: 5, paddingVertical: 6, gap: 5,
+    borderRightWidth: 1, borderRightColor: C.borderLight,
+    justifyContent: 'flex-start',
+  },
+  cellToday:   { backgroundColor: C.todayCol },
+  cellWeekend: { backgroundColor: C.weekendBg },
+  cellPast:    { opacity: C.pastOpacity },
+
+  // Appointment block
+  apptBlock: {
+    borderLeftWidth: 3, borderRadius: 8,
+    paddingHorizontal: 10, paddingVertical: 9,
+    gap: 3, alignSelf: 'stretch', minWidth: 0,
+  },
+  apptBlockTop: { flexDirection: 'row', alignItems: 'center', gap: 5, minWidth: 0 },
+  apptEmoji:    { fontSize: 13, flexShrink: 0 },
+  apptProg:     { fontSize: 12, fontWeight: '800', flexShrink: 1, minWidth: 0 },
+  apptMeta:     { fontSize: 12, fontWeight: '600', color: C.textMid, flexShrink: 1, minWidth: 0 },
+  apptMetaSel:  { color: 'rgba(255,255,255,0.85)' },
+  apptTrainer:  { fontSize: 11, color: C.textFaint, flexShrink: 1, minWidth: 0 },
+  apptTrainerSel:{ color: 'rgba(255,255,255,0.65)' },
 });
