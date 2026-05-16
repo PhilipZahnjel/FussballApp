@@ -382,10 +382,7 @@ export function TerminkalenderScreen({
     const isPast = dayDate < todayStr;
     const canBook = !isPast && isBookableDay(dayDate);
 
-    const unassignedDayAppts = dayAppts.filter(a => !a.trainer_id);
-    const trainerCols = trainers as TrainerProfile[];
-    const pseudoUnassigned: TrainerProfile = { id: '__unassigned__', full_name: 'Ohne Trainer', trainer_specialty: null } as any;
-    const cols = unassignedDayAppts.length > 0 ? [...trainerCols, pseudoUnassigned] : trainerCols;
+    const cols = trainers as TrainerProfile[];
     const numCols = cols.length || 1;
     const availW  = winW - sidebarW - 32 - TIME_COL_W;
     const colW    = Math.max(150, Math.floor(availW / numCols));
@@ -458,9 +455,7 @@ export function TerminkalenderScreen({
                         <Text style={dg.timeText}>{slot}</Text>
                       </View>
                       {cols.map(t => {
-                        const cellAppts = t.id === '__unassigned__'
-                          ? dayAppts.filter(a => !a.trainer_id && a.time === slot)
-                          : dayAppts.filter(a => a.trainer_id === t.id && a.time === slot);
+                        const cellAppts = dayAppts.filter(a => a.trainer_id === t.id && a.time === slot);
                         return (
                           <View key={t.id} style={[dg.cell, { width: colW }]}>
                             {cellAppts.map(a => {
