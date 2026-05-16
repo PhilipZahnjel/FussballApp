@@ -101,7 +101,7 @@ export function KundenDetailScreen({
   const [bookDate, setBookDate] = useState('');
   const [bookProgram, setBookProgram] = useState<string>(PROGRAMS[0].id);
   const [bookTime, setBookTime] = useState(SLOTS[0]);
-  const [bookTrainerId, setBookTrainerId] = useState<string | null>(null);
+  const [bookTrainerId, setBookTrainerId] = useState<string | null>(trainers[0]?.id ?? null);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
 
@@ -141,13 +141,14 @@ export function KundenDetailScreen({
     if (!bookDate.match(/^\d{4}-\d{2}-\d{2}$/)) { setBookingError('Format: YYYY-MM-DD'); return; }
     if (isNaN(new Date(bookDate).getTime())) { setBookingError('Ungültiges Datum.'); return; }
     if (bookDate < ts) { setBookingError('Datum darf nicht in der Vergangenheit liegen.'); return; }
+    if (!bookTrainerId) { setBookingError('Bitte einen Trainer auswählen.'); return; }
     const confirmedOnDay = appointments.filter(a => a.date === bookDate && a.status === 'confirmed');
     if (confirmedOnDay.length >= 2) { setBookingError('Bereits zwei Termine an diesem Tag.'); return; }
     setBookingLoading(true);
     const { error } = await onAddAppointment(customer.id, bookDate, bookTime, bookProgram, bookTrainerId);
     setBookingLoading(false);
     if (error) setBookingError(error.message ?? 'Buchung fehlgeschlagen.');
-    else { setShowBooking(false); setBookDate(''); setBookingError(null); setBookTrainerId(null); }
+    else { setShowBooking(false); setBookDate(''); setBookingError(null); setBookTrainerId(trainers[0]?.id ?? null); }
   };
 
   const doSetLevel = async (level: PlayerLevel | null) => {
@@ -414,7 +415,14 @@ export function KundenDetailScreen({
       <View style={styles.card}>
         <View style={styles.cardTitleRow}>
           <Text style={styles.cardTitle}>Termine</Text>
-          <TouchableOpacity style={styles.addBtn} onPress={() => setShowBooking(v => !v)} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.addBtn}
+            onPress={() => {
+              if (!showBooking) setBookTrainerId(trainers[0]?.id ?? null);
+              setShowBooking(v => !v);
+            }}
+            activeOpacity={0.7}
+          >
             <Text style={styles.addBtnText}>{showBooking ? '✕ Abbrechen' : '+ Termin buchen'}</Text>
           </TouchableOpacity>
         </View>
@@ -458,29 +466,24 @@ export function KundenDetailScreen({
               })}
             </View>
 
-            {trainers.length > 0 && (
-              <>
-                <Text style={styles.fieldLabel}>Trainer (optional)</Text>
-                <View style={styles.slotRow}>
+            <Text style={styles.fieldLabel}>Trainer *</Text>
+            {trainers.length === 0 ? (
+              <View style={styles.birthYearWarning}>
+                <Text style={styles.birthYearWarningText}>⚠ Kein Trainer vorhanden. Bitte zuerst einen Trainer anlegen.</Text>
+              </View>
+            ) : (
+              <View style={styles.slotRow}>
+                {trainers.map(t => (
                   <TouchableOpacity
-                    style={[styles.slotChip, bookTrainerId === null && styles.slotChipActive]}
-                    onPress={() => setBookTrainerId(null)}
+                    key={t.id}
+                    style={[styles.slotChip, bookTrainerId === t.id && styles.slotChipActive]}
+                    onPress={() => setBookTrainerId(t.id)}
                     activeOpacity={0.7}
                   >
-                    <Text style={[styles.slotChipText, bookTrainerId === null && styles.slotChipTextActive]}>Kein Trainer</Text>
+                    <Text style={[styles.slotChipText, bookTrainerId === t.id && styles.slotChipTextActive]}>{t.full_name}</Text>
                   </TouchableOpacity>
-                  {trainers.map(t => (
-                    <TouchableOpacity
-                      key={t.id}
-                      style={[styles.slotChip, bookTrainerId === t.id && styles.slotChipActive]}
-                      onPress={() => setBookTrainerId(t.id)}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={[styles.slotChipText, bookTrainerId === t.id && styles.slotChipTextActive]}>{t.full_name}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </>
+                ))}
+              </View>
             )}
 
             {PROGRAM_CATEGORY[bookProgram as ProgramId] === 'gruppe' && !birthYear && (
@@ -490,7 +493,12 @@ export function KundenDetailScreen({
             )}
 
             {bookingError && <Text style={styles.fieldError}>{bookingError}</Text>}
-            <TouchableOpacity style={[styles.saveBtn, bookingLoading && { opacity: 0.6 }]} onPress={doBook} activeOpacity={0.7} disabled={bookingLoading}>
+            <TouchableOpacity
+              style={[styles.saveBtn, (bookingLoading || trainers.length === 0) && { opacity: 0.5 }]}
+              onPress={doBook}
+              activeOpacity={0.7}
+              disabled={bookingLoading || trainers.length === 0}
+            >
               <Text style={styles.saveBtnText}>{bookingLoading ? 'Buchen...' : 'Termin buchen'}</Text>
             </TouchableOpacity>
           </View>
