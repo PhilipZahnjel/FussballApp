@@ -228,6 +228,20 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
     const prevMonth = () => { const d = new Date(calY, calM - 1); setCalM(d.getMonth()); setCalY(d.getFullYear()); };
     const nextMonth = () => { const d = new Date(calY, calM + 1); setCalM(d.getMonth()); setCalY(d.getFullYear()); };
 
+    // 4-Wochen-Limit: max. 28 Tage nach Token-Ausstellung
+    const activeToken = effectiveCategory === 'individual' ? tokenIndividual
+      : effectiveCategory === 'gruppe' ? tokenGruppe
+      : (tokenIndividual ?? tokenGruppe);
+    const tokenMaxDate = activeToken ? (() => {
+      const d = new Date(activeToken.issued_at);
+      d.setDate(d.getDate() + 28);
+      return d;
+    })() : null;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const tokenMaxStr = tokenMaxDate
+      ? `${tokenMaxDate.getFullYear()}-${pad(tokenMaxDate.getMonth() + 1)}-${pad(tokenMaxDate.getDate())}`
+      : null;
+
     return (
       <FadeUp>
         <BackBtn onPress={() => setStep('program')} />
@@ -258,10 +272,11 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
                 const isPast = ds < ts;
                 const isWeekend = dow === 0 || dow === 6;
                 const isHoliday = germanHolidays(calY).has(ds);
+                const isAfterDeadline = tokenMaxStr ? ds > tokenMaxStr : false;
                 const isUserBooked = myAppointments.some(a => a.date === ds && a.status === 'confirmed');
                 const isSel = selDate === ds;
                 const isToday = ds === ts;
-                const disabled = isPast || isWeekend || isHoliday;
+                const disabled = isPast || isWeekend || isHoliday || isAfterDeadline;
                 return (
                   <TouchableOpacity
                     key={`day-${i}`}
@@ -280,6 +295,13 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
             </View>
           </View>
         </Card>
+        {tokenMaxDate && (
+          <View style={styles.tokenDeadlineHint}>
+            <Text style={styles.tokenDeadlineText}>
+              ⏳ Nachholtermin muss bis {tokenMaxDate.toLocaleDateString('de-DE')} gebucht werden
+            </Text>
+          </View>
+        )}
       </FadeUp>
     );
   }
@@ -603,5 +625,11 @@ const styles = StyleSheet.create({
   emailNote: { paddingHorizontal: 20, paddingVertical: 14, marginVertical: 32, alignSelf: 'stretch' },
   emailNoteText: { fontSize: 15, color: C.textGlass, textAlign: 'center' },
   bookedDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#000', marginTop: 2 },
+  tokenDeadlineHint: {
+    marginTop: 10, paddingHorizontal: 14, paddingVertical: 10,
+    backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 10,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+  },
+  tokenDeadlineText: { fontSize: 13, color: 'rgba(255,255,255,0.75)', fontWeight: '600', textAlign: 'center' },
   errorText: { fontSize: 14, color: '#FF6B6B', textAlign: 'center', marginBottom: 12, fontWeight: '600' },
 });

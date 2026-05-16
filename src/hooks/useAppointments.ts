@@ -92,6 +92,13 @@ export function useAppointments(profile: Profile | null) {
       return { error: { message: 'Nachholtermine können nur mit einem gültigen Stornierungstoken gebucht werden.' } };
     }
 
+    // 4-Wochen-Frist: Buchungsdatum darf max. 28 Tage nach Token-Ausstellung liegen
+    const maxDate = new Date(activeToken.issued_at);
+    maxDate.setDate(maxDate.getDate() + 28);
+    if (new Date(date + 'T12:00:00') > maxDate) {
+      return { error: { message: `Nachholtermin muss bis ${maxDate.toLocaleDateString('de-DE')} gebucht werden.` } };
+    }
+
     if (profile) {
       const permCheck = checkProgramPermission(profile, program as ProgramId);
       if (!permCheck.allowed) return { error: { message: permCheck.reason! } };
