@@ -107,6 +107,7 @@ export function useAppointments(profile: Profile | null) {
     const dailyConflict = checkDailyConflict(
       myAppointments.filter(a => a.status === 'confirmed'),
       date,
+      time,
     );
     if (!dailyConflict.allowed) return { error: { message: dailyConflict.reason! } };
 

@@ -125,6 +125,9 @@ export function useAdminData() {
     if (conflicts && conflicts.length >= 2) {
       return { error: { message: 'Der Kunde hat an diesem Tag bereits zwei Termine.' } };
     }
+    if (conflicts && conflicts.some((c: { time: string }) => c.time === time)) {
+      return { error: { message: 'Der Kunde hat an diesem Tag zur gleichen Uhrzeit bereits einen Termin.' } };
+    }
 
     // Programm-Berechtigung des Kunden prüfen
     const { data: custProfile } = await supabase

@@ -32,7 +32,7 @@ export const AppointmentService = {
   checkDailyConflict: (userId: string, date: string) =>
     supabase
       .from('appointments')
-      .select('id')
+      .select('id, time')
       .eq('user_id', userId)
       .eq('date', date)
       .eq('status', 'confirmed'),
