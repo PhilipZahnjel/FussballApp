@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 
-const SELECT = 'id, date, time, status, program, user_id, trainer_id, session_birth_year, session_level, created_at';
+const SELECT = 'id, date, time, status, program, user_id, trainer_id, session_birth_year, session_level, attended, created_at';
 
 export type AppointmentInsert = {
   user_id: string;
@@ -25,6 +25,9 @@ export const AppointmentService = {
 
   updateStatus: (id: string, status: 'confirmed' | 'cancelled') =>
     supabase.from('appointments').update({ status }).eq('id', id),
+
+  updateAttended: (id: string, attended: boolean | null) =>
+    supabase.from('appointments').update({ attended }).eq('id', id),
 
   checkDailyConflict: (userId: string, date: string) =>
     supabase

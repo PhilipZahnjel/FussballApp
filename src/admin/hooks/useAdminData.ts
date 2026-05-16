@@ -35,6 +35,7 @@ export type AdminAppointment = {
   trainer_id?: string | null;
   session_level?: string | null;
   session_birth_year?: number | null;
+  attended?: boolean | null;
 };
 
 export type TrainerProfile = {
@@ -337,12 +338,21 @@ export function useAdminData() {
     }
   };
 
+  const markAttended = async (apptId: string, attended: boolean | null) => {
+    const { error } = await AppointmentService.updateAttended(apptId, attended);
+    if (!error) {
+      setAllAppointments(prev => prev.map(a => a.id === apptId ? { ...a, attended } : a));
+    }
+    return { error };
+  };
+
   return {
     customers, allAppointments, trainers, trainerSchedules, activeTokensByCustomer, loading, loadError,
     cancelAppointment, addAppointmentForCustomer,
     createCustomer, deleteCustomer,
     saveCustomerLevel, saveBookingPermissions, saveCustomerProfile,
     toggleScheduleSlot, createTrainer, updateTrainer, deleteTrainer,
+    markAttended,
     reload: load,
   };
 }

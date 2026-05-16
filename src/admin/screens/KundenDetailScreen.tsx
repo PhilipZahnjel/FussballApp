@@ -40,6 +40,7 @@ interface Props {
   onSaveLevel: (customerId: string, level: PlayerLevel | null) => Promise<{ error: any }>;
   onSaveBookingPermissions: (customerId: string, permissions: Partial<BookingPermissions>) => Promise<{ error: any }>;
   onSaveProfile: (customerId: string, fields: Partial<Pick<CustomerProfile, 'player_type' | 'parent_name' | 'location' | 'birth_date' | 'phone' | 'address'>>) => Promise<{ error: any }>;
+  onMarkAttended: (apptId: string, attended: boolean | null) => Promise<{ error: any }>;
   onDeleteCustomer: (id: string) => Promise<{ error: string | null }>;
 }
 
@@ -89,7 +90,7 @@ function ApptRow({ appt, onCancel }: { appt: AdminAppointment; onCancel?: (id: s
 export function KundenDetailScreen({
   customer, appointments, trainers, tokenCounts,
   onBack, onCancelAppointment, onAddAppointment,
-  onSaveLevel, onSaveBookingPermissions, onSaveProfile, onDeleteCustomer,
+  onSaveLevel, onSaveBookingPermissions, onSaveProfile, onMarkAttended, onDeleteCustomer,
 }: Props) {
   const ts = todayStr();
 
@@ -141,7 +142,7 @@ export function KundenDetailScreen({
     if (isNaN(new Date(bookDate).getTime())) { setBookingError('Ungültiges Datum.'); return; }
     if (bookDate < ts) { setBookingError('Datum darf nicht in der Vergangenheit liegen.'); return; }
     const confirmedOnDay = appointments.filter(a => a.date === bookDate && a.status === 'confirmed');
-    if (confirmedOnDay.length > 0) { setBookingError('Bereits ein Termin an diesem Tag.'); return; }
+    if (confirmedOnDay.length >= 2) { setBookingError('Bereits zwei Termine an diesem Tag.'); return; }
     setBookingLoading(true);
     const { error } = await onAddAppointment(customer.id, bookDate, bookTime, bookProgram, bookTrainerId);
     setBookingLoading(false);
@@ -362,6 +363,53 @@ export function KundenDetailScreen({
         </View>
       </View>
 
+      {/* Anwesenheit – Individualtraining */}
+      {(() => {
+        const indAppts = appointments
+          .filter(a =>
+            a.status === 'confirmed' &&
+            a.date < ts &&
+            (a.program === 'individual' || a.program === 'torhueter_individual'),
+          )
+          .sort((a, b) => b.date.localeCompare(a.date));
+        if (indAppts.length === 0) return null;
+        const attendedCount = indAppts.filter(a => a.attended === true).length;
+        return (
+          <SectionCard title="Anwesenheit – Individualtraining">
+            <Text style={styles.attendanceCounter}>
+              {attendedCount} von {indAppts.length} Terminen wahrgenommen
+            </Text>
+            {indAppts.map(a => {
+              const prog = PROGRAMS.find(p => p.id === a.program);
+              return (
+                <View key={a.id} style={styles.attendanceRow}>
+                  <View style={styles.attendanceInfo}>
+                    <Text style={styles.attendanceProg}>{prog?.name ?? a.program}</Text>
+                    <Text style={styles.attendanceDate}>{fmtDate(a.date)} · {a.time} Uhr</Text>
+                  </View>
+                  <View style={styles.attendanceBtns}>
+                    <TouchableOpacity
+                      style={[styles.attendanceBtn, a.attended === true && styles.attendanceBtnPresent]}
+                      onPress={() => onMarkAttended(a.id, a.attended === true ? null : true)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.attendanceBtnText, a.attended === true && styles.attendanceBtnTextPresent]}>Ja</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.attendanceBtn, a.attended === false && styles.attendanceBtnAbsent]}
+                      onPress={() => onMarkAttended(a.id, a.attended === false ? null : false)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.attendanceBtnText, a.attended === false && styles.attendanceBtnTextAbsent]}>No-Show</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              );
+            })}
+          </SectionCard>
+        );
+      })()}
+
       {/* Termine */}
       <View style={styles.card}>
         <View style={styles.cardTitleRow}>
@@ -556,4 +604,16 @@ const styles = StyleSheet.create({
   birthYearHint: { fontSize: 12, color: '#9CA3AF' },
   birthYearWarning: { backgroundColor: '#FEF3C7', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 4 },
   birthYearWarningText: { fontSize: 13, color: '#92400E' },
+  attendanceCounter: { fontSize: 13, fontWeight: '700', color: '#4A7FD4', marginBottom: 12, backgroundColor: 'rgba(74,127,212,0.08)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
+  attendanceRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  attendanceInfo: { flex: 1 },
+  attendanceProg: { fontSize: 13, fontWeight: '700', color: '#374151' },
+  attendanceDate: { fontSize: 12, color: '#6B7280', marginTop: 2 },
+  attendanceBtns: { flexDirection: 'row', gap: 8 },
+  attendanceBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1.5, borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' },
+  attendanceBtnPresent: { borderColor: '#22C55E', backgroundColor: 'rgba(34,197,94,0.1)' },
+  attendanceBtnAbsent: { borderColor: '#EF4444', backgroundColor: 'rgba(239,68,68,0.1)' },
+  attendanceBtnText: { fontSize: 12, fontWeight: '700', color: '#9CA3AF' },
+  attendanceBtnTextPresent: { color: '#16A34A' },
+  attendanceBtnTextAbsent: { color: '#EF4444' },
 });
