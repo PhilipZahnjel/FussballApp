@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, Linking } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { PROGRAMS } from '../constants/programs';
 
@@ -33,14 +33,22 @@ type TrainerProfile = {
   trainer_specialty: string | null;
 };
 
+type TrainerVideo = {
+  id: string;
+  title: string;
+  url: string;
+  description: string | null;
+};
+
 interface Props {
   onLogout: () => void;
 }
 
 export function TrainerApp({ onLogout }: Props) {
-  const [tab, setTab] = useState<'termine' | 'profil'>('termine');
+  const [tab, setTab] = useState<'termine' | 'videos' | 'profil'>('termine');
   const [appointments, setAppointments] = useState<TrainerAppointment[]>([]);
   const [profile, setProfile] = useState<TrainerProfile | null>(null);
+  const [videos, setVideos] = useState<TrainerVideo[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -48,7 +56,7 @@ export function TrainerApp({ onLogout }: Props) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [{ data: prof }, { data: appts }] = await Promise.all([
+      const [{ data: prof }, { data: appts }, { data: vids }] = await Promise.all([
         supabase.from('profiles').select('full_name, email, trainer_specialty').eq('id', user.id).single(),
         supabase.from('appointments')
           .select('id, date, time, status, program, user_id')
@@ -57,10 +65,15 @@ export function TrainerApp({ onLogout }: Props) {
           .gte('date', todayStr())
           .order('date')
           .order('time'),
+        supabase.from('trainer_videos')
+          .select('id, title, url, description')
+          .eq('trainer_id', user.id)
+          .order('created_at', { ascending: false }),
       ]);
 
       setProfile(prof as TrainerProfile ?? null);
       setAppointments((appts ?? []) as TrainerAppointment[]);
+      setVideos((vids ?? []) as TrainerVideo[]);
       setLoading(false);
     };
     load();
@@ -109,6 +122,10 @@ export function TrainerApp({ onLogout }: Props) {
               </ScrollView>
             )}
 
+            {tab === 'videos' && (
+              <VideosTab videos={videos} />
+            )}
+
             {tab === 'profil' && profile && (
               <ProfilTab profile={profile} />
             )}
@@ -123,6 +140,14 @@ export function TrainerApp({ onLogout }: Props) {
             >
               <Text style={[styles.navIcon, tab === 'termine' && styles.navIconActive]}>📅</Text>
               <Text style={[styles.navLabel, tab === 'termine' && styles.navLabelActive]}>Termine</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.navItem, tab === 'videos' && styles.navItemActive]}
+              onPress={() => setTab('videos')}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.navIcon, tab === 'videos' && styles.navIconActive]}>🎬</Text>
+              <Text style={[styles.navLabel, tab === 'videos' && styles.navLabelActive]}>Videos</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.navItem, tab === 'profil' && styles.navItemActive]}
@@ -150,6 +175,38 @@ function ApptCard({ appt }: { appt: TrainerAppointment }) {
         <Text style={styles.cardDate}>{fmtDate(appt.date)} · {appt.time} Uhr</Text>
       </View>
     </View>
+  );
+}
+
+function VideosTab({ videos }: { videos: TrainerVideo[] }) {
+  if (videos.length === 0) {
+    return (
+      <ScrollView contentContainerStyle={[styles.scrollContent, { alignItems: 'center', paddingTop: 60 }]}>
+        <Text style={{ fontSize: 48, marginBottom: 16 }}>🎬</Text>
+        <Text style={[styles.sectionTitle, { textAlign: 'center' }]}>Noch keine Videos vorhanden.</Text>
+        <Text style={[styles.empty, { textAlign: 'center' }]}>Der Admin kann Videos für dich hinterlegen.</Text>
+      </ScrollView>
+    );
+  }
+  return (
+    <ScrollView contentContainerStyle={styles.scrollContent}>
+      <Text style={styles.sectionTitle}>Meine Videos ({videos.length})</Text>
+      {videos.map(v => (
+        <View key={v.id} style={styles.videoCard}>
+          <View style={styles.videoCardBody}>
+            <Text style={styles.videoTitle}>{v.title}</Text>
+            {v.description ? <Text style={styles.videoDesc}>{v.description}</Text> : null}
+          </View>
+          <TouchableOpacity
+            style={styles.videoOpenBtn}
+            onPress={() => Linking.openURL(v.url)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.videoOpenBtnText}>Öffnen</Text>
+          </TouchableOpacity>
+        </View>
+      ))}
+    </ScrollView>
   );
 }
 
@@ -338,6 +395,14 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 13, color: '#EF4444', fontWeight: '600', marginTop: 10 },
   saveBtn: { backgroundColor: '#4A7FD4', borderRadius: 10, paddingVertical: 13, alignItems: 'center', marginTop: 18 },
   saveBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+
+  // Videos
+  videoCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 12, shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 6, elevation: 2 },
+  videoCardBody: { flex: 1, minWidth: 0 },
+  videoTitle: { fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 4 },
+  videoDesc: { fontSize: 13, color: '#6B7280' },
+  videoOpenBtn: { backgroundColor: 'rgba(74,127,212,0.1)', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8, flexShrink: 0 },
+  videoOpenBtnText: { fontSize: 13, fontWeight: '700', color: '#4A7FD4' },
 
   // Bottom Nav
   bottomNav: {

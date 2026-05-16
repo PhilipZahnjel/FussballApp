@@ -14,7 +14,7 @@ export type Appointment = {
 };
 
 export type Tab = 'home' | 'termine' | 'buchen' | 'infos' | 'profil';
-export type AdminTab = 'dashboard' | 'kunden' | 'kalender' | 'infos' | 'zeitplan';
+export type AdminTab = 'dashboard' | 'kunden' | 'kalender' | 'infos' | 'zeitplan' | 'videos';
 
 export type TrainerSpecialty = 'spieler' | 'torwart';
 
