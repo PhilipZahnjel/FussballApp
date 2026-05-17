@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, flexDirection: 'row', backgroundColor: '#EEF3FB' },
   sidebar: { width: 220, backgroundColor: '#152238', flexDirection: 'column' },
   sidebarTop: { padding: 24, paddingBottom: 28, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)', gap: 6 },
-  logoBadge: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#4A8FE8', alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  logoBadge: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#152238', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   logoBadgeText: { fontSize: 18, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
   logoTitle: { fontSize: 14, fontWeight: '700', color: '#fff', letterSpacing: -0.2 },
   logoSub: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.4)', letterSpacing: 1.2, textTransform: 'uppercase' },
