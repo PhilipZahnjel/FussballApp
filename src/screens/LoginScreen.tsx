@@ -4,14 +4,164 @@ import {
   Animated, Easing, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { C } from '../constants/colors';
+import { Colors } from '../constants/colors';
+import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
 
 interface Props {
   onLogin: () => void;
 }
 
+function getStyles(C: Colors) {
+  return StyleSheet.create({
+    flex: { flex: 1 },
+    scroll: {
+      flexGrow: 1,
+      paddingHorizontal: 24,
+    },
+    brand: {
+      alignItems: 'center',
+      marginBottom: 40,
+    },
+    logoBadge: {
+      width: 88,
+      height: 88,
+      borderRadius: 26,
+      backgroundColor: C.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 20,
+      shadowColor: C.accent,
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.28,
+      shadowRadius: 22,
+      elevation: 10,
+    },
+    badgeMonogram: { fontSize: 28, fontWeight: '900', color: '#fff', letterSpacing: 1 },
+    studioName: {
+      fontSize: 26,
+      fontWeight: '800',
+      color: C.text,
+      letterSpacing: -0.5,
+    },
+    studioCity: {
+      fontSize: 14,
+      color: C.textFaint,
+      marginTop: 5,
+      letterSpacing: 0.1,
+    },
+    formCard: {
+      backgroundColor: C.card,
+      borderRadius: 24,
+      padding: 28,
+      marginBottom: 16,
+      shadowColor: '#152238',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.10,
+      shadowRadius: 24,
+      elevation: 7,
+      borderWidth: 1,
+      borderColor: C.cardBorder,
+    },
+    formTitle: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: C.text,
+      marginBottom: 4,
+      letterSpacing: -0.3,
+    },
+    formSub: {
+      fontSize: 14,
+      color: C.textFaint,
+      marginBottom: 28,
+      lineHeight: 20,
+    },
+    fieldWrap: {
+      marginBottom: 18,
+    },
+    fieldLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: C.textMid,
+      marginBottom: 8,
+      letterSpacing: 0.02,
+    },
+    input: {
+      height: 52,
+      borderRadius: 14,
+      borderWidth: 1.5,
+      borderColor: C.cardBorder,
+      backgroundColor: C.accentBg,
+      color: C.text,
+      fontSize: 16,
+      paddingHorizontal: 16,
+    },
+    inputErr: {
+      borderColor: C.red,
+      backgroundColor: C.redBg,
+    },
+    errText: {
+      fontSize: 13,
+      color: C.red,
+      fontWeight: '600',
+      marginBottom: 16,
+    },
+    loginBtn: {
+      height: 56,
+      borderRadius: 16,
+      backgroundColor: C.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'row',
+      gap: 10,
+      shadowColor: C.accent,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.26,
+      shadowRadius: 14,
+      elevation: 7,
+    },
+    loginBtnLabel: {
+      color: '#fff',
+      fontSize: 17,
+      fontWeight: '800',
+      letterSpacing: 0.1,
+    },
+    loginBtnArrow: {
+      color: 'rgba(255,255,255,0.65)',
+      fontSize: 22,
+    },
+    forgotBtn: {
+      alignItems: 'center',
+      paddingVertical: 10,
+      marginBottom: 32,
+    },
+    forgotLabel: {
+      fontSize: 14,
+      color: C.textFaint,
+      fontWeight: '500',
+    },
+    decorRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    decorLine: {
+      flex: 1,
+      height: 1,
+      backgroundColor: C.cardBorder,
+    },
+    decorText: {
+      fontSize: 11,
+      color: C.textFaint,
+      fontWeight: '500',
+      letterSpacing: 0.3,
+    },
+  });
+}
+
 export function LoginScreen({ onLogin }: Props) {
+  const { C } = useTheme();
+  const styles = React.useMemo(() => getStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
@@ -128,148 +278,3 @@ export function LoginScreen({ onLogin }: Props) {
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  scroll: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-  },
-  brand: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  logoBadge: {
-    width: 88,
-    height: 88,
-    borderRadius: 26,
-    backgroundColor: C.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-    shadowColor: C.accent,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.28,
-    shadowRadius: 22,
-    elevation: 10,
-  },
-  badgeMonogram: { fontSize: 28, fontWeight: '900', color: '#fff', letterSpacing: 1 },
-  studioName: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: C.text,
-    letterSpacing: -0.5,
-  },
-  studioCity: {
-    fontSize: 14,
-    color: C.textFaint,
-    marginTop: 5,
-    letterSpacing: 0.1,
-  },
-  formCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 28,
-    marginBottom: 16,
-    shadowColor: '#152238',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.10,
-    shadowRadius: 24,
-    elevation: 7,
-    borderWidth: 1,
-    borderColor: 'rgba(21,34,56,0.06)',
-  },
-  formTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: C.text,
-    marginBottom: 4,
-    letterSpacing: -0.3,
-  },
-  formSub: {
-    fontSize: 14,
-    color: C.textFaint,
-    marginBottom: 28,
-    lineHeight: 20,
-  },
-  fieldWrap: {
-    marginBottom: 18,
-  },
-  fieldLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: C.textMid,
-    marginBottom: 8,
-    letterSpacing: 0.02,
-  },
-  input: {
-    height: 52,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: 'rgba(21,34,56,0.14)',
-    backgroundColor: '#F7FAFD',
-    color: C.text,
-    fontSize: 16,
-    paddingHorizontal: 16,
-  },
-  inputErr: {
-    borderColor: C.red,
-    backgroundColor: 'rgba(220,38,38,0.04)',
-  },
-  errText: {
-    fontSize: 13,
-    color: C.red,
-    fontWeight: '600',
-    marginBottom: 16,
-  },
-  loginBtn: {
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: C.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 10,
-    shadowColor: C.accent,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.26,
-    shadowRadius: 14,
-    elevation: 7,
-  },
-  loginBtnLabel: {
-    color: '#fff',
-    fontSize: 17,
-    fontWeight: '800',
-    letterSpacing: 0.1,
-  },
-  loginBtnArrow: {
-    color: 'rgba(255,255,255,0.65)',
-    fontSize: 22,
-  },
-  forgotBtn: {
-    alignItems: 'center',
-    paddingVertical: 10,
-    marginBottom: 32,
-  },
-  forgotLabel: {
-    fontSize: 14,
-    color: C.textFaint,
-    fontWeight: '500',
-  },
-  decorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  decorLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(21,34,56,0.10)',
-  },
-  decorText: {
-    fontSize: 11,
-    color: C.textFaint,
-    fontWeight: '500',
-    letterSpacing: 0.3,
-  },
-});

@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Animated, Easing } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { C } from '../constants/colors';
+import { Colors } from '../constants/colors';
+import { useTheme } from '../contexts/ThemeContext';
 import { Card } from '../components/Card';
 import { Btn } from '../components/Btn';
 import { Appointment, CancellationToken, Tab } from '../types';
@@ -25,7 +26,169 @@ const PROGRAM_COLORS: Record<string, string> = {
   torhueter_gruppe:     '#9B59B6',
 };
 
+function getStyles(C: Colors) {
+  return StyleSheet.create({
+    flex: { flex: 1 },
+    content: { paddingHorizontal: 20 },
+    screenTitle: { fontSize: 28, fontWeight: '800', color: C.text, letterSpacing: -0.4, marginBottom: 20 },
+    tokenBanner: {
+      backgroundColor: C.accentBg,
+      borderRadius: 14,
+      padding: 14,
+      marginBottom: 16,
+      gap: 6,
+      borderWidth: 1,
+      borderColor: C.cardBorder,
+    },
+    tokenRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    tokenDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.accentLight, flexShrink: 0 },
+    tokenText: { fontSize: 13, fontWeight: '600', color: C.text, flex: 1 },
+
+    calCard: { marginBottom: 12, overflow: 'hidden' },
+    monthNav: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 16,
+      paddingHorizontal: 18,
+      borderBottomWidth: 1,
+      borderBottomColor: C.cardBorder,
+    },
+    navBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      backgroundColor: C.accentBg,
+      borderWidth: 1,
+      borderColor: C.cardBorder,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    navBtnText: { fontSize: 20, fontWeight: '700', color: C.accent },
+    monthLabel: { fontSize: 17, fontWeight: '700', color: C.text },
+    calBody: { padding: 12, paddingBottom: 14 },
+    weekRow: { flexDirection: 'row', marginBottom: 4 },
+    weekCell: { flex: 1, alignItems: 'center' },
+    weekLabel: { fontSize: 11, fontWeight: '700', color: C.textMid },
+    dayGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+    dayCell: { width: '14.28%', height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 10 },
+    dayCellSelected: { backgroundColor: C.accent },
+    dayCellToday: { backgroundColor: C.accentBg },
+    dayText: { fontSize: 14, color: C.text, fontWeight: '400' },
+    dayTextSelected: { color: '#fff', fontWeight: '700' },
+    dayTextToday: { color: C.accent, fontWeight: '700' },
+    dotRow: { flexDirection: 'row', gap: 2, marginTop: 2 },
+    dot: { width: 5, height: 5, borderRadius: 3 },
+
+    legend: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
+    legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    legendDot: { width: 9, height: 9, borderRadius: 5 },
+    legendText: { fontSize: 12, color: C.textFaint, fontWeight: '500' },
+
+    filterHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 14,
+    },
+    filterLabel: { fontSize: 16, fontWeight: '700', color: C.text },
+    clearBtn: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 14,
+      backgroundColor: C.accentBg,
+      borderWidth: 1,
+      borderColor: C.cardBorder,
+    },
+    clearBtnText: { fontSize: 12, fontWeight: '600', color: C.textMid },
+
+    sectionLabel: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: C.textFaint,
+      textTransform: 'uppercase',
+      letterSpacing: 0.12,
+      marginBottom: 12,
+    },
+    emptyText: { textAlign: 'center', color: C.textFaint, fontSize: 15, paddingTop: 24 },
+
+    apptCard: { marginBottom: 12 },
+    apptMain: { flexDirection: 'row', padding: 18, gap: 12, alignItems: 'flex-start' },
+    colorBar: { width: 4, borderRadius: 2, alignSelf: 'stretch', marginTop: 2 },
+    apptContent: { flex: 1 },
+    apptHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+    apptTitle: { fontSize: 17, fontWeight: '800', color: C.text },
+    cancelBadge: { backgroundColor: C.redBg, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 3 },
+    cancelBadgeText: { fontSize: 11, fontWeight: '700', color: C.red },
+    programBadge: {
+      borderRadius: 8, paddingHorizontal: 10, paddingVertical: 3,
+      borderWidth: 1,
+    },
+    programBadgeText: { fontSize: 11, fontWeight: '700' },
+    apptMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+    apptMetaLabel: { fontSize: 11, fontWeight: '700', color: C.textFaint, textTransform: 'uppercase', letterSpacing: 0.3, minWidth: 56 },
+    apptMetaText: { fontSize: 14, color: C.textMid, fontWeight: '500' },
+    actionSection: {
+      flexDirection: 'row',
+      gap: 10,
+      padding: 14,
+      paddingHorizontal: 20,
+      borderTopWidth: 1,
+      borderTopColor: C.cardBorder,
+    },
+    calBtn: {
+      flex: 1, height: 42, borderRadius: 12,
+      backgroundColor: C.accentBg, borderWidth: 1,
+      borderColor: C.cardBorder,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    calBtnLabel: { fontSize: 13, fontWeight: '700', color: C.accent },
+    stornBtn: {
+      flex: 1, height: 42, borderRadius: 12,
+      backgroundColor: C.redBg, borderWidth: 1,
+      borderColor: C.red + '33',
+      alignItems: 'center', justifyContent: 'center',
+    },
+    stornBtnLabel: { fontSize: 13, fontWeight: '700', color: C.red },
+    deadlineErrorBox: {
+      margin: 14, marginBottom: 0, padding: 14, borderRadius: 12,
+      backgroundColor: C.redBg, borderWidth: 1, borderColor: C.red + '40',
+    },
+    deadlineErrorTitle: { fontSize: 14, fontWeight: '800', color: C.red, marginBottom: 6 },
+    deadlineErrorText: { fontSize: 13, color: C.red, lineHeight: 19, opacity: 0.85 },
+    deadlineErrorBtns: { flexDirection: 'row', gap: 8, marginTop: 12 },
+    deadlineErrorConfirm: {
+      flex: 1, paddingVertical: 8, borderRadius: 8,
+      backgroundColor: C.red, alignItems: 'center',
+    },
+    deadlineErrorConfirmText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+    deadlineErrorClose: {
+      flex: 1, paddingVertical: 8, borderRadius: 8,
+      backgroundColor: C.accentBg, alignItems: 'center',
+    },
+    deadlineErrorCloseText: { fontSize: 12, fontWeight: '700', color: C.red },
+    confirmSection: { borderTopWidth: 1, borderTopColor: C.cardBorder, padding: 16, paddingHorizontal: 20 },
+    confirmText: { fontSize: 15, color: C.textMid, marginBottom: 14 },
+    confirmBtns: { flexDirection: 'row', gap: 10 },
+    cancelYesBtn: {
+      flex: 1, height: 46, borderRadius: 12, backgroundColor: C.red,
+      alignItems: 'center', justifyContent: 'center',
+      shadowColor: C.red, shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.27, shadowRadius: 6, elevation: 3,
+    },
+    cancelYesLabel: { fontSize: 15, fontWeight: '700', color: '#fff' },
+    cancelNoBtn: {
+      flex: 1, height: 46, borderRadius: 12,
+      backgroundColor: C.accentBg, borderWidth: 1, borderColor: C.cardBorder,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    cancelNoLabel: { fontSize: 15, fontWeight: '600', color: C.textMid },
+  });
+}
+
 function ApptCard({ appt, onCancel }: { appt: Appointment; onCancel: (id: string, skipToken?: boolean) => void }) {
+  const { C } = useTheme();
+  const styles = React.useMemo(() => getStyles(C), [C]);
   const [expanded, setExpanded] = useState(false);
   const [deadlineError, setDeadlineError] = useState(false);
   const ts = todayStr();
@@ -125,6 +288,8 @@ function ApptCard({ appt, onCancel }: { appt: Appointment; onCancel: (id: string
 }
 
 export function TermineScreen({ appointments, cancelAppointment, activeTokens, setTab }: Props) {
+  const { C } = useTheme();
+  const styles = React.useMemo(() => getStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(16)).current;
@@ -299,161 +464,3 @@ export function TermineScreen({ appointments, cancelAppointment, activeTokens, s
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  content: { paddingHorizontal: 20 },
-  screenTitle: { fontSize: 28, fontWeight: '800', color: C.text, letterSpacing: -0.4, marginBottom: 20 },
-  tokenBanner: {
-    backgroundColor: 'rgba(21,34,56,0.07)',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 16,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(21,34,56,0.12)',
-  },
-  tokenRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  tokenDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.accentLight, flexShrink: 0 },
-  tokenText: { fontSize: 13, fontWeight: '600', color: C.text, flex: 1 },
-
-  calCard: { marginBottom: 12, overflow: 'hidden' },
-  monthNav: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    paddingHorizontal: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: C.cardBorder,
-  },
-  navBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: C.accentBg,
-    borderWidth: 1,
-    borderColor: 'rgba(21,34,56,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  navBtnText: { fontSize: 20, fontWeight: '700', color: C.accent },
-  monthLabel: { fontSize: 17, fontWeight: '700', color: C.text },
-  calBody: { padding: 12, paddingBottom: 14 },
-  weekRow: { flexDirection: 'row', marginBottom: 4 },
-  weekCell: { flex: 1, alignItems: 'center' },
-  weekLabel: { fontSize: 11, fontWeight: '700', color: C.textMid },
-  dayGrid: { flexDirection: 'row', flexWrap: 'wrap' },
-  dayCell: { width: '14.28%', height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 10 },
-  dayCellSelected: { backgroundColor: C.accent },
-  dayCellToday: { backgroundColor: C.accentBg },
-  dayText: { fontSize: 14, color: C.text, fontWeight: '400' },
-  dayTextSelected: { color: '#fff', fontWeight: '700' },
-  dayTextToday: { color: C.accent, fontWeight: '700' },
-  dotRow: { flexDirection: 'row', gap: 2, marginTop: 2 },
-  dot: { width: 5, height: 5, borderRadius: 3 },
-
-  legend: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  legendDot: { width: 9, height: 9, borderRadius: 5 },
-  legendText: { fontSize: 12, color: C.textFaint, fontWeight: '500' },
-
-  filterHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 14,
-  },
-  filterLabel: { fontSize: 16, fontWeight: '700', color: C.text },
-  clearBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
-    backgroundColor: C.accentBg,
-    borderWidth: 1,
-    borderColor: 'rgba(21,34,56,0.14)',
-  },
-  clearBtnText: { fontSize: 12, fontWeight: '600', color: C.textMid },
-
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: C.textFaint,
-    textTransform: 'uppercase',
-    letterSpacing: 0.12,
-    marginBottom: 12,
-  },
-  emptyText: { textAlign: 'center', color: C.textFaint, fontSize: 15, paddingTop: 24 },
-
-  apptCard: { marginBottom: 12 },
-  apptMain: { flexDirection: 'row', padding: 18, gap: 12, alignItems: 'flex-start' },
-  colorBar: { width: 4, borderRadius: 2, alignSelf: 'stretch', marginTop: 2 },
-  apptContent: { flex: 1 },
-  apptHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  apptTitle: { fontSize: 17, fontWeight: '800', color: C.text },
-  cancelBadge: { backgroundColor: C.redBg, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 3 },
-  cancelBadgeText: { fontSize: 11, fontWeight: '700', color: C.red },
-  programBadge: {
-    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 3,
-    borderWidth: 1,
-  },
-  programBadgeText: { fontSize: 11, fontWeight: '700' },
-  apptMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
-  apptMetaLabel: { fontSize: 11, fontWeight: '700', color: C.textFaint, textTransform: 'uppercase', letterSpacing: 0.3, width: 48 },
-  apptMetaText: { fontSize: 14, color: C.textMid, fontWeight: '500' },
-  actionSection: {
-    flexDirection: 'row',
-    gap: 10,
-    padding: 14,
-    paddingHorizontal: 20,
-    borderTopWidth: 1,
-    borderTopColor: C.cardBorder,
-  },
-  calBtn: {
-    flex: 1, height: 42, borderRadius: 12,
-    backgroundColor: C.accentBg, borderWidth: 1,
-    borderColor: 'rgba(21,34,56,0.12)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  calBtnLabel: { fontSize: 13, fontWeight: '700', color: C.accent },
-  stornBtn: {
-    flex: 1, height: 42, borderRadius: 12,
-    backgroundColor: C.redBg, borderWidth: 1,
-    borderColor: 'rgba(220,38,38,0.20)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  stornBtnLabel: { fontSize: 13, fontWeight: '700', color: C.red },
-  deadlineErrorBox: {
-    margin: 14, marginBottom: 0, padding: 14, borderRadius: 12,
-    backgroundColor: C.redBg, borderWidth: 1, borderColor: 'rgba(220,38,38,0.25)',
-  },
-  deadlineErrorTitle: { fontSize: 14, fontWeight: '800', color: C.red, marginBottom: 6 },
-  deadlineErrorText: { fontSize: 13, color: C.red, lineHeight: 19, opacity: 0.85 },
-  deadlineErrorBtns: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  deadlineErrorConfirm: {
-    flex: 1, paddingVertical: 8, borderRadius: 8,
-    backgroundColor: C.red, alignItems: 'center',
-  },
-  deadlineErrorConfirmText: { fontSize: 12, fontWeight: '700', color: '#fff' },
-  deadlineErrorClose: {
-    flex: 1, paddingVertical: 8, borderRadius: 8,
-    backgroundColor: 'rgba(21,34,56,0.06)', alignItems: 'center',
-  },
-  deadlineErrorCloseText: { fontSize: 12, fontWeight: '700', color: C.red },
-  confirmSection: { borderTopWidth: 1, borderTopColor: C.cardBorder, padding: 16, paddingHorizontal: 20 },
-  confirmText: { fontSize: 15, color: C.textMid, marginBottom: 14 },
-  confirmBtns: { flexDirection: 'row', gap: 10 },
-  cancelYesBtn: {
-    flex: 1, height: 46, borderRadius: 12, backgroundColor: C.red,
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: C.red, shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.27, shadowRadius: 6, elevation: 3,
-  },
-  cancelYesLabel: { fontSize: 15, fontWeight: '700', color: '#fff' },
-  cancelNoBtn: {
-    flex: 1, height: 46, borderRadius: 12,
-    backgroundColor: C.accentBg, borderWidth: 1, borderColor: C.cardBorder,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  cancelNoLabel: { fontSize: 15, fontWeight: '600', color: C.textMid },
-});

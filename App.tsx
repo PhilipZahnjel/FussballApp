@@ -5,7 +5,8 @@ import {
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { C } from './src/constants/colors';
+import { Colors } from './src/constants/colors';
+import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
 import { supabase } from './src/lib/supabase';
 import { Tab } from './src/types';
 import { useAppointments } from './src/hooks/useAppointments';
@@ -23,7 +24,53 @@ import { TrainerApp } from './src/trainer/TrainerApp';
 
 const isWeb = Platform.OS === 'web';
 
-export default function App() {
+function getAppStyles(C: Colors) {
+  return StyleSheet.create({
+    adminRoot: {
+      flex: 1,
+      backgroundColor: '#F4F6F9',
+    },
+    nativeRoot: {
+      flex: 1,
+      backgroundColor: C.bgTop,
+    },
+    loadingWrap: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    gradient: {
+      flex: 1,
+    },
+    screens: {
+      flex: 1,
+    },
+    webOuter: {
+      flex: 1,
+      backgroundColor: '#C8D8EE',
+      alignItems: 'center',
+      justifyContent: 'center',
+      // @ts-ignore web-only
+      minHeight: '100vh',
+    },
+    webInner: {
+      width: 430,
+      flex: 1,
+      overflow: 'hidden',
+      // @ts-ignore web-only
+      maxHeight: '100vh',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 40 },
+      shadowOpacity: 0.35,
+      shadowRadius: 60,
+    },
+  });
+}
+
+function AppInner() {
+  const { C, isDark } = useTheme();
+  const styles = React.useMemo(() => getAppStyles(C), [C]);
+
   const [loggedIn, setLoggedIn] = useState(false);
   const [role, setRole] = useState<'admin' | 'customer' | 'trainer' | null>(null);
   const [tab, setTab] = useState<Tab>('home');
@@ -81,7 +128,7 @@ export default function App() {
       start={{ x: 0.15, y: 0 }}
       end={{ x: 0.85, y: 1 }}
     >
-      <StatusBar style="dark" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       {!loggedIn ? (
         <LoginScreen onLogin={() => {}} />
@@ -155,43 +202,10 @@ export default function App() {
   );
 }
 
-const styles = StyleSheet.create({
-  adminRoot: {
-    flex: 1,
-    backgroundColor: '#F4F6F9',
-  },
-  nativeRoot: {
-    flex: 1,
-    backgroundColor: C.bgTop,
-  },
-  loadingWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  gradient: {
-    flex: 1,
-  },
-  screens: {
-    flex: 1,
-  },
-  webOuter: {
-    flex: 1,
-    backgroundColor: '#C8D8EE',
-    alignItems: 'center',
-    justifyContent: 'center',
-    // @ts-ignore web-only
-    minHeight: '100vh',
-  },
-  webInner: {
-    width: 430,
-    flex: 1,
-    overflow: 'hidden',
-    // @ts-ignore web-only
-    maxHeight: '100vh',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 40 },
-    shadowOpacity: 0.35,
-    shadowRadius: 60,
-  },
-});
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppInner />
+    </ThemeProvider>
+  );
+}

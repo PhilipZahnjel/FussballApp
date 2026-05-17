@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { TouchableOpacity, Text, ViewStyle, Animated, StyleSheet } from 'react-native';
-import { C } from '../constants/colors';
+import { Colors } from '../constants/colors';
+import { useTheme } from '../contexts/ThemeContext';
 
 type Variant = 'primary' | 'ghost' | 'red';
 
@@ -12,7 +13,53 @@ interface Props {
   style?: ViewStyle;
 }
 
+function getStyles(C: Colors) {
+  return StyleSheet.create({
+    btn: {
+      height: 56,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'row',
+      gap: 8,
+    },
+    prim: {
+      backgroundColor: C.accent,
+      shadowColor: C.accent,
+      shadowOffset: { width: 0, height: 5 },
+      shadowOpacity: 0.22,
+      shadowRadius: 12,
+      elevation: 5,
+    },
+    red: {
+      backgroundColor: C.red,
+      shadowColor: C.red,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.28,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    ghost: {
+      backgroundColor: 'transparent',
+      borderWidth: 1.5,
+      borderColor: 'rgba(21,34,56,0.20)',
+    },
+    label: {
+      color: C.textMid,
+      fontSize: 17,
+      fontWeight: '700',
+      letterSpacing: 0.1,
+    },
+    arrow: {
+      color: 'rgba(255,255,255,0.65)',
+      fontSize: 20,
+    },
+  });
+}
+
 export function Btn({ label, onPress, variant = 'primary', disabled = false, style }: Props) {
+  const { C } = useTheme();
+  const styles = React.useMemo(() => getStyles(C), [C]);
   const scale = useRef(new Animated.Value(1)).current;
   const isPrim = variant === 'primary';
   const isRed = variant === 'red';
@@ -44,45 +91,3 @@ export function Btn({ label, onPress, variant = 'primary', disabled = false, sty
     </Animated.View>
   );
 }
-
-const styles = StyleSheet.create({
-  btn: {
-    height: 56,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
-  },
-  prim: {
-    backgroundColor: C.accent,
-    shadowColor: C.accent,
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.22,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  red: {
-    backgroundColor: C.red,
-    shadowColor: C.red,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.28,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  ghost: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: 'rgba(21,34,56,0.20)',
-  },
-  label: {
-    color: C.textMid,
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: 0.1,
-  },
-  arrow: {
-    color: 'rgba(255,255,255,0.65)',
-    fontSize: 20,
-  },
-});

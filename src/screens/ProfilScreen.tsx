@@ -4,7 +4,8 @@ import {
   Animated, Easing, TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { C } from '../constants/colors';
+import { Colors } from '../constants/colors';
+import { useTheme } from '../contexts/ThemeContext';
 import { Card } from '../components/Card';
 import { Btn } from '../components/Btn';
 import { useProfile } from '../hooks/useProfile';
@@ -16,19 +17,24 @@ interface Props {
 }
 
 function InfoRow({ label, value, last }: { label: string; value: string; last?: boolean }) {
+  const { C } = useTheme();
   return (
-    <View style={[styles.infoRow, !last && styles.infoRowBorder]}>
-      <Text style={styles.infoKey}>{label}</Text>
-      <Text style={styles.infoVal}>{value || '—'}</Text>
+    <View style={[
+      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15 },
+      !last && { borderBottomWidth: 1, borderBottomColor: C.cardBorder },
+    ]}>
+      <Text style={{ fontSize: 15, color: C.textMid, flex: 1 }}>{label}</Text>
+      <Text style={{ fontSize: 15, fontWeight: '600', color: C.text, textAlign: 'right', flex: 1 }}>{value || '—'}</Text>
     </View>
   );
 }
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+  const { C } = useTheme();
   return (
-    <Card style={styles.infoCard}>
-      <View style={styles.cardSectionHeader}>
-        <Text style={styles.cardSectionLabel}>{title}</Text>
+    <Card style={{ marginBottom: 14 }}>
+      <View style={{ paddingHorizontal: 20, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.cardBorder }}>
+        <Text style={{ fontSize: 12, fontWeight: '700', color: C.textFaint, textTransform: 'uppercase', letterSpacing: 0.2 }}>{title}</Text>
       </View>
       {children}
     </Card>
@@ -52,6 +58,8 @@ function fmtDate(iso: string) {
 
 export function ProfilScreen({ onLogout }: Props) {
   const insets = useSafeAreaInsets();
+  const { C, isDark, toggleTheme } = useTheme();
+  const styles = React.useMemo(() => getStyles(C), [C]);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(16)).current;
   const { profile, loading } = useProfile();
@@ -272,139 +280,96 @@ export function ProfilScreen({ onLogout }: Props) {
           <InfoRow label="Erreichbar" value={STUDIO.hours} last />
         </SectionCard>
 
+        {/* Dark Mode Toggle */}
+        <SectionCard title="Darstellung">
+          <TouchableOpacity onPress={toggleTheme} activeOpacity={0.8} style={styles.themeRow}>
+            <View>
+              <Text style={styles.themeLabel}>{isDark ? 'Dark Mode' : 'Light Mode'}</Text>
+              <Text style={styles.themeSub}>Tippe zum Wechseln</Text>
+            </View>
+            <View style={[styles.themeToggle, isDark && styles.themeToggleOn]}>
+              <View style={[styles.themeKnob, isDark && styles.themeKnobOn]} />
+            </View>
+          </TouchableOpacity>
+        </SectionCard>
+
         <Btn label="Abmelden" onPress={onLogout} variant="ghost" />
       </Animated.View>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  content: { paddingHorizontal: 20 },
-  screenTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: C.text,
-    letterSpacing: -0.4,
-    marginBottom: 24,
-  },
-  avatarCard: {
-    backgroundColor: C.accent,
-    borderRadius: 24,
-    padding: 28,
-    alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: C.accent,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.22,
-    shadowRadius: 20,
-    elevation: 8,
-  },
-  avatarCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.25)',
-  },
-  avatarIcon: { fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: 1 },
-  userName: { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 4 },
-  userType: { fontSize: 14, color: 'rgba(255,255,255,0.70)', marginBottom: 14 },
-  userChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
-  chip: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.20)',
-  },
-  chipText: { fontSize: 12, color: 'rgba(255,255,255,0.90)', fontWeight: '600' },
-  infoCard: { marginBottom: 14 },
-  cardSectionHeader: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: C.cardBorder,
-  },
-  cardSectionLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: C.textFaint,
-    textTransform: 'uppercase',
-    letterSpacing: 0.2,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-  },
-  infoRowBorder: { borderBottomWidth: 1, borderBottomColor: C.cardBorder },
-  infoKey: { fontSize: 15, color: C.textMid, flex: 1 },
-  infoVal: { fontSize: 15, fontWeight: '600', color: C.text, textAlign: 'right', flex: 1 },
-  editContactRow: { paddingHorizontal: 20, paddingVertical: 12 },
-  editContactForm: { paddingHorizontal: 20, paddingBottom: 16, paddingTop: 12 },
-  editLabel: { fontSize: 12, fontWeight: '700', color: C.textFaint, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 },
-  editInput: {
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: 'rgba(21,34,56,0.15)',
-    backgroundColor: '#F7FAFD',
-    color: C.text,
-    fontSize: 15,
-    paddingHorizontal: 14,
-    marginBottom: 8,
-  },
-  editHint: { fontSize: 12, color: C.textFaint, marginBottom: 12 },
-  contactMsg: { fontSize: 13, fontWeight: '600', marginBottom: 8 },
-  editContactBtns: { flexDirection: 'row', gap: 10 },
-  changePwBtn: {
-    backgroundColor: C.accentBg,
-    borderRadius: 9,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderWidth: 1,
-    borderColor: 'rgba(21,34,56,0.12)',
-  },
-  changePwLabel: { fontSize: 13, fontWeight: '700', color: C.accent },
-  pwForm: { paddingHorizontal: 20, paddingBottom: 16 },
-  pwInput: {
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: 'rgba(21,34,56,0.15)',
-    backgroundColor: '#F7FAFD',
-    color: C.text,
-    fontSize: 15,
-    paddingHorizontal: 14,
-  },
-  pwErr: { fontSize: 13, color: C.red, fontWeight: '600', marginTop: 8 },
-  pwSuccessMsg: { fontSize: 13, color: '#15803D', fontWeight: '600', paddingHorizontal: 20, paddingBottom: 12 },
-  savePwBtn: {
-    marginTop: 14,
-    height: 48,
-    borderRadius: 13,
-    backgroundColor: C.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  savePwLabel: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  cancelBtn: {
-    marginTop: 14,
-    height: 48,
-    borderRadius: 13,
-    backgroundColor: C.accentBg,
-    borderWidth: 1,
-    borderColor: C.cardBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelBtnLabel: { color: C.textMid, fontSize: 16, fontWeight: '600' },
-});
+function getStyles(C: Colors) {
+  const inputBg = C.isDark ? C.bgTop : '#F7FAFD';
+  const inputBorder = C.cardBorder;
+  return StyleSheet.create({
+    flex: { flex: 1 },
+    content: { paddingHorizontal: 20 },
+    screenTitle: { fontSize: 28, fontWeight: '800', color: C.text, letterSpacing: -0.4, marginBottom: 24 },
+    avatarCard: {
+      backgroundColor: C.accent,
+      borderRadius: 24, padding: 28, alignItems: 'center', marginBottom: 16,
+      shadowColor: C.accent, shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.22, shadowRadius: 20, elevation: 8,
+    },
+    avatarCircle: {
+      width: 80, height: 80, borderRadius: 40,
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      alignItems: 'center', justifyContent: 'center', marginBottom: 14,
+      borderWidth: 2, borderColor: 'rgba(255,255,255,0.25)',
+    },
+    avatarIcon: { fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: 1 },
+    userName: { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 4 },
+    userType: { fontSize: 14, color: 'rgba(255,255,255,0.70)', marginBottom: 14 },
+    userChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
+    chip: {
+      backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 20,
+      paddingHorizontal: 12, paddingVertical: 5,
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.20)',
+    },
+    chipText: { fontSize: 12, color: 'rgba(255,255,255,0.90)', fontWeight: '600' },
+    editContactRow: { paddingHorizontal: 20, paddingVertical: 12 },
+    editContactForm: { paddingHorizontal: 20, paddingBottom: 16, paddingTop: 12 },
+    editLabel: { fontSize: 12, fontWeight: '700', color: C.textFaint, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 },
+    editInput: {
+      height: 48, borderRadius: 12, borderWidth: 1.5,
+      borderColor: inputBorder, backgroundColor: inputBg,
+      color: C.text, fontSize: 15, paddingHorizontal: 14, marginBottom: 8,
+    },
+    editHint: { fontSize: 12, color: C.textFaint, marginBottom: 12 },
+    contactMsg: { fontSize: 13, fontWeight: '600', marginBottom: 8 },
+    editContactBtns: { flexDirection: 'row', gap: 10 },
+    changePwBtn: {
+      backgroundColor: C.accentBg, borderRadius: 9,
+      paddingHorizontal: 14, paddingVertical: 7,
+      borderWidth: 1, borderColor: C.cardBorder,
+    },
+    changePwLabel: { fontSize: 13, fontWeight: '700', color: C.accent },
+    pwForm: { paddingHorizontal: 20, paddingBottom: 16 },
+    pwInput: {
+      height: 48, borderRadius: 12, borderWidth: 1.5,
+      borderColor: inputBorder, backgroundColor: inputBg,
+      color: C.text, fontSize: 15, paddingHorizontal: 14,
+    },
+    pwErr: { fontSize: 13, color: C.red, fontWeight: '600', marginTop: 8 },
+    pwSuccessMsg: { fontSize: 13, color: '#15803D', fontWeight: '600', paddingHorizontal: 20, paddingBottom: 12 },
+    savePwBtn: {
+      marginTop: 14, height: 48, borderRadius: 13,
+      backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center',
+    },
+    savePwLabel: { color: '#fff', fontSize: 16, fontWeight: '700' },
+    cancelBtn: {
+      marginTop: 14, height: 48, borderRadius: 13,
+      backgroundColor: C.accentBg, borderWidth: 1, borderColor: C.cardBorder,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    cancelBtnLabel: { color: C.textMid, fontSize: 16, fontWeight: '600' },
+    themeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16 },
+    themeLabel: { fontSize: 15, fontWeight: '700', color: C.text },
+    themeSub: { fontSize: 12, color: C.textFaint, marginTop: 2 },
+    themeToggle: { width: 48, height: 28, borderRadius: 14, backgroundColor: C.cardBorder, padding: 3, justifyContent: 'center' },
+    themeToggleOn: { backgroundColor: C.accent },
+    themeKnob: { width: 22, height: 22, borderRadius: 11, backgroundColor: C.textFaint },
+    themeKnobOn: { backgroundColor: '#fff', alignSelf: 'flex-end' },
+  });
+}

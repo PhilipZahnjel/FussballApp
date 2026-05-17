@@ -1,7 +1,8 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Animated, Easing } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { C } from '../constants/colors';
+import { Colors } from '../constants/colors';
+import { useTheme } from '../contexts/ThemeContext';
 import { GlassCard } from '../components/GlassCard';
 import { Btn } from '../components/Btn';
 import { Appointment, Tab, CancellationToken } from '../types';
@@ -30,7 +31,156 @@ const PROGRAM_COLORS: Record<string, string> = {
   torhueter_gruppe:     '#9B59B6',
 };
 
+function getStyles(C: Colors) {
+  return StyleSheet.create({
+    flex: { flex: 1 },
+    header: {
+      paddingHorizontal: 24,
+      paddingBottom: 28,
+    },
+    headerSub: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: C.textFaint,
+      letterSpacing: 0.15,
+      marginBottom: 6,
+      textTransform: 'uppercase',
+    },
+    headerTitle: {
+      fontSize: 32,
+      fontWeight: '800',
+      color: C.text,
+      lineHeight: 38,
+      letterSpacing: -0.5,
+    },
+    section: {
+      paddingHorizontal: 20,
+      paddingBottom: 16,
+    },
+    nachholCard: {
+      overflow: 'hidden',
+      borderLeftWidth: 4,
+      borderRadius: 18,
+    },
+    nachholInner: {
+      padding: 18,
+    },
+    nachholHeader: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: C.textFaint,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: 10,
+    },
+    nachholRow: {
+      marginBottom: 8,
+    },
+    deadlineBadge: {
+      alignSelf: 'flex-start',
+      borderRadius: 8,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+    },
+    nachholDays: {
+      fontSize: 15,
+      fontWeight: '800',
+    },
+    nachholSub: {
+      fontSize: 13,
+      color: C.textMid,
+      marginBottom: 4,
+    },
+    nachholHint: {
+      fontSize: 12,
+      color: C.textFaint,
+      fontStyle: 'italic',
+      marginTop: 2,
+    },
+    nextCard: {
+      overflow: 'hidden',
+      flexDirection: 'row',
+      borderRadius: 20,
+    },
+    nextColorBar: {
+      width: 5,
+      borderRadius: 0,
+    },
+    nextContent: {
+      flex: 1,
+      padding: 20,
+    },
+    nextLabel: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: C.textFaint,
+      textTransform: 'uppercase',
+      letterSpacing: 0.14,
+      marginBottom: 8,
+    },
+    nextTitle: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: C.text,
+      marginBottom: 4,
+      letterSpacing: -0.3,
+    },
+    nextDate: {
+      fontSize: 15,
+      color: C.textMid,
+      marginBottom: 14,
+      fontWeight: '500',
+    },
+    nextMeta: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    metaChip: {
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 8,
+      backgroundColor: C.accentBg,
+      borderWidth: 1,
+      borderColor: C.cardBorder,
+    },
+    metaChipText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: C.textMid,
+    },
+    emptyCard: {
+      padding: 32,
+      alignItems: 'center',
+      borderRadius: 20,
+    },
+    emptyIconWrap: {
+      width: 56,
+      height: 56,
+      borderRadius: 14,
+      backgroundColor: C.accentBg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 14,
+      borderWidth: 1,
+      borderColor: C.cardBorder,
+    },
+    emptyIconInner: { width: 22, height: 22, borderRadius: 4, borderWidth: 2, borderColor: C.accent },
+    emptyTitle: { fontSize: 17, fontWeight: '700', color: C.text, marginBottom: 4, textAlign: 'center' },
+    emptySub: { fontSize: 14, color: C.textFaint, textAlign: 'center', lineHeight: 20 },
+    btns: { paddingHorizontal: 20 },
+    btnDisabled: { opacity: 0.45 },
+    noQuotaHint: {
+      fontSize: 12,
+      color: C.textFaint,
+      textAlign: 'center',
+      marginTop: 8,
+    },
+  });
+}
+
 export function HomeScreen({ appointments, profile, activeTokens, setTab }: Props) {
+  const { C } = useTheme();
+  const styles = React.useMemo(() => getStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const firstName = profile?.full_name?.split(' ')[0] ?? '';
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -165,148 +315,3 @@ export function HomeScreen({ appointments, profile, activeTokens, setTab }: Prop
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  header: {
-    paddingHorizontal: 24,
-    paddingBottom: 28,
-  },
-  headerSub: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: C.textFaint,
-    letterSpacing: 0.15,
-    marginBottom: 6,
-    textTransform: 'uppercase',
-  },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: C.text,
-    lineHeight: 38,
-    letterSpacing: -0.5,
-  },
-  section: {
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-  },
-  nachholCard: {
-    overflow: 'hidden',
-    borderLeftWidth: 4,
-    borderRadius: 18,
-  },
-  nachholInner: {
-    padding: 18,
-  },
-  nachholHeader: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: C.textFaint,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 10,
-  },
-  nachholRow: {
-    marginBottom: 8,
-  },
-  deadlineBadge: {
-    alignSelf: 'flex-start',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  nachholDays: {
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  nachholSub: {
-    fontSize: 13,
-    color: C.textMid,
-    marginBottom: 4,
-  },
-  nachholHint: {
-    fontSize: 12,
-    color: C.textFaint,
-    fontStyle: 'italic',
-    marginTop: 2,
-  },
-  nextCard: {
-    overflow: 'hidden',
-    flexDirection: 'row',
-    borderRadius: 20,
-  },
-  nextColorBar: {
-    width: 5,
-    borderRadius: 0,
-  },
-  nextContent: {
-    flex: 1,
-    padding: 20,
-  },
-  nextLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: C.textFaint,
-    textTransform: 'uppercase',
-    letterSpacing: 0.14,
-    marginBottom: 8,
-  },
-  nextTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: C.text,
-    marginBottom: 4,
-    letterSpacing: -0.3,
-  },
-  nextDate: {
-    fontSize: 15,
-    color: C.textMid,
-    marginBottom: 14,
-    fontWeight: '500',
-  },
-  nextMeta: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  metaChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    backgroundColor: C.accentBg,
-    borderWidth: 1,
-    borderColor: 'rgba(21,34,56,0.10)',
-  },
-  metaChipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: C.textMid,
-  },
-  emptyCard: {
-    padding: 32,
-    alignItems: 'center',
-    borderRadius: 20,
-  },
-  emptyIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 14,
-    backgroundColor: C.accentBg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(21,34,56,0.10)',
-  },
-  emptyIconInner: { width: 22, height: 22, borderRadius: 4, borderWidth: 2, borderColor: C.accent },
-  emptyTitle: { fontSize: 17, fontWeight: '700', color: C.text, marginBottom: 4, textAlign: 'center' },
-  emptySub: { fontSize: 14, color: C.textFaint, textAlign: 'center', lineHeight: 20 },
-  btns: { paddingHorizontal: 20 },
-  btnDisabled: { opacity: 0.45 },
-  noQuotaHint: {
-    fontSize: 12,
-    color: C.textFaint,
-    textAlign: 'center',
-    marginTop: 8,
-  },
-});
