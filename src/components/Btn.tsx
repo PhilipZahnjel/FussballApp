@@ -40,15 +40,18 @@ function getStyles(C: Colors) {
       elevation: 4,
     },
     ghost: {
-      backgroundColor: 'transparent',
+      backgroundColor: C.accentBg,
       borderWidth: 1.5,
-      borderColor: 'rgba(21,34,56,0.20)',
+      borderColor: C.accent,
     },
     label: {
       color: C.textMid,
       fontSize: 17,
       fontWeight: '700',
       letterSpacing: 0.1,
+    },
+    ghostLabel: {
+      color: C.accent,
     },
     arrow: {
       color: 'rgba(255,255,255,0.65)',
@@ -83,7 +86,7 @@ export function Btn({ label, onPress, variant = 'primary', disabled = false, sty
           disabled && { opacity: 0.4 },
         ]}
       >
-        <Text style={[styles.label, (isPrim || isRed) && { color: '#fff' }]}>
+        <Text style={[styles.label, (isPrim || isRed) && { color: '#fff' }, (!isPrim && !isRed) && styles.ghostLabel]}>
           {label}
         </Text>
         {isPrim && <Text style={styles.arrow}>→</Text>}
