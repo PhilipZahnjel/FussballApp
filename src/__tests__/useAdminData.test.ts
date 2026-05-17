@@ -142,8 +142,13 @@ describe('checkDailyConflict — Zusammenspiel mit DB-Daten', () => {
     expect(checkDailyConflict([], '2026-06-15').allowed).toBe(true);
   });
 
-  test('Kunde mit Termin kann keinen weiteren Termin am gleichen Tag buchen', () => {
+  test('Kunde mit 1 Termin darf noch einen weiteren am gleichen Tag buchen', () => {
     const r = checkDailyConflict(buildAppointments(1), '2026-06-15');
+    expect(r.allowed).toBe(true);
+  });
+
+  test('Kunde mit 2 Terminen kann keinen weiteren Termin am gleichen Tag buchen', () => {
+    const r = checkDailyConflict(buildAppointments(2), '2026-06-15');
     expect(r.allowed).toBe(false);
     expect(r.reason).toBeDefined();
   });
@@ -151,7 +156,7 @@ describe('checkDailyConflict — Zusammenspiel mit DB-Daten', () => {
   test('Mehrere Kunden gleichzeitig: Konflikte unabhängig geprüft', () => {
     const kunden = ['cust-1', 'cust-2', 'cust-3'];
     kunden.forEach(() => {
-      const eigene = buildAppointments(1);
+      const eigene = buildAppointments(2);
       expect(checkDailyConflict(eigene, '2026-06-15').allowed).toBe(false);
     });
   });

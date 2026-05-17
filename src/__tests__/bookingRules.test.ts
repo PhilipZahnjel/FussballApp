@@ -20,8 +20,14 @@ describe('checkDailyConflict', () => {
     expect(checkDailyConflict([], '2026-05-04')).toEqual({ allowed: true });
   });
 
-  test('blockiert zweiten Termin am gleichen Tag', () => {
+  test('erlaubt zweiten Termin am gleichen Tag (max 2 pro Tag)', () => {
     const result = checkDailyConflict([confirmed('individual')], '2026-05-04');
+    expect(result.allowed).toBe(true);
+  });
+
+  test('blockiert dritten Termin am gleichen Tag', () => {
+    const two = [confirmed('individual'), { ...confirmed('gruppe'), time: '11:00' }];
+    const result = checkDailyConflict(two, '2026-05-04');
     expect(result.allowed).toBe(false);
     expect(result.reason).toBeTruthy();
   });

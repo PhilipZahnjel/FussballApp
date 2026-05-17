@@ -86,9 +86,14 @@ describe('Grenzwerte', () => {
     expect(elapsed).toBeLessThan(10);
   });
 
-  test('Tageskonflikt korrekt erkannt nach 1 Termin', () => {
-    const existing = [{ date: '2026-05-04', time: '09:00', status: 'confirmed', program: 'individual' }];
-    expect(checkDailyConflict(existing, '2026-05-04').allowed).toBe(false);
-    expect(checkDailyConflict(existing, '2026-05-05').allowed).toBe(true);
+  test('Tageskonflikt korrekt erkannt: 1 Termin erlaubt noch einen weiteren, 2 Termine blockieren', () => {
+    const one = [{ date: '2026-05-04', time: '09:00', status: 'confirmed', program: 'individual' }];
+    const two = [
+      { date: '2026-05-04', time: '09:00', status: 'confirmed', program: 'individual' },
+      { date: '2026-05-04', time: '11:00', status: 'confirmed', program: 'gruppe' },
+    ];
+    expect(checkDailyConflict(one, '2026-05-04').allowed).toBe(true);
+    expect(checkDailyConflict(two, '2026-05-04').allowed).toBe(false);
+    expect(checkDailyConflict(one, '2026-05-05').allowed).toBe(true);
   });
 });
