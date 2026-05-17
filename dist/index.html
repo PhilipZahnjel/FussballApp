@@ -1,37 +1,74 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
   <head>
     <meta charset="utf-8" />
     <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-    <title>Muster EMS Studio</title>
-    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+
+    <!-- Content Security Policy: schützt vor XSS-Angriffen -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline';
+        style-src 'self' 'unsafe-inline';
+        img-src 'self' data: https: blob:;
+        connect-src 'self' https://*.supabase.co wss://*.supabase.co https://mgdrbgtsaqhgrdsnpasv.supabase.co;
+        font-src 'self' data:;
+        frame-src 'none';
+        object-src 'none';
+        base-uri 'self';
+        form-action 'self';
+      "
+    />
+
+    <!-- Verhindert Clickjacking -->
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <!-- Verhindert MIME-Sniffing -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <!-- Kein Referrer an externe Seiten -->
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+
+    <title>PK-Fußballschule</title>
+
+    <!-- Favicon & Icons -->
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Theme & PWA Meta -->
+    <meta name="theme-color" content="#5A8C6A" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="PK-Fußball" />
+
+    <!-- The `react-native-web` recommended style reset -->
     <style id="expo-reset">
-      /* These styles make the body full-height */
-      html,
-      body {
-        height: 100%;
-      }
-      /* These styles disable body scrolling if you are using <ScrollView> */
-      body {
-        overflow: hidden;
-      }
-      /* These styles make the root element full-height */
-      #root {
-        display: flex;
-        height: 100%;
-        flex: 1;
-      }
+      html, body { height: 100%; }
+      body { overflow: hidden; }
+      #root { display: flex; height: 100%; flex: 1; }
     </style>
   </head>
 
   <body>
-    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
-    <noscript>
-      You need to enable JavaScript to run this app.
-    </noscript>
-    <!-- The root element for your Expo app. -->
+    <noscript>Diese App benötigt JavaScript.</noscript>
     <div id="root"></div>
-  <script src="/_expo/static/js/web/AppEntry-68513c2d21db6b811f282c82ba1264be.js" defer></script>
-</body>
+
+    <script>
+      // Service Worker registrieren
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
+      }
+      // beforeinstallprompt früh abfangen, bevor React gemountet ist
+      window.addEventListener('beforeinstallprompt', e => {
+        e.preventDefault();
+        window._pwaInstallPrompt = e;
+      });
+    </script>
+
+    <script src="/_expo/static/js/web/AppEntry-4fde21feacd5173b2704d26c0ccc544b.js" defer></script>
+  </body>
 </html>
