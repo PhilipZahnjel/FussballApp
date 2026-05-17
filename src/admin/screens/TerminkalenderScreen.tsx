@@ -383,7 +383,8 @@ export function TerminkalenderScreen({
     const canBook = !isPast && isBookableDay(dayDate);
 
     const cols = trainers as TrainerProfile[];
-    const numCols = cols.length || 1;
+    const hasUnassigned = dayAppts.some(a => !a.trainer_id);
+    const numCols = (cols.length || 1) + (hasUnassigned ? 1 : 0);
     const availW  = winW - sidebarW - 32 - TIME_COL_W;
     const colW    = Math.max(150, Math.floor(availW / numCols));
 
@@ -446,6 +447,14 @@ export function TerminkalenderScreen({
                         )}
                       </View>
                     ))}
+                    {hasUnassigned && (
+                      <View style={[dg.trainerCell, { width: colW }]}>
+                        <Text style={dg.trainerName} numberOfLines={1}>Nachholtermine</Text>
+                        <View style={[dg.specialtyPill, { backgroundColor: '#6B7280' }]}>
+                          <Text style={dg.specialtyText}>Ohne Trainer</Text>
+                        </View>
+                      </View>
+                    )}
                   </View>
 
                   {/* Slot rows */}
@@ -481,6 +490,30 @@ export function TerminkalenderScreen({
                           </View>
                         );
                       })}
+                      {hasUnassigned && (
+                        <View style={[dg.cell, { width: colW }]}>
+                          {dayAppts.filter(a => !a.trainer_id && a.time === slot).map(a => {
+                            const cust  = customers.find(c => c.id === a.user_id);
+                            const color = PROGRAM_COLORS[a.program] ?? C.accent;
+                            const bg    = PROGRAM_BG[a.program]    ?? C.accentLight;
+                            const isSel = selectedApptId === a.id;
+                            return (
+                              <TouchableOpacity
+                                key={a.id}
+                                style={[dg.apptTag, { borderLeftColor: color },
+                                  isSel ? { backgroundColor: color } : { backgroundColor: bg }]}
+                                onPress={() => { setSelectedApptId(isSel ? null : a.id); setCancelError(null); setBookingDay(null); }}
+                                activeOpacity={0.85}
+                              >
+                                <Text style={dg.apptTagEmoji}>{PROGRAM_EMOJI[a.program] ?? '⚽'}</Text>
+                                <Text style={[dg.apptTagText, { color: isSel ? '#fff' : color }]} numberOfLines={1}>
+                                  {cust?.full_name ?? '—'}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+                      )}
                     </View>
                   ))}
                 </View>
