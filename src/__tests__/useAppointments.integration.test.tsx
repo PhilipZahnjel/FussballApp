@@ -82,12 +82,13 @@ beforeEach(() => {
   (supabase.auth as any).getSession = jest.fn().mockResolvedValue({
     data: { session: { user: { id: 'user-1', email: 'max@example.com' } } },
   });
+  (supabase.rpc as jest.Mock).mockResolvedValue({ data: [], error: null });
 });
 
 describe('useAppointments – initial state', () => {
   it('returns empty lists and loading=true', () => {
     const { result } = renderHook(() => useAppointments(null));
-    expect(result.current.appointments).toEqual([]);
+    expect(result.current.slotCounts).toEqual([]);
     expect(result.current.myAppointments).toEqual([]);
     expect(result.current.activeTokens).toEqual([]);
     expect(result.current.loading).toBe(true);
@@ -105,13 +106,13 @@ describe('useAppointments – no session', () => {
     });
 
     expect(result.current.loading).toBe(false);
-    expect(result.current.appointments).toEqual([]);
+    expect(result.current.slotCounts).toEqual([]);
   });
 });
 
 describe('useAppointments – loads data on session', () => {
-  it('populates appointments and myAppointments for logged in user', async () => {
-    let callCount = 0;
+  it('populates myAppointments and activeTokens for logged in user', async () => {
+    (supabase.rpc as jest.Mock).mockResolvedValue({ data: [], error: null });
     (supabase.from as jest.Mock).mockImplementation((table: string) => {
       if (table === 'appointments') {
         return makeFromChain({
@@ -136,19 +137,19 @@ describe('useAppointments – loads data on session', () => {
       await new Promise(r => setTimeout(r, 20));
     });
 
-    expect(result.current.appointments).toHaveLength(1);
     expect(result.current.myAppointments).toHaveLength(1);
     expect(result.current.activeTokens).toHaveLength(1);
     expect(result.current.loading).toBe(false);
   });
 
-  it('filters myAppointments to only current user', async () => {
-    const otherUserAppt = { ...mockAppt, id: 'appt-2', user_id: 'other-user' };
+  it('passes through myAppointments from server response (RLS filters server-side)', async () => {
+    (supabase.rpc as jest.Mock).mockResolvedValue({ data: [], error: null });
     (supabase.from as jest.Mock).mockImplementation((table: string) => {
       if (table === 'appointments') {
+        // RLS ensures only current user's appointments are returned
         return makeFromChain({
           then: jest.fn((cb: (v: any) => any) =>
-            Promise.resolve(cb({ data: [mockAppt, otherUserAppt], error: null }))
+            Promise.resolve(cb({ data: [mockAppt], error: null }))
           ),
         });
       }
@@ -167,7 +168,6 @@ describe('useAppointments – loads data on session', () => {
       await new Promise(r => setTimeout(r, 20));
     });
 
-    expect(result.current.appointments).toHaveLength(2);
     expect(result.current.myAppointments).toHaveLength(1);
     expect(result.current.myAppointments[0].id).toBe('appt-1');
   });
@@ -214,20 +214,22 @@ describe('useAppointments – addAppointment', () => {
 });
 
 describe('useAppointments – cancelAppointment', () => {
-  it('calls updateStatus with cancelled', async () => {
-    const apptList = [mockAppt];
+  it('calls cancel_and_issue_token RPC when cancelling', async () => {
+    (supabase.rpc as jest.Mock).mockImplementation((name: string) => {
+      if (name === 'cancel_and_issue_token') {
+        return Promise.resolve({ data: { appointment_id: 'appt-1', token: mockToken }, error: null });
+      }
+      return Promise.resolve({ data: [], error: null });
+    });
+
     (supabase.from as jest.Mock).mockImplementation((table: string) => {
       if (table === 'appointments') {
         return makeFromChain({
           then: jest.fn((cb: (v: any) => any) =>
-            Promise.resolve(cb({ data: apptList, error: null }))
+            Promise.resolve(cb({ data: [mockAppt], error: null }))
           ),
-          update: jest.fn().mockReturnValue({
-            eq: jest.fn().mockResolvedValue({ error: null }),
-          }),
         });
       }
-      // tokens and profiles
       return makeFromChain({
         then: jest.fn((cb: (v: any) => any) =>
           Promise.resolve(cb({ data: [], error: null }))
@@ -248,7 +250,7 @@ describe('useAppointments – cancelAppointment', () => {
       await result.current.cancelAppointment('appt-1', true);
     });
 
-    expect(supabase.from).toHaveBeenCalledWith('appointments');
+    expect(supabase.rpc).toHaveBeenCalledWith('cancel_and_issue_token', { p_appointment_id: 'appt-1' });
   });
 });
 

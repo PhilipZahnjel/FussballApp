@@ -41,6 +41,7 @@ jest.mock('./src/lib/supabase', () => {
           data: { subscription: { unsubscribe: jest.fn() } },
         })),
       },
+      rpc: jest.fn(() => Promise.resolve({ data: [], error: null })),
       channel: jest.fn(() => realtimeChannel),
       removeChannel: jest.fn(() => Promise.resolve()),
       functions: {
