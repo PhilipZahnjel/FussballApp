@@ -524,6 +524,12 @@ export function TerminkalenderScreen({
 
   // Resolve expanded detail
   const expandedDetail = expandedGroupKey ? (() => {
+    // Individual appointments use UUID key; group appointments use pipe-separated key
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(expandedGroupKey);
+    if (isUUID) {
+      const appt = allAppointments.find(a => a.id === expandedGroupKey && a.status === 'confirmed');
+      return appt ? [appt] : null;
+    }
     const parts = expandedGroupKey.split('|');
     const [expDate, expTime, expProg, expTrainerId] = parts;
     const appts = allAppointments.filter(a =>
@@ -609,10 +615,13 @@ export function TerminkalenderScreen({
                       a => a.date === ds && a.time === slot && a.status === 'confirmed'
                     );
 
-                    // Group by program+trainer
+                    // Group by program+trainer for groups; individual appointments each get their own block
                     const grouped = new Map<string, typeof slotAppts>();
                     slotAppts.forEach(a => {
-                      const key = `${ds}|${a.time}|${a.program}|${a.trainer_id ?? ''}`;
+                      const isGrpAppt = PROGRAM_CATEGORY[a.program as ProgramId] === 'gruppe';
+                      const key = isGrpAppt
+                        ? `${ds}|${a.time}|${a.program}|${a.trainer_id ?? ''}`
+                        : a.id;
                       if (!grouped.has(key)) grouped.set(key, []);
                       grouped.get(key)!.push(a);
                     });
