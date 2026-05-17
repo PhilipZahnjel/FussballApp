@@ -1,25 +1,20 @@
-appId: ${APP_ID}
+appId: host.exp.exponent
 name: "Login – Erfolgreicher Login"
 ---
 - launchApp:
     clearState: true
 
-# Login-Screen lädt
 - assertVisible: "PK-Fußballschule"
 - assertVisible: "Willkommen zurück"
 - assertVisible: "Hattersheim am Main"
 
-# Felder ausfüllen
 - tapOn: "E-Mail-Adresse"
-- inputText: ${TEST_EMAIL}
+- inputText: "philip@gmail.com"
 - tapOn: "Passwort"
-- inputText: ${TEST_PASSWORD}
-
-# Absenden
+- inputText: "123456"
 - tapOn: "Anmelden"
 - waitForAnimationToEnd
 
-# Home-Screen ist geladen
 - assertVisible: "Home"
 - assertVisible: "Termine"
 - assertVisible: "Nachholtermin"

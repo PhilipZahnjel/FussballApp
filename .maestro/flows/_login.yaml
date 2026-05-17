@@ -1,12 +1,11 @@
 # Wiederverwendbarer Login-Schritt — wird per runFlow eingebunden
-appId: ${APP_ID}
+appId: host.exp.exponent
 ---
 - assertVisible: "Willkommen zurück"
 - tapOn: "E-Mail-Adresse"
-- inputText: ${TEST_EMAIL}
+- inputText: "philip@gmail.com"
 - tapOn: "Passwort"
-- inputText: ${TEST_PASSWORD}
+- inputText: "123456"
 - tapOn: "Anmelden"
 - waitForAnimationToEnd
-# Nach erfolgreichem Login ist die Bottom-Nav sichtbar
 - assertVisible: "Home"

@@ -1,4 +1,4 @@
-appId: ${APP_ID}
+appId: host.exp.exponent
 name: "Login – Falsche Zugangsdaten zeigen Fehlermeldung"
 ---
 - launchApp:
@@ -6,17 +6,13 @@ name: "Login – Falsche Zugangsdaten zeigen Fehlermeldung"
 
 - assertVisible: "Willkommen zurück"
 
-# Falsches Passwort eingeben
 - tapOn: "E-Mail-Adresse"
-- inputText: ${TEST_EMAIL}
+- inputText: "philip@gmail.com"
 - tapOn: "Passwort"
 - inputText: "falsches_passwort_123"
 - tapOn: "Anmelden"
 - waitForAnimationToEnd
 
-# Fehlermeldung muss erscheinen
 - assertVisible: "E-Mail oder Passwort falsch."
-
-# Login-Screen bleibt sichtbar (kein Weiterleiten)
 - assertVisible: "Willkommen zurück"
 - assertNotVisible: "Home"
