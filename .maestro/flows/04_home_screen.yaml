@@ -1,0 +1,20 @@
+appId: ${APP_ID}
+name: "Home – Inhalte nach Login korrekt sichtbar"
+---
+- launchApp:
+    clearState: true
+- runFlow: _login.yaml
+
+# Auf Home-Tab prüfen
+- tapOn: "Home"
+- waitForAnimationToEnd
+
+# Header mit Studio-Name und Begrüßung vorhanden
+- assertVisible: "PK Fußballschule"
+
+# Entweder nächster Termin oder Leer-Zustand sichtbar
+- assertVisible:
+    textRegex: "Nächster Termin|Kein bevorstehender Termin"
+
+# Nachholtermin-Button ist vorhanden
+- assertVisible: "Nachholtermin buchen"

@@ -1,0 +1,24 @@
+appId: ${APP_ID}
+name: "Termine – Stornieren eines bestehenden Termins"
+# Voraussetzung: TEST_ACCOUNT hat mindestens einen bestätigten, zukünftigen Termin
+---
+- launchApp:
+    clearState: true
+- runFlow: _login.yaml
+
+- tapOn: "Termine"
+- waitForAnimationToEnd
+
+# Termine-Liste muss geladen sein
+- assertVisible: "Meine Termine"
+
+# Ersten Stornieren-Button antippen (falls vorhanden)
+# Der Button erscheint nur bei zukünftigen Terminen (nicht älter als 3h)
+- tapOn:
+    text: "Stornieren"
+    index: 0
+- waitForAnimationToEnd
+
+# Bestätigungsabfrage oder direktes Feedback
+- assertVisible:
+    textRegex: "Storniert|erfolgreich|Token"

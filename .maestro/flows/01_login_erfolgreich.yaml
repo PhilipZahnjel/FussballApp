@@ -1,0 +1,27 @@
+appId: ${APP_ID}
+name: "Login – Erfolgreicher Login"
+---
+- launchApp:
+    clearState: true
+
+# Login-Screen lädt
+- assertVisible: "PK-Fußballschule"
+- assertVisible: "Willkommen zurück"
+- assertVisible: "Hattersheim am Main"
+
+# Felder ausfüllen
+- tapOn: "E-Mail-Adresse"
+- inputText: ${TEST_EMAIL}
+- tapOn: "Passwort"
+- inputText: ${TEST_PASSWORD}
+
+# Absenden
+- tapOn: "Anmelden"
+- waitForAnimationToEnd
+
+# Home-Screen ist geladen
+- assertVisible: "Home"
+- assertVisible: "Termine"
+- assertVisible: "Nachholtermin"
+- assertVisible: "Infos"
+- assertVisible: "Profil"

@@ -1,0 +1,12 @@
+# Wiederverwendbarer Login-Schritt — wird per runFlow eingebunden
+appId: ${APP_ID}
+---
+- assertVisible: "Willkommen zurück"
+- tapOn: "E-Mail-Adresse"
+- inputText: ${TEST_EMAIL}
+- tapOn: "Passwort"
+- inputText: ${TEST_PASSWORD}
+- tapOn: "Anmelden"
+- waitForAnimationToEnd
+# Nach erfolgreichem Login ist die Bottom-Nav sichtbar
+- assertVisible: "Home"

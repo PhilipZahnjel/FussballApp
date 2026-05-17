@@ -1,0 +1,30 @@
+appId: ${APP_ID}
+name: "Navigation – Alle Tabs erreichbar"
+---
+- launchApp:
+    clearState: true
+- runFlow: _login.yaml
+
+# Termine-Tab
+- tapOn: "Termine"
+- waitForAnimationToEnd
+- assertVisible: "Meine Termine"
+
+# Nachholtermin-Tab (Buchen)
+- tapOn: "Nachholtermin"
+- waitForAnimationToEnd
+- assertVisible: "Nachholtermin"
+
+# Infos-Tab
+- tapOn: "Infos"
+- waitForAnimationToEnd
+- assertVisible: "PK Fußballschule"
+
+# Profil-Tab
+- tapOn: "Profil"
+- waitForAnimationToEnd
+- assertVisible: "Profil"
+
+# Zurück zu Home
+- tapOn: "Home"
+- waitForAnimationToEnd

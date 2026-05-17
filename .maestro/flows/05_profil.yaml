@@ -1,0 +1,36 @@
+appId: ${APP_ID}
+name: "Profil – Nutzerdaten sichtbar und Passwortänderung erreichbar"
+---
+- launchApp:
+    clearState: true
+- runFlow: _login.yaml
+
+- tapOn: "Profil"
+- waitForAnimationToEnd
+
+# Profil-Header
+- assertVisible: "Profil"
+
+# Sektionen vorhanden
+- assertVisible: "Erreichbarkeit"
+- assertVisible: "Allgemein"
+- assertVisible: "Kontakt"
+
+# Kundennummer-Zeile
+- assertVisible: "Kundennummer"
+
+# Passwort-Ändern-Button
+- assertVisible: "ÄNDERN"
+- tapOn: "ÄNDERN"
+- waitForAnimationToEnd
+
+# Passwort-Felder erscheinen
+- assertVisible: "Neues Passwort"
+- assertVisible: "Passwort bestätigen"
+
+# Abbrechen schliesst das Formular wieder
+- tapOn: "ABBRECHEN"
+- assertNotVisible: "Neues Passwort"
+
+# Abmelden-Button vorhanden
+- assertVisible: "Abmelden"

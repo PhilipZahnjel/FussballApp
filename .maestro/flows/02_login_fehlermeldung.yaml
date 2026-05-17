@@ -1,0 +1,22 @@
+appId: ${APP_ID}
+name: "Login – Falsche Zugangsdaten zeigen Fehlermeldung"
+---
+- launchApp:
+    clearState: true
+
+- assertVisible: "Willkommen zurück"
+
+# Falsches Passwort eingeben
+- tapOn: "E-Mail-Adresse"
+- inputText: ${TEST_EMAIL}
+- tapOn: "Passwort"
+- inputText: "falsches_passwort_123"
+- tapOn: "Anmelden"
+- waitForAnimationToEnd
+
+# Fehlermeldung muss erscheinen
+- assertVisible: "E-Mail oder Passwort falsch."
+
+# Login-Screen bleibt sichtbar (kein Weiterleiten)
+- assertVisible: "Willkommen zurück"
+- assertNotVisible: "Home"

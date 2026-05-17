@@ -1,0 +1,17 @@
+appId: ${APP_ID}
+name: "Logout – Abmelden führt zurück zum Login"
+---
+- launchApp:
+    clearState: true
+- runFlow: _login.yaml
+
+- tapOn: "Profil"
+- waitForAnimationToEnd
+
+- scrollToBottom
+- tapOn: "Abmelden"
+- waitForAnimationToEnd
+
+# Nach Logout muss der Login-Screen wieder erscheinen
+- assertVisible: "Willkommen zurück"
+- assertNotVisible: "Home"

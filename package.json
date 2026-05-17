@@ -9,7 +9,9 @@
     "web": "cross-env NODE_OPTIONS=--max-old-space-size=4096 expo start --web",
     "test": "jest",
     "test:coverage": "jest --coverage",
-    "test:watch": "jest --watchAll"
+    "test:watch": "jest --watchAll",
+    "e2e": "maestro test .maestro/flows --env-file .maestro/.env",
+    "e2e:single": "maestro test"
   },
   "dependencies": {
     "@expo/metro-runtime": "~3.2.3",
