@@ -240,7 +240,7 @@ export function TrainerVideosScreen({ trainers }: Props) {
                   value={formTitle}
                   onChangeText={setFormTitle}
                   placeholder="z.B. Dribbling-Übung"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor="#7A90AE"
                 />
 
                 {uploadMode === 'file' ? (
@@ -251,7 +251,6 @@ export function TrainerVideosScreen({ trainers }: Props) {
                       onPress={() => (fileInputRef.current as any)?.click()}
                       activeOpacity={0.7}
                     >
-                      <Text style={styles.filePickerIcon}>📁</Text>
                       <Text style={styles.filePickerText} numberOfLines={1}>
                         {selectedFile ? selectedFile.name : 'Datei auswählen...'}
                       </Text>
@@ -270,7 +269,7 @@ export function TrainerVideosScreen({ trainers }: Props) {
                       value={formUrl}
                       onChangeText={setFormUrl}
                       placeholder="https://..."
-                      placeholderTextColor="#9CA3AF"
+                      placeholderTextColor="#7A90AE"
                       autoCapitalize="none"
                     />
                   </>
@@ -282,7 +281,7 @@ export function TrainerVideosScreen({ trainers }: Props) {
                   value={formDesc}
                   onChangeText={setFormDesc}
                   placeholder="Kurze Beschreibung..."
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor="#7A90AE"
                   multiline
                   numberOfLines={3}
                 />
@@ -307,10 +306,9 @@ export function TrainerVideosScreen({ trainers }: Props) {
             {deleteError && <Text style={styles.fieldError}>{deleteError}</Text>}
 
             {loadingVideos ? (
-              <ActivityIndicator color="#4A7FD4" style={{ marginTop: 40 }} />
+              <ActivityIndicator color="#4A8FE8" style={{ marginTop: 40 }} />
             ) : videos.length === 0 ? (
               <View style={styles.emptyBox}>
-                <Text style={styles.emptyIcon}>🎬</Text>
                 <Text style={styles.emptyText}>Noch keine Videos für diesen Trainer.</Text>
                 <Text style={styles.emptyHint}>Klicke auf „+ Video hinzufügen" um loszulegen.</Text>
               </View>
@@ -365,59 +363,80 @@ export function TrainerVideosScreen({ trainers }: Props) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, flexDirection: 'row', backgroundColor: '#F4F6F9' },
+  root: { flex: 1, flexDirection: 'row', backgroundColor: '#EEF3FB' },
 
-  trainerList: { width: 220, backgroundColor: '#fff', borderRightWidth: 1, borderRightColor: '#E5E7EB', padding: 16 },
-  trainerListTitle: { fontSize: 11, fontWeight: '700', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 },
-  emptyTrainers: { fontSize: 13, color: '#9CA3AF', fontStyle: 'italic' },
+  trainerList: {
+    width: 220, backgroundColor: '#fff',
+    borderRightWidth: 1, borderRightColor: 'rgba(21,34,56,0.08)', padding: 16,
+  },
+  trainerListTitle: { fontSize: 11, fontWeight: '700', color: '#7A90AE', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 },
+  emptyTrainers: { fontSize: 13, color: '#7A90AE', fontStyle: 'italic' },
   trainerItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10, paddingVertical: 10, borderRadius: 10, marginBottom: 4 },
-  trainerItemActive: { backgroundColor: 'rgba(74,127,212,0.1)' },
-  trainerAvatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#1C2133', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  trainerItemActive: { backgroundColor: 'rgba(74,143,232,0.1)' },
+  trainerAvatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#152238', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   trainerAvatarText: { fontSize: 12, fontWeight: '800', color: '#fff' },
   trainerName: { fontSize: 14, fontWeight: '600', color: '#374151', flex: 1, minWidth: 0 },
-  trainerNameActive: { color: '#4A7FD4', fontWeight: '700' },
+  trainerNameActive: { color: '#4A8FE8', fontWeight: '700' },
 
   main: { flex: 1 },
   mainContent: { padding: 32, paddingBottom: 60 },
   mainHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 },
-  mainTitle: { fontSize: 20, fontWeight: '800', color: '#111827' },
-  mainSub: { fontSize: 13, color: '#9CA3AF', marginTop: 4 },
-  addBtn: { backgroundColor: 'rgba(74,127,212,0.1)', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8 },
-  addBtnText: { fontSize: 13, fontWeight: '700', color: '#4A7FD4' },
+  mainTitle: { fontSize: 20, fontWeight: '800', color: '#152238' },
+  mainSub: { fontSize: 13, color: '#7A90AE', marginTop: 4 },
+  addBtn: { backgroundColor: 'rgba(74,143,232,0.08)', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8, borderWidth: 1, borderColor: 'rgba(74,143,232,0.2)' },
+  addBtnText: { fontSize: 13, fontWeight: '700', color: '#4A8FE8' },
 
-  form: { backgroundColor: '#fff', borderRadius: 14, padding: 20, marginBottom: 20, shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 6, elevation: 2 },
+  form: {
+    backgroundColor: '#fff', borderRadius: 14, padding: 20, marginBottom: 20,
+    shadowColor: '#152238', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 6, elevation: 2,
+    borderWidth: 1, borderColor: 'rgba(21,34,56,0.08)',
+  },
   modeRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
-  modeChip: { flex: 1, paddingVertical: 9, borderRadius: 8, borderWidth: 1.5, borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', alignItems: 'center' },
-  modeChipActive: { borderColor: '#4A7FD4', backgroundColor: 'rgba(74,127,212,0.08)' },
-  modeChipText: { fontSize: 13, fontWeight: '700', color: '#9CA3AF' },
-  modeChipTextActive: { color: '#4A7FD4' },
-  fieldLabel: { fontSize: 12, fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, marginTop: 12 },
-  input: { backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: '#111827', outlineWidth: 0 } as any,
+  modeChip: { flex: 1, paddingVertical: 9, borderRadius: 8, borderWidth: 1.5, borderColor: 'rgba(21,34,56,0.08)', backgroundColor: '#F4F8FF', alignItems: 'center' },
+  modeChipActive: { borderColor: '#4A8FE8', backgroundColor: 'rgba(74,143,232,0.08)' },
+  modeChipText: { fontSize: 13, fontWeight: '700', color: '#7A90AE' },
+  modeChipTextActive: { color: '#4A8FE8' },
+  fieldLabel: { fontSize: 12, fontWeight: '700', color: '#4A6080', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, marginTop: 12 },
+  input: {
+    backgroundColor: '#F4F8FF', borderWidth: 1, borderColor: 'rgba(21,34,56,0.08)',
+    borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: '#152238', outlineWidth: 0,
+  } as any,
   inputMulti: { minHeight: 72, textAlignVertical: 'top' },
-  filePickerBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#F9FAFB', borderWidth: 1.5, borderColor: '#E5E7EB', borderRadius: 8, borderStyle: 'dashed', paddingHorizontal: 14, paddingVertical: 14 } as any,
-  filePickerIcon: { fontSize: 20 },
+  filePickerBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#F4F8FF', borderWidth: 1.5, borderColor: 'rgba(21,34,56,0.08)',
+    borderRadius: 8, borderStyle: 'dashed', paddingHorizontal: 14, paddingVertical: 14,
+  } as any,
   filePickerText: { flex: 1, fontSize: 14, color: '#374151', fontWeight: '500', minWidth: 0 },
-  filePickerSize: { fontSize: 12, color: '#9CA3AF', flexShrink: 0 },
+  filePickerSize: { fontSize: 12, color: '#7A90AE', flexShrink: 0 },
   fieldError: { fontSize: 13, color: '#EF4444', fontWeight: '600', marginTop: 10 },
-  saveBtn: { backgroundColor: '#4A7FD4', borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 16 },
+  saveBtn: {
+    backgroundColor: '#152238', borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 16,
+    shadowColor: '#152238', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18, shadowRadius: 12, elevation: 6,
+  },
   saveBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 
   emptyBox: { alignItems: 'center', paddingVertical: 60 },
-  emptyIcon: { fontSize: 48, marginBottom: 16 },
   emptyText: { fontSize: 16, fontWeight: '700', color: '#374151', marginBottom: 8 },
-  emptyHint: { fontSize: 13, color: '#9CA3AF' },
+  emptyHint: { fontSize: 13, color: '#7A90AE' },
 
-  videoCard: { backgroundColor: '#fff', borderRadius: 14, padding: 18, marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 16, shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 6, elevation: 2 },
+  videoCard: {
+    backgroundColor: '#fff', borderRadius: 14, padding: 18, marginBottom: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 16,
+    shadowColor: '#152238', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 6, elevation: 2,
+    borderWidth: 1, borderColor: 'rgba(21,34,56,0.08)',
+  },
   videoInfo: { flex: 1, minWidth: 0 },
   videoTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' },
-  videoTitle: { fontSize: 15, fontWeight: '700', color: '#111827' },
+  videoTitle: { fontSize: 15, fontWeight: '700', color: '#152238' },
   uploadedBadge: { backgroundColor: 'rgba(34,197,94,0.1)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
   uploadedBadgeText: { fontSize: 11, fontWeight: '700', color: '#16A34A' },
-  videoDesc: { fontSize: 13, color: '#6B7280', marginBottom: 4 },
-  videoUrl: { fontSize: 12, color: '#9CA3AF' },
+  videoDesc: { fontSize: 13, color: '#4A6080', marginBottom: 4 },
+  videoUrl: { fontSize: 12, color: '#7A90AE' },
   videoActions: { flexDirection: 'row', gap: 8, flexShrink: 0 },
-  openBtn: { backgroundColor: 'rgba(74,127,212,0.1)', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
-  openBtnText: { fontSize: 13, fontWeight: '700', color: '#4A7FD4' },
+  openBtn: { backgroundColor: 'rgba(74,143,232,0.08)', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: 'rgba(74,143,232,0.2)' },
+  openBtnText: { fontSize: 13, fontWeight: '700', color: '#4A8FE8' },
   deleteBtn: { backgroundColor: 'rgba(239,68,68,0.08)', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
   deleteBtnText: { fontSize: 13, fontWeight: '700', color: '#EF4444' },
 });

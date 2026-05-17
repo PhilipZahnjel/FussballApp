@@ -21,9 +21,9 @@ interface Props {
   }) => Promise<{ error: string | null; tempPassword?: string; customerNumber?: number }>;
 }
 
-const PLAYER_TYPE_OPTIONS: { id: PlayerType; label: string; icon: string }[] = [
-  { id: 'feldspieler', label: 'Feldspieler', icon: '⚽' },
-  { id: 'torwart', label: 'Torwart', icon: '🧤' },
+const PLAYER_TYPE_OPTIONS: { id: PlayerType; label: string }[] = [
+  { id: 'feldspieler', label: 'Feldspieler' },
+  { id: 'torwart', label: 'Torwart' },
 ];
 
 export function KundenScreen({ customers, allAppointments, loading, onSelectCustomer, onCreateCustomer }: Props) {
@@ -102,7 +102,7 @@ export function KundenScreen({ customers, allAppointments, loading, onSelectCust
     );
   }, [customers, query, filterType]);
 
-  if (loading) return <ActivityIndicator style={{ flex: 1 }} color="#4A7FD4" />;
+  if (loading) return <ActivityIndicator style={{ flex: 1 }} color="#4A8FE8" />;
 
   return (
     <View style={styles.root}>
@@ -145,7 +145,17 @@ export function KundenScreen({ customers, allAppointments, loading, onSelectCust
                 onPress={() => setFormPlayerType(opt.id)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.typeChipIcon}>{opt.icon}</Text>
+                <View style={[
+                  styles.typeChipAvatar,
+                  { backgroundColor: opt.id === 'torwart' ? 'rgba(155,89,182,0.15)' : 'rgba(74,143,232,0.15)' },
+                ]}>
+                  <Text style={[
+                    styles.typeChipAvatarText,
+                    { color: opt.id === 'torwart' ? '#9B59B6' : '#4A8FE8' },
+                  ]}>
+                    {opt.id === 'torwart' ? 'T' : 'F'}
+                  </Text>
+                </View>
                 <Text style={[styles.typeChipText, formPlayerType === opt.id && styles.typeChipTextActive]}>
                   {opt.label}
                 </Text>
@@ -164,7 +174,7 @@ export function KundenScreen({ customers, allAppointments, loading, onSelectCust
                 activeOpacity={0.7}
               >
                 <Text style={[styles.typeChipText, formLocation === loc && styles.typeChipTextActive]}>
-                  📍 {loc}
+                  {loc}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -173,31 +183,31 @@ export function KundenScreen({ customers, allAppointments, loading, onSelectCust
           <View style={styles.formRow}>
             <View style={styles.formField}>
               <Text style={styles.fieldLabel}>Name des Kindes / Kunden *</Text>
-              <TextInput style={styles.input} value={formName} onChangeText={setFormName} placeholder="Max Mustermann" placeholderTextColor="#9CA3AF" />
+              <TextInput style={styles.input} value={formName} onChangeText={setFormName} placeholder="Max Mustermann" placeholderTextColor="#7A90AE" />
             </View>
             <View style={styles.formField}>
               <Text style={styles.fieldLabel}>Elternname</Text>
-              <TextInput style={styles.input} value={formParentName} onChangeText={setFormParentName} placeholder="Maria Mustermann" placeholderTextColor="#9CA3AF" />
+              <TextInput style={styles.input} value={formParentName} onChangeText={setFormParentName} placeholder="Maria Mustermann" placeholderTextColor="#7A90AE" />
             </View>
           </View>
           <View style={styles.formRow}>
             <View style={styles.formField}>
               <Text style={styles.fieldLabel}>E-Mail *</Text>
-              <TextInput style={styles.input} value={formEmail} onChangeText={setFormEmail} placeholder="max@beispiel.de" placeholderTextColor="#9CA3AF" keyboardType="email-address" autoCapitalize="none" />
+              <TextInput style={styles.input} value={formEmail} onChangeText={setFormEmail} placeholder="max@beispiel.de" placeholderTextColor="#7A90AE" keyboardType="email-address" autoCapitalize="none" />
             </View>
             <View style={styles.formField}>
               <Text style={styles.fieldLabel}>Telefon</Text>
-              <TextInput style={styles.input} value={formPhone} onChangeText={setFormPhone} placeholder="0170 1234567" placeholderTextColor="#9CA3AF" keyboardType="phone-pad" />
+              <TextInput style={styles.input} value={formPhone} onChangeText={setFormPhone} placeholder="0170 1234567" placeholderTextColor="#7A90AE" keyboardType="phone-pad" />
             </View>
           </View>
           <View style={styles.formRow}>
             <View style={styles.formField}>
               <Text style={styles.fieldLabel}>Geburtsdatum (YYYY-MM-DD)</Text>
-              <TextInput style={styles.input} value={formBirth} onChangeText={setFormBirth} placeholder="2010-05-15" placeholderTextColor="#9CA3AF" />
+              <TextInput style={styles.input} value={formBirth} onChangeText={setFormBirth} placeholder="2010-05-15" placeholderTextColor="#7A90AE" />
             </View>
             <View style={styles.formField}>
               <Text style={styles.fieldLabel}>Adresse</Text>
-              <TextInput style={styles.input} value={formAddress} onChangeText={setFormAddress} placeholder="Musterstr. 1, 12345 Stadt" placeholderTextColor="#9CA3AF" />
+              <TextInput style={styles.input} value={formAddress} onChangeText={setFormAddress} placeholder="Musterstr. 1, 12345 Stadt" placeholderTextColor="#7A90AE" />
             </View>
           </View>
           {formError && <Text style={styles.formError}>{formError}</Text>}
@@ -217,18 +227,17 @@ export function KundenScreen({ customers, allAppointments, loading, onSelectCust
             activeOpacity={0.7}
           >
             <Text style={[styles.filterChipText, filterType === t && styles.filterChipTextActive]}>
-              {t === 'all' ? 'Alle' : t === 'feldspieler' ? '⚽ Feldspieler' : '🧤 Torwart'}
+              {t === 'all' ? 'Alle' : t === 'feldspieler' ? 'Feldspieler' : 'Torwart'}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
 
       <View style={styles.searchWrap}>
-        <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
           style={styles.searchInput}
           placeholder="Name, E-Mail, Telefon oder Kundennummer..."
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor="#7A90AE"
           value={query}
           onChangeText={setQuery}
         />
@@ -246,6 +255,7 @@ export function KundenScreen({ customers, allAppointments, loading, onSelectCust
         {filtered.map(c => {
           const apptCount = allAppointments.filter(a => a.user_id === c.id && a.status === 'confirmed').length;
           const levelKey = c.level as PlayerLevel | null;
+          const isTorwart = c.player_type === 'torwart';
           return (
             <TouchableOpacity
               key={c.id}
@@ -253,9 +263,9 @@ export function KundenScreen({ customers, allAppointments, loading, onSelectCust
               onPress={() => onSelectCustomer(c.id)}
               activeOpacity={0.7}
             >
-              <View style={styles.avatar}>
-                <Text style={styles.avatarIcon}>
-                  {c.player_type === 'torwart' ? '🧤' : '⚽'}
+              <View style={[styles.avatar, { backgroundColor: isTorwart ? 'rgba(155,89,182,0.12)' : 'rgba(74,143,232,0.12)' }]}>
+                <Text style={[styles.avatarLetter, { color: isTorwart ? '#9B59B6' : '#4A8FE8' }]}>
+                  {isTorwart ? 'T' : 'F'}
                 </Text>
               </View>
               <View style={styles.info}>
@@ -287,75 +297,83 @@ export function KundenScreen({ customers, allAppointments, loading, onSelectCust
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#F4F6F9' },
+  root: { flex: 1, backgroundColor: '#EEF3FB' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 32, paddingBottom: 16 },
-  title: { fontSize: 26, fontWeight: '800', color: '#111827' },
-  count: { fontSize: 14, color: '#6B7280', fontWeight: '500' },
+  title: { fontSize: 26, fontWeight: '800', color: '#152238' },
+  count: { fontSize: 14, color: '#4A6080', fontWeight: '500' },
   filterRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 32, marginBottom: 12 },
-  filterChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#E5E7EB' },
-  filterChipActive: { borderColor: '#4A7FD4', backgroundColor: 'rgba(74,127,212,0.08)' },
-  filterChipText: { fontSize: 13, fontWeight: '600', color: '#6B7280' },
-  filterChipTextActive: { color: '#4A7FD4' },
+  filterChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: '#fff', borderWidth: 1.5, borderColor: 'rgba(21,34,56,0.08)' },
+  filterChipActive: { borderColor: '#4A8FE8', backgroundColor: 'rgba(74,143,232,0.08)' },
+  filterChipText: { fontSize: 13, fontWeight: '600', color: '#4A6080' },
+  filterChipTextActive: { color: '#4A8FE8' },
   searchWrap: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#fff', borderRadius: 12, marginHorizontal: 32,
+    backgroundColor: '#F4F8FF', borderRadius: 12, marginHorizontal: 32,
     paddingHorizontal: 16, paddingVertical: 12, marginBottom: 20,
-    shadowColor: '#000', shadowOpacity: 0.04, shadowOffset: { width: 0, height: 1 }, shadowRadius: 4, elevation: 1,
+    borderWidth: 1, borderColor: 'rgba(21,34,56,0.08)',
   },
-  searchIcon: { fontSize: 16 },
-  searchInput: { flex: 1, fontSize: 15, color: '#111827', outlineWidth: 0 } as any,
-  clearIcon: { fontSize: 14, color: '#9CA3AF', paddingHorizontal: 4 },
+  searchInput: { flex: 1, fontSize: 15, color: '#152238', outlineWidth: 0 } as any,
+  clearIcon: { fontSize: 14, color: '#7A90AE', paddingHorizontal: 4 },
   list: { flex: 1 },
   listContent: { paddingHorizontal: 32, paddingBottom: 32 },
-  empty: { textAlign: 'center', color: '#9CA3AF', fontSize: 14, paddingTop: 40 },
+  empty: { textAlign: 'center', color: '#7A90AE', fontSize: 14, paddingTop: 40 },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
     backgroundColor: '#fff', borderRadius: 14, padding: 16,
-    marginBottom: 10, shadowColor: '#000', shadowOpacity: 0.05,
+    marginBottom: 10, shadowColor: '#152238', shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 1 }, shadowRadius: 4, elevation: 1,
+    borderWidth: 1, borderColor: 'rgba(21,34,56,0.08)',
   },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(74,127,212,0.1)', alignItems: 'center', justifyContent: 'center' },
-  avatarIcon: { fontSize: 22 },
+  avatar: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  avatarLetter: { fontSize: 18, fontWeight: '800' },
   info: { flex: 1 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 3 },
-  name: { fontSize: 15, fontWeight: '700', color: '#111827' },
+  name: { fontSize: 15, fontWeight: '700', color: '#152238' },
   levelBadge: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
   levelBadgeText: { fontSize: 11, fontWeight: '700' },
-  sub: { fontSize: 13, color: '#6B7280' },
+  sub: { fontSize: 13, color: '#4A6080' },
   right: { alignItems: 'flex-end', gap: 3 },
-  customerNr: { fontSize: 13, fontWeight: '700', color: '#4A7FD4' },
-  apptCount: { fontSize: 12, color: '#9CA3AF' },
-  chevron: { fontSize: 22, color: '#D1D5DB', fontWeight: '300', marginLeft: 4 },
+  customerNr: { fontSize: 13, fontWeight: '700', color: '#4A8FE8' },
+  apptCount: { fontSize: 12, color: '#7A90AE' },
+  chevron: { fontSize: 22, color: '#7A90AE', fontWeight: '300', marginLeft: 4 },
   newBtn: {
     marginHorizontal: 32, marginBottom: 16,
-    backgroundColor: '#4A7FD4', borderRadius: 12,
+    backgroundColor: '#152238', borderRadius: 12,
     paddingVertical: 13, alignItems: 'center',
+    shadowColor: '#152238', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18, shadowRadius: 12, elevation: 6,
   },
   newBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
   form: {
     marginHorizontal: 32, marginBottom: 20,
     backgroundColor: '#fff', borderRadius: 14, padding: 20,
-    shadowColor: '#000', shadowOpacity: 0.06, shadowOffset: { width: 0, height: 2 }, shadowRadius: 8, elevation: 2,
+    shadowColor: '#152238', shadowOpacity: 0.06, shadowOffset: { width: 0, height: 2 }, shadowRadius: 8, elevation: 2,
+    borderWidth: 1, borderColor: 'rgba(21,34,56,0.08)',
   },
-  formTitle: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 16 },
+  formTitle: { fontSize: 16, fontWeight: '700', color: '#152238', marginBottom: 16 },
   typeRow: { flexDirection: 'row', gap: 12, marginBottom: 4 },
   typeChip: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    paddingVertical: 12, borderRadius: 10, borderWidth: 2, borderColor: '#E5E7EB', backgroundColor: '#F9FAFB',
+    paddingVertical: 12, borderRadius: 10, borderWidth: 2, borderColor: 'rgba(21,34,56,0.08)', backgroundColor: '#F4F8FF',
   },
-  typeChipActive: { borderColor: '#4A7FD4', backgroundColor: 'rgba(74,127,212,0.08)' },
-  typeChipIcon: { fontSize: 20 },
-  typeChipText: { fontSize: 14, fontWeight: '700', color: '#6B7280' },
-  typeChipTextActive: { color: '#4A7FD4' },
+  typeChipActive: { borderColor: '#4A8FE8', backgroundColor: 'rgba(74,143,232,0.08)' },
+  typeChipAvatar: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  typeChipAvatarText: { fontSize: 13, fontWeight: '800' },
+  typeChipText: { fontSize: 14, fontWeight: '700', color: '#4A6080' },
+  typeChipTextActive: { color: '#4A8FE8' },
   formRow: { flexDirection: 'row', gap: 14, marginBottom: 0 },
   formField: { flex: 1 },
-  fieldLabel: { fontSize: 12, fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 6, marginTop: 12 },
+  fieldLabel: { fontSize: 12, fontWeight: '700', color: '#4A6080', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 6, marginTop: 12 },
   input: {
-    backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB',
+    backgroundColor: '#F4F8FF', borderWidth: 1, borderColor: 'rgba(21,34,56,0.08)',
     borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
-    fontSize: 14, color: '#111827', outlineWidth: 0,
+    fontSize: 14, color: '#152238', outlineWidth: 0,
   } as any,
-  submitBtn: { marginTop: 20, backgroundColor: '#4A7FD4', borderRadius: 10, paddingVertical: 13, alignItems: 'center' },
+  submitBtn: {
+    marginTop: 20, backgroundColor: '#152238', borderRadius: 10, paddingVertical: 13, alignItems: 'center',
+    shadowColor: '#152238', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18, shadowRadius: 12, elevation: 6,
+  },
   submitBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
   formError: { fontSize: 13, color: '#EF4444', fontWeight: '600', marginTop: 12 },
   successBox: {
@@ -365,9 +383,9 @@ const styles = StyleSheet.create({
   },
   successHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   successTitle: { fontSize: 15, fontWeight: '800', color: '#15803D' },
-  successClose: { fontSize: 16, color: '#6B7280', fontWeight: '600', paddingHorizontal: 4 },
+  successClose: { fontSize: 16, color: '#4A6080', fontWeight: '600', paddingHorizontal: 4 },
   successLine: { fontSize: 13, color: '#374151', marginBottom: 12 },
-  successPwLabel: { fontSize: 12, fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 },
+  successPwLabel: { fontSize: 12, fontWeight: '700', color: '#4A6080', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 },
   passwordBox: { backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#86EFAC', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 12 },
   passwordText: { fontSize: 22, fontWeight: '800', color: '#15803D', letterSpacing: 2, textAlign: 'center' },
 });

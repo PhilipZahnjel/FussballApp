@@ -24,9 +24,9 @@ const PERMISSION_FLAGS: { key: keyof BookingPermissions; label: string }[] = [
   { key: 'can_book_torhueter_gruppe', label: 'Torwart Gruppe' },
 ];
 
-const PLAYER_TYPE_OPTIONS: { id: PlayerType; label: string; icon: string }[] = [
-  { id: 'feldspieler', label: 'Feldspieler', icon: '⚽' },
-  { id: 'torwart', label: 'Torwart', icon: '🧤' },
+const PLAYER_TYPE_OPTIONS: { id: PlayerType; label: string }[] = [
+  { id: 'feldspieler', label: 'Feldspieler' },
+  { id: 'torwart', label: 'Torwart' },
 ];
 
 interface Props {
@@ -64,7 +64,7 @@ function SectionCard({ title, children }: { title: string; children: React.React
 
 function ApptRow({ appt, onCancel }: { appt: AdminAppointment; onCancel?: (id: string) => void }) {
   const prog = PROGRAMS.find(p => p.id === appt.program);
-  const color = PROGRAM_COLORS[appt.program] ?? '#4A7FD4';
+  const color = PROGRAM_COLORS[appt.program] ?? '#4A8FE8';
   const ts = todayStr();
   const isUpcoming = appt.status === 'confirmed' && appt.date >= ts;
   const dimmed = appt.status === 'cancelled' || appt.date < ts;
@@ -72,7 +72,7 @@ function ApptRow({ appt, onCancel }: { appt: AdminAppointment; onCancel?: (id: s
     <View style={[styles.apptRow, dimmed && { opacity: 0.5 }]}>
       <View style={[styles.apptColorBar, { backgroundColor: dimmed ? '#D1D5DB' : color }]} />
       <View style={styles.apptInfo}>
-        <Text style={[styles.apptProg, { color: appt.status === 'cancelled' ? '#9CA3AF' : color }]}>{prog?.name ?? appt.program}</Text>
+        <Text style={[styles.apptProg, { color: appt.status === 'cancelled' ? '#7A90AE' : color }]}>{prog?.name ?? appt.program}</Text>
         <Text style={styles.apptDate}>{fmtDate(appt.date)} · {appt.time} Uhr</Text>
       </View>
       {appt.status === 'cancelled' && (
@@ -196,6 +196,8 @@ export function KundenDetailScreen({
     if (error) setDeleteError(error);
   };
 
+  const isTorwart = customer.player_type === 'torwart';
+
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
       <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.7}>
@@ -204,15 +206,15 @@ export function KundenDetailScreen({
       </TouchableOpacity>
 
       <View style={styles.pageHeader}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarIconLarge}>
-            {customer.player_type === 'torwart' ? '🧤' : '⚽'}
+        <View style={[styles.avatar, { backgroundColor: isTorwart ? 'rgba(155,89,182,0.12)' : 'rgba(74,143,232,0.12)' }]}>
+          <Text style={[styles.avatarLetter, { color: isTorwart ? '#9B59B6' : '#4A8FE8' }]}>
+            {isTorwart ? 'T' : 'F'}
           </Text>
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.customerName}>{customer.full_name}</Text>
           <Text style={styles.customerSub}>
-            {customer.player_type === 'torwart' ? 'Torwart' : customer.player_type === 'feldspieler' ? 'Feldspieler' : 'Spieler'} #{customer.customer_number}
+            {isTorwart ? 'Torwart' : customer.player_type === 'feldspieler' ? 'Feldspieler' : 'Spieler'} #{customer.customer_number}
             {birthYear ? ` · Jg. ${birthYear}` : ''}
           </Text>
         </View>
@@ -256,13 +258,23 @@ export function KundenDetailScreen({
                   onPress={() => setEditPlayerType(opt.id)}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.typeChipIcon}>{opt.icon}</Text>
+                  <View style={[
+                    styles.typeChipAvatar,
+                    { backgroundColor: opt.id === 'torwart' ? 'rgba(155,89,182,0.15)' : 'rgba(74,143,232,0.15)' },
+                  ]}>
+                    <Text style={[
+                      styles.typeChipAvatarText,
+                      { color: opt.id === 'torwart' ? '#9B59B6' : '#4A8FE8' },
+                    ]}>
+                      {opt.id === 'torwart' ? 'T' : 'F'}
+                    </Text>
+                  </View>
                   <Text style={[styles.typeChipText, editPlayerType === opt.id && styles.typeChipTextActive]}>{opt.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
             <Text style={styles.fieldLabel}>Elternname</Text>
-            <TextInput style={styles.editInput} value={editParentName} onChangeText={setEditParentName} placeholder="Elternname" placeholderTextColor="#9CA3AF" />
+            <TextInput style={styles.editInput} value={editParentName} onChangeText={setEditParentName} placeholder="Elternname" placeholderTextColor="#7A90AE" />
             <Text style={styles.fieldLabel}>Standort *</Text>
             <View style={styles.typeRow}>
               {LOCATIONS.map(loc => (
@@ -272,12 +284,12 @@ export function KundenDetailScreen({
                   onPress={() => setEditLocation(loc)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.typeChipText, editLocation === loc && styles.typeChipTextActive]}>📍 {loc}</Text>
+                  <Text style={[styles.typeChipText, editLocation === loc && styles.typeChipTextActive]}>{loc}</Text>
                 </TouchableOpacity>
               ))}
             </View>
             <Text style={styles.fieldLabel}>Geburtsdatum (YYYY-MM-DD)</Text>
-            <TextInput style={styles.editInput} value={editBirthDate} onChangeText={setEditBirthDate} placeholder="2010-05-15" placeholderTextColor="#9CA3AF" />
+            <TextInput style={styles.editInput} value={editBirthDate} onChangeText={setEditBirthDate} placeholder="2010-05-15" placeholderTextColor="#7A90AE" />
             {profileError && <Text style={styles.fieldError}>{profileError}</Text>}
             <View style={styles.editBtns}>
               <TouchableOpacity style={[styles.saveBtn, { flex: 1 }, profileLoading && { opacity: 0.6 }]} onPress={doSaveProfile} disabled={profileLoading} activeOpacity={0.7}>
@@ -296,7 +308,7 @@ export function KundenDetailScreen({
             <InfoRow label="Geburtsdatum" value={customer.birth_date} />
             {birthYear && <InfoRow label="Jahrgang" value={String(birthYear)} />}
             {customer.location && <InfoRow label="Standort" value={customer.location} />}
-            <InfoRow label="Spielertyp" value={customer.player_type === 'torwart' ? '🧤 Torwart' : customer.player_type === 'feldspieler' ? '⚽ Feldspieler' : '—'} />
+            <InfoRow label="Spielertyp" value={isTorwart ? 'Torwart' : customer.player_type === 'feldspieler' ? 'Feldspieler' : '—'} />
             <TouchableOpacity style={styles.editProfileBtn} onPress={() => setEditProfile(true)} activeOpacity={0.7}>
               <Text style={styles.editProfileBtnText}>Bearbeiten</Text>
             </TouchableOpacity>
@@ -339,7 +351,7 @@ export function KundenDetailScreen({
             <Switch
               value={!!(customer as any)[key]}
               onValueChange={v => doTogglePermission(key, v)}
-              trackColor={{ false: '#E5E7EB', true: '#4A7FD4' }}
+              trackColor={{ false: '#E5E7EB', true: '#4A8FE8' }}
               thumbColor="#fff"
             />
           </View>
@@ -430,7 +442,7 @@ export function KundenDetailScreen({
         {showBooking && (
           <View style={styles.formSection}>
             <Text style={styles.fieldLabel}>Datum (YYYY-MM-DD)</Text>
-            <TextInput style={styles.input} value={bookDate} onChangeText={setBookDate} placeholder="2026-05-01" placeholderTextColor="#9CA3AF" />
+            <TextInput style={styles.input} value={bookDate} onChangeText={setBookDate} placeholder="2026-05-01" placeholderTextColor="#7A90AE" />
 
             <Text style={styles.fieldLabel}>Training</Text>
             <View style={styles.programRow}>
@@ -469,7 +481,7 @@ export function KundenDetailScreen({
             <Text style={styles.fieldLabel}>Trainer *</Text>
             {trainers.length === 0 ? (
               <View style={styles.birthYearWarning}>
-                <Text style={styles.birthYearWarningText}>⚠ Kein Trainer vorhanden. Bitte zuerst einen Trainer anlegen.</Text>
+                <Text style={styles.birthYearWarningText}>Hinweis: Kein Trainer vorhanden. Bitte zuerst einen Trainer anlegen.</Text>
               </View>
             ) : (
               <View style={styles.slotRow}>
@@ -488,7 +500,7 @@ export function KundenDetailScreen({
 
             {PROGRAM_CATEGORY[bookProgram as ProgramId] === 'gruppe' && !birthYear && (
               <View style={styles.birthYearWarning}>
-                <Text style={styles.birthYearWarningText}>⚠ Bitte zuerst Geburtsdatum im Profil eintragen (wird für Gruppenkompatibilität benötigt).</Text>
+                <Text style={styles.birthYearWarningText}>Hinweis: Bitte zuerst Geburtsdatum im Profil eintragen (wird für Gruppenkompatibilität benötigt).</Text>
               </View>
             )}
 
@@ -525,73 +537,85 @@ export function KundenDetailScreen({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#F4F6F9' },
+  root: { flex: 1, backgroundColor: '#EEF3FB' },
   content: { padding: 32 },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 24 },
-  backArrow: { fontSize: 22, color: '#4A7FD4', fontWeight: '600' },
-  backLabel: { fontSize: 14, fontWeight: '600', color: '#4A7FD4' },
+  backArrow: { fontSize: 22, color: '#4A8FE8', fontWeight: '600' },
+  backLabel: { fontSize: 14, fontWeight: '600', color: '#4A8FE8' },
   pageHeader: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 28 },
-  avatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(74,127,212,0.1)', alignItems: 'center', justifyContent: 'center' },
-  avatarIconLarge: { fontSize: 28 },
-  customerName: { fontSize: 22, fontWeight: '800', color: '#111827' },
-  customerSub: { fontSize: 14, color: '#6B7280', marginTop: 2 },
-  card: { backgroundColor: '#fff', borderRadius: 14, padding: 20, marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 6, elevation: 2 },
-  cardTitle: { fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 14 },
+  avatar: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
+  avatarLetter: { fontSize: 22, fontWeight: '800' },
+  customerName: { fontSize: 22, fontWeight: '800', color: '#152238' },
+  customerSub: { fontSize: 14, color: '#4A6080', marginTop: 2 },
+  card: {
+    backgroundColor: '#fff', borderRadius: 14, padding: 20, marginBottom: 16,
+    shadowColor: '#152238', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 6, elevation: 2,
+    borderWidth: 1, borderColor: 'rgba(21,34,56,0.08)',
+  },
+  cardTitle: { fontSize: 15, fontWeight: '700', color: '#152238', marginBottom: 14 },
   cardTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
-  infoLabel: { fontSize: 13, color: '#6B7280' },
-  infoValue: { fontSize: 13, fontWeight: '600', color: '#111827', textAlign: 'right', maxWidth: '60%' },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#EEF3FB' },
+  infoLabel: { fontSize: 13, color: '#4A6080' },
+  infoValue: { fontSize: 13, fontWeight: '600', color: '#152238', textAlign: 'right', maxWidth: '60%' },
   editSection: { paddingTop: 4 },
   editBtns: { flexDirection: 'row', gap: 10, marginTop: 14 },
-  editInput: { backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: '#111827', marginBottom: 4, outlineWidth: 0 } as any,
-  editProfileBtn: { marginTop: 12, backgroundColor: 'rgba(74,127,212,0.08)', borderRadius: 8, paddingVertical: 9, paddingHorizontal: 16, alignSelf: 'flex-start', borderWidth: 1, borderColor: 'rgba(74,127,212,0.2)' },
-  editProfileBtnText: { fontSize: 13, fontWeight: '700', color: '#4A7FD4' },
-  cancelEditBtn: { borderRadius: 10, paddingVertical: 12, alignItems: 'center', backgroundColor: '#F3F4F6' },
-  cancelEditText: { fontSize: 14, fontWeight: '600', color: '#6B7280' },
+  editInput: {
+    backgroundColor: '#F4F8FF', borderWidth: 1, borderColor: 'rgba(21,34,56,0.08)',
+    borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: '#152238', marginBottom: 4, outlineWidth: 0,
+  } as any,
+  editProfileBtn: { marginTop: 12, backgroundColor: 'rgba(74,143,232,0.08)', borderRadius: 8, paddingVertical: 9, paddingHorizontal: 16, alignSelf: 'flex-start', borderWidth: 1, borderColor: 'rgba(74,143,232,0.2)' },
+  editProfileBtnText: { fontSize: 13, fontWeight: '700', color: '#4A8FE8' },
+  cancelEditBtn: { borderRadius: 10, paddingVertical: 12, alignItems: 'center', backgroundColor: 'rgba(21,34,56,0.06)' },
+  cancelEditText: { fontSize: 14, fontWeight: '600', color: '#4A6080' },
   typeRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
-  typeChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 10, borderWidth: 2, borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' },
-  typeChipActive: { borderColor: '#4A7FD4', backgroundColor: 'rgba(74,127,212,0.08)' },
-  typeChipIcon: { fontSize: 18 },
-  typeChipText: { fontSize: 13, fontWeight: '700', color: '#6B7280' },
-  typeChipTextActive: { color: '#4A7FD4' },
+  typeChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 10, borderWidth: 2, borderColor: 'rgba(21,34,56,0.08)', backgroundColor: '#F4F8FF' },
+  typeChipActive: { borderColor: '#4A8FE8', backgroundColor: 'rgba(74,143,232,0.08)' },
+  typeChipAvatar: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  typeChipAvatarText: { fontSize: 12, fontWeight: '800' },
+  typeChipText: { fontSize: 13, fontWeight: '700', color: '#4A6080' },
+  typeChipTextActive: { color: '#4A8FE8' },
   levelRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 10 },
   levelChip: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 10, borderWidth: 2 },
   levelChipText: { fontSize: 14, fontWeight: '700' },
-  noLevel: { fontSize: 13, color: '#9CA3AF', fontStyle: 'italic', marginTop: 4 },
-  permRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  noLevel: { fontSize: 13, color: '#7A90AE', fontStyle: 'italic', marginTop: 4 },
+  permRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#EEF3FB' },
   permLabel: { fontSize: 14, color: '#374151', fontWeight: '500' },
-  sectionLabel: { fontSize: 13, fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 16, marginBottom: 8 },
+  sectionLabel: { fontSize: 13, fontWeight: '700', color: '#4A6080', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 16, marginBottom: 8 },
   tokenDisplayRow: { flexDirection: 'row', gap: 10 },
-  tokenDisplayItem: { flex: 1, backgroundColor: '#F9FAFB', borderRadius: 10, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB' },
-  tokenDisplayCount: { fontSize: 28, fontWeight: '800', color: '#111827' },
-  tokenDisplayLabel: { fontSize: 11, fontWeight: '600', color: '#9CA3AF', marginTop: 4, textAlign: 'center' },
-  fieldLabel: { fontSize: 12, fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, marginTop: 4 },
-  formSection: { backgroundColor: '#F9FAFB', borderRadius: 10, padding: 16, marginBottom: 16 },
-  input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: '#111827', outlineWidth: 0 } as any,
-  saveBtn: { backgroundColor: '#4A7FD4', borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 16 },
+  tokenDisplayItem: { flex: 1, backgroundColor: '#F4F8FF', borderRadius: 10, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(21,34,56,0.08)' },
+  tokenDisplayCount: { fontSize: 28, fontWeight: '800', color: '#152238' },
+  tokenDisplayLabel: { fontSize: 11, fontWeight: '600', color: '#7A90AE', marginTop: 4, textAlign: 'center' },
+  fieldLabel: { fontSize: 12, fontWeight: '700', color: '#4A6080', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, marginTop: 4 },
+  formSection: { backgroundColor: '#F4F8FF', borderRadius: 10, padding: 16, marginBottom: 16 },
+  input: { backgroundColor: '#fff', borderWidth: 1, borderColor: 'rgba(21,34,56,0.08)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: '#152238', outlineWidth: 0 } as any,
+  saveBtn: {
+    backgroundColor: '#152238', borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 16,
+    shadowColor: '#152238', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18, shadowRadius: 12, elevation: 6,
+  },
   saveBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
-  addBtn: { backgroundColor: 'rgba(74,127,212,0.1)', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 7 },
-  addBtnText: { fontSize: 13, fontWeight: '700', color: '#4A7FD4' },
+  addBtn: { backgroundColor: 'rgba(74,143,232,0.08)', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: 'rgba(74,143,232,0.2)' },
+  addBtnText: { fontSize: 13, fontWeight: '700', color: '#4A8FE8' },
   programRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
-  programChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, borderWidth: 1.5, borderColor: '#E5E7EB', backgroundColor: '#fff' },
-  programChipActive: { borderColor: '#4A7FD4', backgroundColor: 'rgba(74,127,212,0.1)' },
-  programChipText: { fontSize: 13, color: '#6B7280', fontWeight: '600' },
-  programChipTextActive: { color: '#4A7FD4' },
+  programChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, borderWidth: 1.5, borderColor: 'rgba(21,34,56,0.08)', backgroundColor: '#fff' },
+  programChipActive: { borderColor: '#4A8FE8', backgroundColor: 'rgba(74,143,232,0.1)' },
+  programChipText: { fontSize: 13, color: '#4A6080', fontWeight: '600' },
+  programChipTextActive: { color: '#4A8FE8' },
   slotRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
-  slotChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1.5, borderColor: '#E5E7EB', backgroundColor: '#fff' },
-  slotChipActive: { borderColor: '#4A7FD4', backgroundColor: 'rgba(74,127,212,0.1)' },
-  slotChipText: { fontSize: 13, color: '#6B7280', fontWeight: '600' },
-  slotChipTextActive: { color: '#4A7FD4' },
-  slotChipDisabled: { borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', opacity: 0.5 },
-  slotChipTextDisabled: { color: '#D1D5DB' },
+  slotChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1.5, borderColor: 'rgba(21,34,56,0.08)', backgroundColor: '#fff' },
+  slotChipActive: { borderColor: '#4A8FE8', backgroundColor: 'rgba(74,143,232,0.1)' },
+  slotChipText: { fontSize: 13, color: '#4A6080', fontWeight: '600' },
+  slotChipTextActive: { color: '#4A8FE8' },
+  slotChipDisabled: { borderColor: 'rgba(21,34,56,0.06)', backgroundColor: '#F4F8FF', opacity: 0.5 },
+  slotChipTextDisabled: { color: '#7A90AE' },
   fieldError: { fontSize: 13, color: '#EF4444', fontWeight: '600', marginTop: 10 },
-  apptSection: { fontSize: 12, fontWeight: '700', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
-  emptyAppt: { textAlign: 'center', color: '#9CA3AF', fontSize: 14, paddingVertical: 20 },
-  apptRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  apptSection: { fontSize: 12, fontWeight: '700', color: '#7A90AE', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
+  emptyAppt: { textAlign: 'center', color: '#7A90AE', fontSize: 14, paddingVertical: 20 },
+  apptRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#EEF3FB' },
   apptColorBar: { width: 3, height: 36, borderRadius: 2 },
   apptInfo: { flex: 1 },
   apptProg: { fontSize: 14, fontWeight: '700' },
-  apptDate: { fontSize: 12, color: '#6B7280', marginTop: 2 },
+  apptDate: { fontSize: 12, color: '#4A6080', marginTop: 2 },
   cancelledBadge: { backgroundColor: 'rgba(239,68,68,0.1)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
   cancelledText: { fontSize: 11, fontWeight: '700', color: '#EF4444' },
   stornBtn: { backgroundColor: 'rgba(239,68,68,0.1)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
@@ -605,23 +629,20 @@ const styles = StyleSheet.create({
   deleteConfirmBtns: { flexDirection: 'row', gap: 10 },
   deleteConfirmYes: { flex: 1, backgroundColor: '#EF4444', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
   deleteConfirmYesText: { fontSize: 14, fontWeight: '700', color: '#fff' },
-  deleteConfirmNo: { flex: 1, backgroundColor: '#F3F4F6', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
-  deleteConfirmNoText: { fontSize: 14, fontWeight: '600', color: '#6B7280' },
-  birthYearDisplay: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(74,127,212,0.08)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 4 },
-  birthYearText: { fontSize: 15, fontWeight: '700', color: '#4A7FD4' },
-  birthYearHint: { fontSize: 12, color: '#9CA3AF' },
+  deleteConfirmNo: { flex: 1, backgroundColor: 'rgba(21,34,56,0.06)', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
+  deleteConfirmNoText: { fontSize: 14, fontWeight: '600', color: '#4A6080' },
   birthYearWarning: { backgroundColor: '#FEF3C7', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 4 },
   birthYearWarningText: { fontSize: 13, color: '#92400E' },
-  attendanceCounter: { fontSize: 13, fontWeight: '700', color: '#4A7FD4', marginBottom: 12, backgroundColor: 'rgba(74,127,212,0.08)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
-  attendanceRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  attendanceCounter: { fontSize: 13, fontWeight: '700', color: '#4A8FE8', marginBottom: 12, backgroundColor: 'rgba(74,143,232,0.08)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
+  attendanceRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#EEF3FB' },
   attendanceInfo: { flex: 1 },
   attendanceProg: { fontSize: 13, fontWeight: '700', color: '#374151' },
-  attendanceDate: { fontSize: 12, color: '#6B7280', marginTop: 2 },
+  attendanceDate: { fontSize: 12, color: '#4A6080', marginTop: 2 },
   attendanceBtns: { flexDirection: 'row', gap: 8 },
-  attendanceBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1.5, borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' },
+  attendanceBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1.5, borderColor: 'rgba(21,34,56,0.08)', backgroundColor: '#F4F8FF' },
   attendanceBtnPresent: { borderColor: '#22C55E', backgroundColor: 'rgba(34,197,94,0.1)' },
   attendanceBtnAbsent: { borderColor: '#EF4444', backgroundColor: 'rgba(239,68,68,0.1)' },
-  attendanceBtnText: { fontSize: 12, fontWeight: '700', color: '#9CA3AF' },
+  attendanceBtnText: { fontSize: 12, fontWeight: '700', color: '#7A90AE' },
   attendanceBtnTextPresent: { color: '#16A34A' },
   attendanceBtnTextAbsent: { color: '#EF4444' },
 });

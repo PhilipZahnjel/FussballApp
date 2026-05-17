@@ -64,7 +64,7 @@ export function NotificationsScreen() {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
-  if (loading) return <ActivityIndicator style={{ flex: 1 }} color="#4A7FD4" />;
+  if (loading) return <ActivityIndicator style={{ flex: 1 }} color="#4A8FE8" />;
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
@@ -88,7 +88,7 @@ export function NotificationsScreen() {
             value={formTitle}
             onChangeText={setFormTitle}
             placeholder="z.B. Neuer Standort ab Juni"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor="#7A90AE"
           />
           <Text style={styles.fieldLabel}>Text *</Text>
           <TextInput
@@ -96,7 +96,7 @@ export function NotificationsScreen() {
             value={formBody}
             onChangeText={setFormBody}
             placeholder="Beschreibung der Info..."
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor="#7A90AE"
             multiline
             numberOfLines={4}
           />
@@ -110,7 +110,7 @@ export function NotificationsScreen() {
                 activeOpacity={0.7}
               >
                 <Text style={[styles.locationChipText, formLocation === loc && styles.locationChipTextActive]}>
-                  📍 {loc}
+                  {loc}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -138,7 +138,7 @@ export function NotificationsScreen() {
               <Text style={styles.notifDate}>{fmtDate(n.created_at)}</Text>
               {n.location && (
                 <View style={styles.locationBadge}>
-                  <Text style={styles.locationText}>📍 {n.location}</Text>
+                  <Text style={styles.locationText}>{n.location}</Text>
                 </View>
               )}
               <TouchableOpacity onPress={() => doDelete(n.id)} activeOpacity={0.7} style={styles.deleteBtn}>
@@ -155,34 +155,56 @@ export function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#F4F6F9' },
+  root: { flex: 1, backgroundColor: '#EEF3FB' },
   content: { padding: 32 },
-  title: { fontSize: 26, fontWeight: '800', color: '#111827', marginBottom: 6 },
-  sub: { fontSize: 14, color: '#6B7280', marginBottom: 24 },
-  newBtn: { backgroundColor: '#4A7FD4', borderRadius: 12, paddingVertical: 13, alignItems: 'center', marginBottom: 20 },
+  title: { fontSize: 26, fontWeight: '800', color: '#152238', marginBottom: 6 },
+  sub: { fontSize: 14, color: '#4A6080', marginBottom: 24 },
+  newBtn: {
+    backgroundColor: '#152238', borderRadius: 12, paddingVertical: 13, alignItems: 'center', marginBottom: 20,
+    shadowColor: '#152238', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18, shadowRadius: 12, elevation: 6,
+  },
   newBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
-  form: { backgroundColor: '#fff', borderRadius: 14, padding: 20, marginBottom: 24, shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 6, elevation: 2 },
-  formTitle: { fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 12 },
-  fieldLabel: { fontSize: 12, fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 6, marginTop: 10 },
-  input: { backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: '#111827', outlineWidth: 0 } as any,
+  form: {
+    backgroundColor: '#fff', borderRadius: 14, padding: 20, marginBottom: 24,
+    shadowColor: '#152238', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 6, elevation: 2,
+    borderWidth: 1, borderColor: 'rgba(21,34,56,0.08)',
+  },
+  formTitle: { fontSize: 15, fontWeight: '700', color: '#152238', marginBottom: 12 },
+  fieldLabel: { fontSize: 12, fontWeight: '700', color: '#4A6080', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 6, marginTop: 10 },
+  input: {
+    backgroundColor: '#F4F8FF', borderWidth: 1, borderColor: 'rgba(21,34,56,0.08)',
+    borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: '#152238', outlineWidth: 0,
+  } as any,
   textArea: { minHeight: 90, textAlignVertical: 'top' },
   errorText: { fontSize: 13, color: '#EF4444', fontWeight: '600', marginTop: 10 },
-  saveBtn: { backgroundColor: '#4A7FD4', borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 16 },
+  saveBtn: {
+    backgroundColor: '#152238', borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 16,
+    shadowColor: '#152238', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18, shadowRadius: 12, elevation: 6,
+  },
   saveBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 14 },
-  empty: { color: '#9CA3AF', fontSize: 14, textAlign: 'center', paddingVertical: 24 },
-  notifCard: { backgroundColor: '#fff', borderRadius: 14, padding: 18, marginBottom: 12, shadowColor: '#000', shadowOpacity: 0.04, shadowOffset: { width: 0, height: 1 }, shadowRadius: 4, elevation: 1 },
+  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#152238', marginBottom: 14 },
+  empty: { color: '#7A90AE', fontSize: 14, textAlign: 'center', paddingVertical: 24 },
+  notifCard: {
+    backgroundColor: '#fff', borderRadius: 14, padding: 18, marginBottom: 12,
+    shadowColor: '#152238', shadowOpacity: 0.04, shadowOffset: { width: 0, height: 1 }, shadowRadius: 4, elevation: 1,
+    borderWidth: 1, borderColor: 'rgba(21,34,56,0.08)',
+  },
   notifHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  notifDate: { fontSize: 12, color: '#9CA3AF', flex: 1 },
-  locationBadge: { backgroundColor: 'rgba(74,127,212,0.1)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-  locationText: { fontSize: 11, fontWeight: '700', color: '#4A7FD4' },
+  notifDate: { fontSize: 12, color: '#7A90AE', flex: 1 },
+  locationBadge: { backgroundColor: 'rgba(74,143,232,0.1)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+  locationText: { fontSize: 11, fontWeight: '700', color: '#4A8FE8' },
   deleteBtn: { padding: 4 },
-  deleteBtnText: { fontSize: 14, color: '#9CA3AF', fontWeight: '700' },
-  notifTitle: { fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 6 },
-  notifBody: { fontSize: 13, color: '#6B7280', lineHeight: 20 },
+  deleteBtnText: { fontSize: 14, color: '#7A90AE', fontWeight: '700' },
+  notifTitle: { fontSize: 15, fontWeight: '700', color: '#152238', marginBottom: 6 },
+  notifBody: { fontSize: 13, color: '#4A6080', lineHeight: 20 },
   chipRow: { flexDirection: 'row', gap: 10, marginBottom: 4 },
-  locationChip: { flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 2, borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', alignItems: 'center' },
-  locationChipActive: { borderColor: '#4A7FD4', backgroundColor: 'rgba(74,127,212,0.08)' },
-  locationChipText: { fontSize: 14, fontWeight: '700', color: '#6B7280' },
-  locationChipTextActive: { color: '#4A7FD4' },
+  locationChip: {
+    flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 2,
+    borderColor: 'rgba(21,34,56,0.08)', backgroundColor: '#F4F8FF', alignItems: 'center',
+  },
+  locationChipActive: { borderColor: '#4A8FE8', backgroundColor: 'rgba(74,143,232,0.08)' },
+  locationChipText: { fontSize: 14, fontWeight: '700', color: '#4A6080' },
+  locationChipTextActive: { color: '#4A8FE8' },
 });

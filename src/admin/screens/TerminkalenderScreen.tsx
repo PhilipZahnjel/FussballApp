@@ -10,17 +10,17 @@ import { isBookableDay } from '../../utils/bookingRules';
 
 // ─── Design tokens ───────────────────────────────────────────────────────────
 const C = {
-  bg:           '#ECEEF4',
+  bg:           '#EEF3FB',
   surface:      '#FFFFFF',
-  dark:         '#0F1629',
-  navy:         '#1C2133',
-  navyMid:      '#2D3548',
-  text:         '#111827',
+  dark:         '#152238',
+  navy:         '#152238',
+  navyMid:      '#1E2E48',
+  text:         '#152238',
   textMid:      '#374151',
-  textLight:    '#6B7280',
-  textFaint:    '#9CA3AF',
-  border:       '#E2E5EE',
-  borderLight:  '#F1F3F8',
+  textLight:    '#4A6080',
+  textFaint:    '#7A90AE',
+  border:       'rgba(21,34,56,0.08)',
+  borderLight:  '#EEF3FB',
   accent:       '#5A8C6A',
   accentLight:  'rgba(90,140,106,0.1)',
   accentMid:    'rgba(90,140,106,0.22)',
@@ -46,10 +46,6 @@ const PROGRAM_BG: Record<string, string> = {
   athletik:            'rgba(245,168,74,0.10)',
   torhueter_individual:'rgba(232,118,118,0.10)',
   torhueter_gruppe:    'rgba(155,89,182,0.10)',
-};
-const PROGRAM_EMOJI: Record<string, string> = {
-  individual: '⚽', gruppe: '👥', athletik: '🏃',
-  torhueter_individual: '🥅', torhueter_gruppe: '🧤',
 };
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -308,7 +304,6 @@ export function TerminkalenderScreen({
               onPress={() => setBookProgram(p.id)}
               activeOpacity={0.7}
             >
-              <Text style={s.programChipEmoji}>{PROGRAM_EMOJI[p.id]}</Text>
               <Text style={[s.programChipText, active && { color: '#fff' }]}>{p.name}</Text>
             </TouchableOpacity>
           );
@@ -418,7 +413,6 @@ export function TerminkalenderScreen({
 
           {dayAppts.length === 0 && !bookingDay && (
             <View style={s.emptyState}>
-              <Text style={s.emptyIcon}>📅</Text>
               <Text style={s.emptyText}>Keine bestätigten Termine</Text>
             </View>
           )}
@@ -471,7 +465,6 @@ export function TerminkalenderScreen({
                                   onPress={() => { setSelectedApptId(isSel ? null : a.id); setCancelError(null); setBookingDay(null); }}
                                   activeOpacity={0.85}
                                 >
-                                  <Text style={[dg.apptTagEmoji]}>{PROGRAM_EMOJI[a.program] ?? '⚽'}</Text>
                                   <Text style={[dg.apptTagText, { color: isSel ? '#fff' : color }]} numberOfLines={1}>
                                     {cust?.full_name ?? '—'}
                                   </Text>
@@ -491,7 +484,7 @@ export function TerminkalenderScreen({
                 <View style={s.detailPanel}>
                   <View style={[s.detailAccent, { backgroundColor: selColor }]} />
                   <View style={s.detailBody}>
-                    <Text style={s.detailProgram}>{PROGRAM_EMOJI[selAppt.program]} {selProg?.name}</Text>
+                    <Text style={s.detailProgram}>{selProg?.name}</Text>
                     <Text style={s.detailName}>{selCust?.full_name ?? '—'}</Text>
                     <Text style={s.detailMeta}>
                       {selAppt.time} Uhr{selTrainer ? ` · ${selTrainer.full_name}` : ''}
@@ -661,7 +654,6 @@ export function TerminkalenderScreen({
                               activeOpacity={0.8}
                             >
                               <View style={wg.apptBlockTop}>
-                                <Text style={[wg.apptEmoji]}>{PROGRAM_EMOJI[first.program]}</Text>
                                 <Text style={[wg.apptProg, { color: isSel ? '#fff' : color }]} numberOfLines={1}>
                                   {prog?.name ?? first.program}
                                 </Text>
@@ -701,7 +693,7 @@ export function TerminkalenderScreen({
               <View style={[s.detailAccent, { backgroundColor: color }]} />
               <View style={s.detailBody}>
                 <Text style={s.detailProgram}>
-                  {PROGRAM_EMOJI[first.program]} {prog?.name}
+                  {prog?.name}
                 </Text>
                 <Text style={s.detailMeta}>
                   {first.time} Uhr{trainer ? ` · ${trainer.full_name}` : ''}
@@ -804,7 +796,7 @@ const s = StyleSheet.create({
     borderRadius: 14,
     overflow: 'hidden',
     marginBottom: 14,
-    shadowColor: '#1C2133',
+    shadowColor: '#152238',
     shadowOpacity: 0.07,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 8,
@@ -817,12 +809,11 @@ const s = StyleSheet.create({
   dayTopBar:     { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' },
   todayBadge:    { backgroundColor: C.accent, borderRadius: 7, paddingHorizontal: 10, paddingVertical: 4 },
   todayBadgeText:{ fontSize: 12, fontWeight: '700', color: '#fff' },
-  addBtn:        { backgroundColor: 'rgba(74,127,212,0.09)', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: 'rgba(74,127,212,0.2)' },
-  addBtnText:    { fontSize: 13, fontWeight: '700', color: '#4A7FD4' },
+  addBtn:        { backgroundColor: 'rgba(74,143,232,0.09)', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: 'rgba(74,143,232,0.2)' },
+  addBtnText:    { fontSize: 13, fontWeight: '700', color: '#4A8FE8' },
 
   // Empty state
   emptyState:    { backgroundColor: C.surface, borderRadius: 14, padding: 48, alignItems: 'center', gap: 10 },
-  emptyIcon:     { fontSize: 32 },
   emptyText:     { fontSize: 15, color: C.textFaint, fontWeight: '500' },
 
   // Detail panel (selected appointment)
@@ -941,7 +932,6 @@ const dg = StyleSheet.create({
     paddingHorizontal: 8, paddingVertical: 5,
     flexDirection: 'row', alignItems: 'center', gap: 5,
   },
-  apptTagEmoji:{ fontSize: 11 },
   apptTagText: { fontSize: 12, fontWeight: '700', flex: 1 },
 });
 
@@ -1015,7 +1005,6 @@ const wg = StyleSheet.create({
     gap: 3, alignSelf: 'stretch', minWidth: 0,
   },
   apptBlockTop: { flexDirection: 'row', alignItems: 'center', gap: 5, minWidth: 0 },
-  apptEmoji:    { fontSize: 13, flexShrink: 0 },
   apptProg:     { fontSize: 12, fontWeight: '800', flexShrink: 1, minWidth: 0 },
   apptMeta:     { fontSize: 12, fontWeight: '600', color: C.textMid, flexShrink: 1, minWidth: 0 },
   apptMetaSel:  { color: 'rgba(255,255,255,0.85)' },

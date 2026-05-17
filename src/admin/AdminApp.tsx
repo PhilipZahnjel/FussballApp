@@ -14,13 +14,13 @@ interface Props {
   onLogout: () => void;
 }
 
-const NAV: { id: AdminTab; label: string; icon: string }[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-  { id: 'kunden', label: 'Spieler', icon: '👥' },
-  { id: 'kalender', label: 'Terminkalender', icon: '📅' },
-  { id: 'zeitplan', label: 'Zeitplan', icon: '🗓' },
-  { id: 'infos', label: 'Infos', icon: '📢' },
-  { id: 'videos', label: 'Trainer-Videos', icon: '🎬' },
+const NAV: { id: AdminTab; label: string }[] = [
+  { id: 'dashboard', label: 'Dashboard' },
+  { id: 'kunden', label: 'Spieler' },
+  { id: 'kalender', label: 'Terminkalender' },
+  { id: 'zeitplan', label: 'Zeitplan' },
+  { id: 'infos', label: 'Infos' },
+  { id: 'videos', label: 'Trainer-Videos' },
 ];
 
 const TAB_LABELS: Record<AdminTab, string> = {
@@ -64,8 +64,11 @@ export function AdminApp({ onLogout }: Props) {
   const sidebar = (
     <View style={styles.sidebar}>
       <View style={styles.sidebarTop}>
-        <Text style={styles.logoText}>PK</Text>
-        <Text style={styles.logoSub}>Admin</Text>
+        <View style={styles.logoBadge}>
+          <Text style={styles.logoBadgeText}>PK</Text>
+        </View>
+        <Text style={styles.logoTitle}>Fußballschule</Text>
+        <Text style={styles.logoSub}>Administration</Text>
       </View>
 
       <View style={styles.nav}>
@@ -76,7 +79,6 @@ export function AdminApp({ onLogout }: Props) {
             onPress={() => navigate(item.id)}
             activeOpacity={0.7}
           >
-            <Text style={styles.navIcon}>{item.icon}</Text>
             <Text style={[styles.navLabel, tab === item.id && styles.navLabelActive]}>
               {item.label}
             </Text>
@@ -95,7 +97,7 @@ export function AdminApp({ onLogout }: Props) {
     <>
       {loadError && (
         <View style={styles.errorBanner}>
-          <Text style={styles.errorBannerText}>⚠ Fehler beim Laden: {loadError}</Text>
+          <Text style={styles.errorBannerText}>Hinweis: Fehler beim Laden: {loadError}</Text>
         </View>
       )}
       {tab === 'dashboard' && (
@@ -211,22 +213,31 @@ export function AdminApp({ onLogout }: Props) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, flexDirection: 'row', backgroundColor: '#F4F6F9' },
-  sidebar: { width: 220, backgroundColor: '#1C2133', flexDirection: 'column' },
-  sidebarTop: { padding: 24, paddingBottom: 28, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)' },
-  logoText: { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
-  logoSub: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.4)', marginTop: 2, letterSpacing: 1.5, textTransform: 'uppercase' },
+  root: { flex: 1, flexDirection: 'row', backgroundColor: '#EEF3FB' },
+  sidebar: { width: 220, backgroundColor: '#152238', flexDirection: 'column' },
+  sidebarTop: { padding: 24, paddingBottom: 28, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)', gap: 6 },
+  logoBadge: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#4A8FE8', alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  logoBadgeText: { fontSize: 18, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
+  logoTitle: { fontSize: 14, fontWeight: '700', color: '#fff', letterSpacing: -0.2 },
+  logoSub: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.4)', letterSpacing: 1.2, textTransform: 'uppercase' },
   nav: { flex: 1, paddingTop: 12 },
-  navItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingVertical: 13, marginHorizontal: 8, borderRadius: 10, marginBottom: 2 },
-  navItemActive: { backgroundColor: 'rgba(74,127,212,0.2)' },
-  navIcon: { fontSize: 17 },
+  navItem: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 20, paddingVertical: 13,
+    marginHorizontal: 8, borderRadius: 0, marginBottom: 2,
+    borderLeftWidth: 3, borderLeftColor: 'transparent',
+  },
+  navItemActive: {
+    backgroundColor: 'rgba(74,143,232,0.14)',
+    borderLeftColor: '#4A8FE8',
+  },
   navLabel: { fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.5)' },
-  navLabelActive: { color: '#90BFF5' },
+  navLabelActive: { color: '#4A8FE8' },
   logoutBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 20, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.07)' },
   logoutIcon: { fontSize: 16, color: 'rgba(255,255,255,0.4)' },
   logoutText: { fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.4)' },
   main: { flex: 1 },
-  topbar: { position: 'absolute', top: 0, left: 0, right: 0, height: 56, backgroundColor: '#1C2133', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 14, zIndex: 20 },
+  topbar: { position: 'absolute', top: 0, left: 0, right: 0, height: 56, backgroundColor: '#152238', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 14, zIndex: 20 },
   hamburger: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center', gap: 5 },
   hamburgerLine: { width: 22, height: 2, backgroundColor: '#fff', borderRadius: 1 },
   topbarTitle: { fontSize: 16, fontWeight: '700', color: '#fff', flex: 1 },

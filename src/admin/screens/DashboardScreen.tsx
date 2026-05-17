@@ -43,7 +43,7 @@ function StatCard({ label, value, color, onPress }: { label: string; value: stri
 }
 
 export function DashboardScreen({ customers, allAppointments, loading, onNavigate }: Props) {
-  if (loading) return <ActivityIndicator style={{ flex: 1 }} color="#4A7FD4" />;
+  if (loading) return <ActivityIndicator style={{ flex: 1 }} color="#4A8FE8" />;
 
   const ts = todayStr();
   const we = weekEnd();
@@ -64,7 +64,7 @@ export function DashboardScreen({ customers, allAppointments, loading, onNavigat
         <StatCard
           label="Aktive Spieler"
           value={activeCustomers.length}
-          color="#4A7FD4"
+          color="#4A8FE8"
           onPress={() => onNavigate('kunden')}
         />
         <StatCard
@@ -88,7 +88,7 @@ export function DashboardScreen({ customers, allAppointments, loading, onNavigat
         upcoming.map(a => {
           const customer = customers.find(c => c.id === a.user_id);
           const prog = PROGRAMS.find(p => p.id === a.program);
-          const color = PROGRAM_COLORS[a.program] ?? '#4A7FD4';
+          const color = PROGRAM_COLORS[a.program] ?? '#4A8FE8';
           return (
             <View key={a.id} style={styles.apptRow}>
               <View style={[styles.colorDot, { backgroundColor: color }]} />
@@ -106,30 +106,32 @@ export function DashboardScreen({ customers, allAppointments, loading, onNavigat
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#F4F6F9' },
+  root: { flex: 1, backgroundColor: '#EEF3FB' },
   content: { padding: 32 },
-  title: { fontSize: 26, fontWeight: '800', color: '#111827', marginBottom: 24 },
+  title: { fontSize: 26, fontWeight: '800', color: '#152238', marginBottom: 24 },
   statsRow: { flexDirection: 'row', gap: 16, marginBottom: 36, flexWrap: 'wrap' },
   statCard: {
     flex: 1, minWidth: 120, backgroundColor: '#fff', borderRadius: 14,
-    padding: 20, shadowColor: '#000', shadowOpacity: 0.05,
+    padding: 20, shadowColor: '#152238', shadowOpacity: 0.06,
     shadowOffset: { width: 0, height: 2 }, shadowRadius: 8, elevation: 2,
     position: 'relative',
+    borderWidth: 1, borderColor: 'rgba(21,34,56,0.08)',
   },
-  statValue: { fontSize: 32, fontWeight: '800', color: '#111827', marginBottom: 4 },
-  statLabel: { fontSize: 13, color: '#6B7280', fontWeight: '500' },
-  statArrow: { position: 'absolute', right: 14, top: 14, fontSize: 20, color: '#D1D5DB' },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 12 },
-  empty: { color: '#9CA3AF', fontSize: 14, paddingVertical: 20, textAlign: 'center' },
+  statValue: { fontSize: 32, fontWeight: '800', color: '#152238', marginBottom: 4 },
+  statLabel: { fontSize: 13, color: '#4A6080', fontWeight: '500' },
+  statArrow: { position: 'absolute', right: 14, top: 14, fontSize: 20, color: '#7A90AE' },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#152238', marginBottom: 12 },
+  empty: { color: '#7A90AE', fontSize: 14, paddingVertical: 20, textAlign: 'center' },
   apptRow: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
     backgroundColor: '#fff', borderRadius: 12, padding: 14,
-    marginBottom: 8, shadowColor: '#000', shadowOpacity: 0.04,
+    marginBottom: 8, shadowColor: '#152238', shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 1 }, shadowRadius: 4, elevation: 1,
+    borderWidth: 1, borderColor: 'rgba(21,34,56,0.08)',
   },
   colorDot: { width: 10, height: 10, borderRadius: 5 },
   apptInfo: { flex: 1 },
-  apptName: { fontSize: 14, fontWeight: '700', color: '#111827' },
-  apptMeta: { fontSize: 12, color: '#6B7280', marginTop: 2 },
-  apptDate: { fontSize: 13, color: '#6B7280', fontWeight: '500' },
+  apptName: { fontSize: 14, fontWeight: '700', color: '#152238' },
+  apptMeta: { fontSize: 12, color: '#4A6080', marginTop: 2 },
+  apptDate: { fontSize: 13, color: '#4A6080', fontWeight: '500' },
 });
