@@ -100,6 +100,8 @@ export function BuchenScreen({ slotCounts, slotPlayers, myAppointments, profile,
   const [calM, setCalM] = useState(new Date().getMonth());
   const [calY, setCalY] = useState(new Date().getFullYear());
   const [bookingError, setBookingError] = useState<string | null>(null);
+  const doneScaleAnim = useRef(new Animated.Value(0.93));
+  const doneFadeAnim = useRef(new Animated.Value(0));
 
   const tokenIndividual = activeTokens.find(t => t.category === 'individual');
   const tokenGruppe = activeTokens.find(t => t.category === 'gruppe');
@@ -129,6 +131,17 @@ export function BuchenScreen({ slotCounts, slotPlayers, myAppointments, profile,
       refreshSlotData();
     }
   }, [step, selDate]);
+
+  React.useEffect(() => {
+    if (step === 'done') {
+      doneScaleAnim.current.setValue(0.93);
+      doneFadeAnim.current.setValue(0);
+      Animated.parallel([
+        Animated.timing(doneScaleAnim.current, { toValue: 1, duration: 300, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+        Animated.timing(doneFadeAnim.current, { toValue: 1, duration: 300, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+      ]).start();
+    }
+  }, [step]);
 
   const ts = todayStr();
   const stepIdx = STEPS.indexOf(step);
@@ -508,16 +521,8 @@ export function BuchenScreen({ slotCounts, slotPlayers, myAppointments, profile,
 
   // ── DoneStep ──────────────────────────────────────────────────
   function DoneStep() {
-    const scaleAnim = useRef(new Animated.Value(0.93)).current;
-    const fadeAnim2 = useRef(new Animated.Value(0)).current;
-    useEffect(() => {
-      Animated.parallel([
-        Animated.timing(scaleAnim, { toValue: 1, duration: 300, easing: Easing.out(Easing.ease), useNativeDriver: true }),
-        Animated.timing(fadeAnim2, { toValue: 1, duration: 300, easing: Easing.out(Easing.ease), useNativeDriver: true }),
-      ]).start();
-    }, []);
     return (
-      <Animated.View style={[styles.doneWrap, { opacity: fadeAnim2, transform: [{ scale: scaleAnim }] }]}>
+      <Animated.View style={[styles.doneWrap, { opacity: doneFadeAnim.current, transform: [{ scale: doneScaleAnim.current }] }]}>
         <View style={styles.checkCircle}>
           <Text style={styles.checkMark}>✓</Text>
         </View>
