@@ -67,7 +67,7 @@ export function AdminApp({ onLogout }: Props) {
         <View style={styles.logoBadge}>
           <Text style={styles.logoBadgeText}>PK</Text>
         </View>
-        <Text style={styles.logoTitle}>Fußballschule</Text>
+        <Text style={styles.logoTitle}>Fussballschule</Text>
         <Text style={styles.logoSub}>Administration</Text>
       </View>
 
