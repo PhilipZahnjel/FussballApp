@@ -1,6 +1,5 @@
-import { BookingPermissions, ProgramCategory, PlayerLevel } from '../types';
+import { BookingPermissions, PlayerLevel } from '../types';
 import { PROGRAM_CATEGORY, PROGRAM_CAPACITY, ProgramId } from '../constants/programs';
-import { Appointment } from '../types';
 
 export type AppointmentSlim = { date: string; time: string; status: string; program: string };
 
@@ -33,35 +32,6 @@ export function checkProgramPermission(
   const flag = flagMap[programId];
   if (!flag || !permissions[flag]) {
     return { allowed: false, reason: 'Du bist für dieses Training nicht freigeschaltet.' };
-  }
-  return { allowed: true };
-}
-
-// Prüft ob monatliches Kontingent noch verfügbar (Token überschreibt Limit)
-export function checkMonthlyQuota(
-  myAppointments: Appointment[],
-  permissions: BookingPermissions,
-  programId: ProgramId,
-  targetMonth: string, // 'YYYY-MM'
-  hasValidToken: boolean,
-): { allowed: boolean; reason?: string } {
-  if (hasValidToken) return { allowed: true };
-
-  const category: ProgramCategory = PROGRAM_CATEGORY[programId] ?? 'individual';
-  const quota = category === 'individual' ? permissions.quota_individual : permissions.quota_gruppe;
-
-  const used = myAppointments.filter(a =>
-    a.status === 'confirmed' &&
-    a.date.startsWith(targetMonth) &&
-    PROGRAM_CATEGORY[a.program as ProgramId] === category,
-  ).length;
-
-  if (used >= quota) {
-    const label = category === 'individual' ? 'Individual' : 'Gruppen';
-    return {
-      allowed: false,
-      reason: `Dein ${label}-Kontingent für diesen Monat (${quota}) ist aufgebraucht.`,
-    };
   }
   return { allowed: true };
 }

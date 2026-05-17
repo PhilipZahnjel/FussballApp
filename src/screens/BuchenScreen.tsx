@@ -709,8 +709,5 @@ function getStyles(C: Colors) {
     tokenRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     tokenIcon: { fontSize: 15 },
     tokenText: { fontSize: 13, fontWeight: '600', color: C.text, flex: 1 },
-    quotaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
-    quotaChip: { backgroundColor: C.accentBg, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
-    quotaText: { fontSize: 12, fontWeight: '700', color: C.textMid },
   });
 }

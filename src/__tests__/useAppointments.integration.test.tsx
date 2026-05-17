@@ -25,8 +25,6 @@ const baseProfile: Profile = {
   can_book_athletik: false,
   can_book_torhueter_individual: false,
   can_book_torhueter_gruppe: false,
-  quota_individual: 2,
-  quota_gruppe: 2,
 };
 
 const mockAppt = {

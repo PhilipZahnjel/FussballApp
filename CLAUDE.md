@@ -35,8 +35,7 @@ profiles: {
   level ('anfaenger'|'amateur'|'profi'|'experte' | NULL),
   can_book_individual (bool), can_book_gruppe (bool),
   can_book_athletik (bool), can_book_torhueter_individual (bool),
-  can_book_torhueter_gruppe (bool),
-  quota_individual (int 0-4), quota_gruppe (int 0-4)
+  can_book_torhueter_gruppe (bool)
 }
 
 appointments: {
@@ -60,8 +59,7 @@ Admins dürfen alle Zeilen lesen/schreiben. Kunden nur eigene.
 - Max. **2 bestätigte Termine pro Tag** pro Nutzer (keine Ausnahmen).
 - Wochenenden (Sa + So) und deutsche Bundesfeiertage nicht buchbar.
 - **Buchungsberechtigung:** Kunde kann nur Programme buchen, für die Admin das Flag gesetzt hat (`can_book_*`).
-- **Monatliches Kontingent:** Max. `quota_individual` Individual-Einheiten + `quota_gruppe` Gruppen-Einheiten pro Monat.
-- **Stornierungstoken:** Bei Stornierung wird ein Token ausgestellt (gleiche Kategorie, 1 Monat gültig). Token erlaubt zusätzliche Buchung außerhalb des Kontingents.
+- **Stornierungstoken:** Bei Stornierung wird ein Token ausgestellt (gleiche Kategorie, 1 Monat gültig). Token erlaubt eine zusätzliche Buchung (kein separates Kontingent — Token sind das einzige Buchungslimit).
 - Slot-Kapazität per DB-Trigger (Individual: 1, Gruppe/Athletik/Torwart-Gruppe: 4).
 
 **Admin bucht ohne Einschränkungen** (`addAppointmentForCustomer` überspringt alle Checks).
@@ -96,7 +94,7 @@ Level wird vom Admin im Kundenprofil gesetzt. Kunden sehen ihr Level nicht.
 **Screens:**
 - `DashboardScreen` — Statistiken, nächste 10 Termine aller Kunden
 - `KundenScreen` — Suchfeld + Kundenliste (mit Level-Badge), "Neuen Kunden anlegen"-Formular
-- `KundenDetailScreen` — Profil, Level-Chips, Buchungsberechtigungen (5 Toggles), Monatskontingent (0-4), Termine buchen/stornieren
+- `KundenDetailScreen` — Profil, Level-Chips, Buchungsberechtigungen (5 Toggles), Termine buchen/stornieren
 - `TerminkalenderScreen` — Wochenansicht aller Termine
 
 **Hook:** `useAdminData` in `src/admin/hooks/useAdminData.ts`  
@@ -112,10 +110,10 @@ Funktionen: `cancelAppointment`, `addAppointmentForCustomer`, `createCustomer`, 
 ---
 
 ## Hooks & State (Kunden-App)
-- `useAppointments(profile)` → `appointments` (alle, für Kapazität) + `myAppointments` (nur eigene) + `activeTokens` (unbenutzte Tokens)
-- `useProfile` → Profil inkl. `role`, `level`, `can_book_*`, `quota_*`
+- `useAppointments(profile)` → `slotCounts` (anonyme Kapazität via RPC) + `slotPlayers` (anonyme Spielerinfos via RPC) + `myAppointments` (nur eigene) + `activeTokens` (unbenutzte Tokens)
+- `useProfile` → Profil inkl. `role`, `level`, `can_book_*`
 - `TermineScreen` bekommt `myAppointments` + `activeTokens`
-- `BuchenScreen` bekommt `appointments`, `myAppointments`, `profile`, `activeTokens`
+- `BuchenScreen` bekommt `slotCounts`, `slotPlayers`, `myAppointments`, `profile`, `activeTokens`
 
 ---
 

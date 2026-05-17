@@ -347,7 +347,7 @@ export function KundenDetailScreen({
 
         {permError && <Text style={styles.fieldError}>{permError}</Text>}
 
-        <Text style={styles.quotaTitle}>Aktive Nachholtermine</Text>
+        <Text style={styles.sectionLabel}>Aktive Nachholtermine</Text>
         <View style={styles.tokenDisplayRow}>
           <View style={styles.tokenDisplayItem}>
             <Text style={styles.tokenDisplayCount}>{tokenCounts?.individual ?? 0}</Text>
@@ -560,7 +560,7 @@ const styles = StyleSheet.create({
   noLevel: { fontSize: 13, color: '#9CA3AF', fontStyle: 'italic', marginTop: 4 },
   permRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
   permLabel: { fontSize: 14, color: '#374151', fontWeight: '500' },
-  quotaTitle: { fontSize: 13, fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 16, marginBottom: 8 },
+  sectionLabel: { fontSize: 13, fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 16, marginBottom: 8 },
   tokenDisplayRow: { flexDirection: 'row', gap: 10 },
   tokenDisplayItem: { flex: 1, backgroundColor: '#F9FAFB', borderRadius: 10, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB' },
   tokenDisplayCount: { fontSize: 28, fontWeight: '800', color: '#111827' },

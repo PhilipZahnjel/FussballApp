@@ -1,12 +1,11 @@
 import {
   checkProgramPermission,
-  checkMonthlyQuota,
   isWithinCancellationDeadline,
   checkGroupSessionCompatibility,
   canJoinGroupSlot,
   reconstructGroups,
 } from '../utils/bookingRules';
-import { BookingPermissions, Appointment, PlayerLevel } from '../types';
+import { BookingPermissions, PlayerLevel } from '../types';
 import { ProgramId } from '../constants/programs';
 
 // ── Hilfsfunktionen ──────────────────────────────────────────────────────────
@@ -17,8 +16,6 @@ const allPerms = (): BookingPermissions => ({
   can_book_athletik: true,
   can_book_torhueter_individual: true,
   can_book_torhueter_gruppe: true,
-  quota_individual: 4,
-  quota_gruppe: 4,
 });
 
 const noPerms = (): BookingPermissions => ({
@@ -27,21 +24,6 @@ const noPerms = (): BookingPermissions => ({
   can_book_athletik: false,
   can_book_torhueter_individual: false,
   can_book_torhueter_gruppe: false,
-  quota_individual: 0,
-  quota_gruppe: 0,
-});
-
-const mkAppt = (
-  program: string,
-  date: string,
-  status: 'confirmed' | 'cancelled' = 'confirmed',
-): Appointment => ({
-  id: `appt-${Math.random().toString(36).slice(2)}`,
-  date,
-  time: '09:00',
-  status,
-  program,
-  user_id: 'user-1',
 });
 
 const player = (birthYear: number, level: PlayerLevel) => ({ birthYear, level });
@@ -85,71 +67,6 @@ describe('checkProgramPermission', () => {
     programs.forEach(id => {
       expect(checkProgramPermission(noPerms(), id).allowed).toBe(false);
     });
-  });
-});
-
-// ── checkMonthlyQuota ────────────────────────────────────────────────────────
-
-describe('checkMonthlyQuota', () => {
-  const MONTH = '2026-05';
-  const OTHER_MONTH = '2026-04';
-
-  test('hasValidToken = true erlaubt immer, auch bei Quota 0', () => {
-    const result = checkMonthlyQuota([], noPerms(), 'individual', MONTH, true);
-    expect(result).toEqual({ allowed: true });
-  });
-
-  test('Individual-Kontingent erschöpft → blockiert', () => {
-    const perms = { ...allPerms(), quota_individual: 2 };
-    const appts = [
-      mkAppt('individual', `${MONTH}-05`),
-      mkAppt('individual', `${MONTH}-12`),
-    ];
-    const result = checkMonthlyQuota(appts, perms, 'individual', MONTH, false);
-    expect(result.allowed).toBe(false);
-    expect(result.reason).toMatch(/Individual/);
-  });
-
-  test('Individual-Kontingent nicht erschöpft → erlaubt', () => {
-    const perms = { ...allPerms(), quota_individual: 3 };
-    const appts = [mkAppt('individual', `${MONTH}-05`), mkAppt('individual', `${MONTH}-12`)];
-    expect(checkMonthlyQuota(appts, perms, 'individual', MONTH, false).allowed).toBe(true);
-  });
-
-  test('Gruppen-Kontingent erschöpft → blockiert', () => {
-    const perms = { ...allPerms(), quota_gruppe: 1 };
-    const appts = [mkAppt('gruppe', `${MONTH}-10`)];
-    const result = checkMonthlyQuota(appts, perms, 'gruppe', MONTH, false);
-    expect(result.allowed).toBe(false);
-    expect(result.reason).toMatch(/Gruppen/);
-  });
-
-  test('stornierte Termine zählen nicht zum Kontingent', () => {
-    const perms = { ...allPerms(), quota_individual: 2 };
-    const appts = [
-      mkAppt('individual', `${MONTH}-05`, 'cancelled'),
-      mkAppt('individual', `${MONTH}-12`, 'cancelled'),
-      mkAppt('individual', `${MONTH}-19`, 'cancelled'),
-    ];
-    expect(checkMonthlyQuota(appts, perms, 'individual', MONTH, false).allowed).toBe(true);
-  });
-
-  test('Termine anderer Monate zählen nicht', () => {
-    const perms = { ...allPerms(), quota_individual: 1 };
-    const appts = [mkAppt('individual', `${OTHER_MONTH}-05`)];
-    expect(checkMonthlyQuota(appts, perms, 'individual', MONTH, false).allowed).toBe(true);
-  });
-
-  test('athletik zählt zum Gruppen-Kontingent', () => {
-    const perms = { ...allPerms(), quota_gruppe: 1 };
-    const appts = [mkAppt('athletik', `${MONTH}-05`)];
-    const result = checkMonthlyQuota(appts, perms, 'gruppe', MONTH, false);
-    expect(result.allowed).toBe(false);
-  });
-
-  test('Individual-Quota beeinflusst nicht Gruppen-Quota', () => {
-    const perms = { ...allPerms(), quota_individual: 0, quota_gruppe: 2 };
-    expect(checkMonthlyQuota([], perms, 'gruppe', MONTH, false).allowed).toBe(true);
   });
 });
 

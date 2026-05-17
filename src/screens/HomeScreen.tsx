@@ -8,7 +8,7 @@ import { Btn } from '../components/Btn';
 import { Appointment, Tab, CancellationToken } from '../types';
 import { todayStr, fmtDate } from '../constants/i18n';
 import { Profile } from '../hooks/useProfile';
-import { PROGRAMS, PROGRAM_CATEGORY, ProgramId } from '../constants/programs';
+import { PROGRAMS } from '../constants/programs';
 
 interface Props {
   appointments: Appointment[];
@@ -198,17 +198,7 @@ export function HomeScreen({ appointments, profile, activeTokens, setTab }: Prop
     .filter(a => a.date >= ts && a.status === 'confirmed')
     .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))[0];
 
-  const thisMonth = ts.slice(0, 7);
-  const usedIndividual = appointments.filter(
-    a => a.status === 'confirmed' && a.date.startsWith(thisMonth) && PROGRAM_CATEGORY[a.program as ProgramId] === 'individual'
-  ).length;
-  const usedGruppe = appointments.filter(
-    a => a.status === 'confirmed' && a.date.startsWith(thisMonth) && PROGRAM_CATEGORY[a.program as ProgramId] === 'gruppe'
-  ).length;
   const hasTokens = activeTokens.length > 0;
-  const hasQuota =
-    (profile?.quota_individual ?? 0) > usedIndividual ||
-    (profile?.quota_gruppe ?? 0) > usedGruppe;
   const buchenActive = hasTokens;
 
   const earliestToken = activeTokens

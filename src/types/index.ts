@@ -60,8 +60,6 @@ export type BookingPermissions = {
   can_book_athletik: boolean;
   can_book_torhueter_individual: boolean;
   can_book_torhueter_gruppe: boolean;
-  quota_individual: number;
-  quota_gruppe: number;
 };
 
 export type AppNotification = {

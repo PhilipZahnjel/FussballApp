@@ -81,8 +81,6 @@ describe('useProfile – auth callback: valid session', () => {
       can_book_athletik: false,
       can_book_torhueter_individual: false,
       can_book_torhueter_gruppe: false,
-      quota_individual: 2,
-      quota_gruppe: 2,
     };
 
     (supabase.from as jest.Mock).mockReturnValue(makeChain({ data: mockProfileData, error: null }));
