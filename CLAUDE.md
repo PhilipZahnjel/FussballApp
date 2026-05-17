@@ -57,7 +57,7 @@ Admins dürfen alle Zeilen lesen/schreiben. Kunden nur eigene.
 ---
 
 ## Buchungsregeln (kritisch — gilt für Kunden)
-- Max. **1 bestätigter Termin pro Tag** pro Nutzer (keine Ausnahmen).
+- Max. **2 bestätigte Termine pro Tag** pro Nutzer (keine Ausnahmen).
 - Wochenenden (Sa + So) und deutsche Bundesfeiertage nicht buchbar.
 - **Buchungsberechtigung:** Kunde kann nur Programme buchen, für die Admin das Flag gesetzt hat (`can_book_*`).
 - **Monatliches Kontingent:** Max. `quota_individual` Individual-Einheiten + `quota_gruppe` Gruppen-Einheiten pro Monat.

@@ -13,12 +13,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-// Cookie-Storage für Web:
-// - SameSite=Strict: verhindert CSRF (Cookie wird nicht bei Anfragen von fremden Seiten mitgeschickt)
-// - Secure: Cookie nur über HTTPS (wirkt sobald HTTPS aktiv ist)
-// - max-age=86400: 24 Stunden Gültigkeit, danach neuer Login erforderlich
-// Hinweis: httpOnly ist ohne Server-Endpunkt nicht setzbar — das wäre der nächste Schritt
-//          wenn später ein serverseitiges Login-Handling eingebaut wird.
+// Wird vor dem Login gesetzt — steuert Cookie-Laufzeit (8h vs. 30 Tage)
+let rememberMeActive = false;
+export const setRememberMe = (val: boolean) => { rememberMeActive = val; };
+
 const cookieStorage = {
   getItem: (key: string): Promise<string | null> => {
     if (typeof document === 'undefined') return Promise.resolve(null);
@@ -31,7 +29,8 @@ const cookieStorage = {
     if (typeof document === 'undefined') return Promise.resolve();
     const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
     const secure = isHttps ? '; Secure' : '';
-    document.cookie = `${key}=${encodeURIComponent(value)}; path=/; max-age=28800; SameSite=Strict${secure}`;
+    const maxAge = rememberMeActive ? 2592000 : 28800; // 30 Tage vs. 8 Stunden
+    document.cookie = `${key}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Strict${secure}`;
     return Promise.resolve();
   },
   removeItem: (key: string): Promise<void> => {
@@ -54,6 +53,6 @@ export const supabase = createClient(supabaseUrl!, supabaseAnonKey!, {
     storage,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
+    detectSessionInUrl: Platform.OS === 'web',
   },
 });

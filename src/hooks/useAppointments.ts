@@ -1,12 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { Appointment, CancellationToken, ProgramCategory } from '../types';
+import { Appointment, CancellationToken, ProgramCategory, SlotCount, SlotPlayer } from '../types';
 import { PROGRAM_CATEGORY, ProgramId } from '../constants/programs';
 import { checkDailyConflict, checkProgramPermission } from '../utils/bookingRules';
 import { Profile } from './useProfile';
 import { AppointmentService } from '../services/appointmentService';
 import { TokenService } from '../services/tokenService';
-import { ProfileService } from '../services/profileService';
 import { EmailService } from '../services/emailService';
 
 function getCategory(program: string): ProgramCategory {
@@ -14,7 +13,8 @@ function getCategory(program: string): ProgramCategory {
 }
 
 export function useAppointments(profile: Profile | null) {
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [slotCounts, setSlotCounts] = useState<SlotCount[]>([]);
+  const [slotPlayers, setSlotPlayers] = useState<SlotPlayer[]>([]);
   const [myAppointments, setMyAppointments] = useState<Appointment[]>([]);
   const [activeTokens, setActiveTokens] = useState<CancellationToken[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,22 +25,20 @@ export function useAppointments(profile: Profile | null) {
     let isMounted = true;
 
     const loadData = async (uid: string) => {
-      const [allData, tokenData] = await Promise.all([
+      const [countsData, playersData, allData, tokenData] = await Promise.all([
+        AppointmentService.fetchSlotCounts(),
+        AppointmentService.fetchSlotPlayers(),
         AppointmentService.fetchAll(),
         TokenService.fetchActive(uid),
       ]);
       if (!isMounted) return;
-      if (allData.data) {
-        const all = allData.data as Appointment[];
-        setAppointments(all);
-        setMyAppointments(all.filter(a => a.user_id === uid));
-      }
+      if (countsData.data) setSlotCounts(countsData.data as SlotCount[]);
+      if (playersData.data) setSlotPlayers(playersData.data as SlotPlayer[]);
+      if (allData.data) setMyAppointments(allData.data as Appointment[]);
       setActiveTokens((tokenData.data ?? []) as CancellationToken[]);
       setLoading(false);
     };
 
-    // INITIAL_SESSION feuert beim Mount mit der aktuellen Session → deckt ersten Load ab.
-    // SIGNED_IN deckt den Login-Fall ab.
     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return;
       const user = session?.user ?? null;
@@ -49,7 +47,8 @@ export function useAppointments(profile: Profile | null) {
         userIdRef.current = user.id;
         loadData(user.id);
       } else if (!user) {
-        setAppointments([]);
+        setSlotCounts([]);
+        setSlotPlayers([]);
         setMyAppointments([]);
         setActiveTokens([]);
         setLoading(false);
@@ -61,16 +60,75 @@ export function useAppointments(profile: Profile | null) {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'appointments' }, (payload) => {
         if (!isMounted) return;
         const appt = payload.new as Appointment;
-        setAppointments(prev => prev.some(a => a.id === appt.id) ? prev : [...prev, appt]);
         if (userIdRef.current && appt.user_id === userIdRef.current) {
           setMyAppointments(prev => prev.some(a => a.id === appt.id) ? prev : [...prev, appt]);
+        }
+        if (appt.status === 'confirmed') {
+          setSlotCounts(prev => {
+            const idx = prev.findIndex(s => s.date === appt.date && s.time === appt.time && s.program === appt.program);
+            if (idx !== -1) {
+              return prev.map((s, i) => i === idx ? { ...s, booked: s.booked + 1 } : s);
+            }
+            return [...prev, { date: appt.date, time: appt.time, program: appt.program, booked: 1 }];
+          });
+          if (appt.session_birth_year) {
+            setSlotPlayers(prev => [...prev, {
+              date: appt.date, time: appt.time, program: appt.program,
+              session_birth_year: appt.session_birth_year!,
+              session_level: appt.session_level ?? null,
+              created_at: appt.created_at ?? new Date().toISOString(),
+            }]);
+          }
         }
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'appointments' }, (payload) => {
         if (!isMounted) return;
         const appt = payload.new as Appointment;
-        setAppointments(prev => prev.map(a => a.id === appt.id ? appt : a));
+        const old = payload.old as Appointment;
         setMyAppointments(prev => prev.map(a => a.id === appt.id ? appt : a));
+        if (old.status === 'confirmed' && appt.status === 'cancelled') {
+          setSlotCounts(prev => prev.map(s =>
+            s.date === appt.date && s.time === appt.time && s.program === appt.program
+              ? { ...s, booked: Math.max(0, s.booked - 1) } : s
+          ));
+          if (appt.session_birth_year) {
+            setSlotPlayers(prev => {
+              const idx = prev.findIndex(p =>
+                p.date === appt.date && p.time === appt.time && p.program === appt.program &&
+                p.session_birth_year === appt.session_birth_year
+              );
+              if (idx === -1) return prev;
+              return [...prev.slice(0, idx), ...prev.slice(idx + 1)];
+            });
+          }
+        } else if (old.status === 'cancelled' && appt.status === 'confirmed') {
+          setSlotCounts(prev => {
+            const idx = prev.findIndex(s => s.date === appt.date && s.time === appt.time && s.program === appt.program);
+            if (idx !== -1) return prev.map((s, i) => i === idx ? { ...s, booked: s.booked + 1 } : s);
+            return [...prev, { date: appt.date, time: appt.time, program: appt.program, booked: 1 }];
+          });
+        }
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'appointments' }, (payload) => {
+        if (!isMounted) return;
+        const appt = payload.old as Appointment;
+        setMyAppointments(prev => prev.filter(a => a.id !== appt.id));
+        if (appt.status === 'confirmed') {
+          setSlotCounts(prev => prev.map(s =>
+            s.date === appt.date && s.time === appt.time && s.program === appt.program
+              ? { ...s, booked: Math.max(0, s.booked - 1) } : s
+          ));
+          if (appt.session_birth_year) {
+            setSlotPlayers(prev => {
+              const idx = prev.findIndex(p =>
+                p.date === appt.date && p.time === appt.time && p.program === appt.program &&
+                p.session_birth_year === appt.session_birth_year
+              );
+              if (idx === -1) return prev;
+              return [...prev.slice(0, idx), ...prev.slice(idx + 1)];
+            });
+          }
+        }
       })
       .subscribe();
 
@@ -79,6 +137,15 @@ export function useAppointments(profile: Profile | null) {
       authSub.unsubscribe();
       supabase.removeChannel(channel);
     };
+  }, []);
+
+  const refreshSlotData = useCallback(async () => {
+    const [countsData, playersData] = await Promise.all([
+      AppointmentService.fetchSlotCounts(),
+      AppointmentService.fetchSlotPlayers(),
+    ]);
+    if (countsData.data) setSlotCounts(countsData.data as SlotCount[]);
+    if (playersData.data) setSlotPlayers(playersData.data as SlotPlayer[]);
   }, []);
 
   const addAppointment = async (date: string, time: string, program: string) => {
@@ -92,7 +159,6 @@ export function useAppointments(profile: Profile | null) {
       return { error: { message: 'Nachholtermine können nur mit einem gültigen Stornierungstoken gebucht werden.' } };
     }
 
-    // 4-Wochen-Frist: Buchungsdatum darf max. 28 Tage nach Token-Ausstellung liegen
     const maxDate = new Date(activeToken.issued_at);
     maxDate.setDate(maxDate.getDate() + 28);
     if (new Date(date + 'T12:00:00') > maxDate) {
@@ -105,75 +171,92 @@ export function useAppointments(profile: Profile | null) {
     }
 
     const dailyConflict = checkDailyConflict(
-      myAppointments.filter(a => a.status === 'confirmed'),
-      date,
-      time,
+      myAppointments.filter(a => a.status === 'confirmed'), date, time,
     );
     if (!dailyConflict.allowed) return { error: { message: dailyConflict.reason! } };
 
-    const { data: profileData } = await ProfileService.fetchById(user.id);
-    const birthYear = profile?.birth_date ? parseInt(profile.birth_date.slice(0, 4)) : null;
-    const level = profile?.level ?? null;
-    const { data, error } = await AppointmentService.insert({
-      date, time, status: 'confirmed', user_id: user.id, program,
-      ...(birthYear ? { session_birth_year: birthYear } : {}),
-      ...(level ? { session_level: level } : {}),
+    const { data, error } = await supabase.rpc('book_with_token', {
+      p_token_id: activeToken.id,
+      p_date: date,
+      p_time: time,
+      p_program: program,
     });
 
-    if (data && !error) {
-      const newAppt = data as Appointment;
-      setAppointments(prev => [...prev, newAppt]);
+    if (error) return { error };
+    const result = data as { appointment?: Appointment; error?: string } | null;
+    if (result?.error) return { error: { message: result.error } };
+
+    const newAppt = result?.appointment as Appointment;
+    if (newAppt) {
       setMyAppointments(prev => [...prev, newAppt]);
-
-      await TokenService.markUsed(activeToken.id);
-      setActiveTokens(prev => prev.filter(t => t.id !== activeToken.id));
-
-      EmailService.sendBooking({
-        email: user.email ?? '',
-        name: profileData?.full_name ?? '',
-        date, time, program,
+      setSlotCounts(prev => {
+        const idx = prev.findIndex(s => s.date === date && s.time === time && s.program === program);
+        if (idx !== -1) return prev.map((s, i) => i === idx ? { ...s, booked: s.booked + 1 } : s);
+        return [...prev, { date, time, program, booked: 1 }];
       });
+      if (newAppt.session_birth_year) {
+        setSlotPlayers(prev => [...prev, {
+          date, time, program,
+          session_birth_year: newAppt.session_birth_year!,
+          session_level: newAppt.session_level ?? null,
+          created_at: newAppt.created_at ?? new Date().toISOString(),
+        }]);
+      }
     }
-    return { error };
+    setActiveTokens(prev => prev.filter(t => t.id !== activeToken.id));
+
+    EmailService.sendBooking({
+      email: user.email ?? '',
+      name: profile?.full_name ?? '',
+      date, time, program,
+    });
+
+    return { error: null };
   };
 
   const cancelAppointment = async (id: string, skipToken = false) => {
-    const appt = appointments.find(a => a.id === id);
+    const appt = myAppointments.find(a => a.id === id);
     const { data: { session } } = await supabase.auth.getSession();
     const user = session?.user;
 
-    const { error } = await AppointmentService.updateStatus(id, 'cancelled');
+    const { data, error } = await supabase.rpc('cancel_and_issue_token', { p_appointment_id: id });
 
-    if (!error && appt && user) {
-      const updateAppt = (a: Appointment) =>
-        a.id === id ? { ...a, status: 'cancelled' as const } : a;
-      setAppointments(prev => prev.map(updateAppt));
-      setMyAppointments(prev => prev.map(updateAppt));
+    if (error) return { error };
+    const result = data as { token?: CancellationToken; error?: string } | null;
+    if (result?.error) return { error: { message: result.error } };
 
-      if (!skipToken) {
-        const category = getCategory(appt.program);
-        const expiresAt = new Date();
-        expiresAt.setMonth(expiresAt.getMonth() + 1);
-        const { data: tokenData } = await TokenService.insert({
-          user_id: user.id,
-          category,
-          expires_at: expiresAt.toISOString(),
-          source_appointment_id: id,
+    setMyAppointments(prev => prev.map(a => a.id === id ? { ...a, status: 'cancelled' as const } : a));
+
+    if (appt) {
+      setSlotCounts(prev => prev.map(s =>
+        s.date === appt.date && s.time === appt.time && s.program === appt.program
+          ? { ...s, booked: Math.max(0, s.booked - 1) } : s
+      ));
+      if (appt.session_birth_year) {
+        setSlotPlayers(prev => {
+          const idx = prev.findIndex(p =>
+            p.date === appt.date && p.time === appt.time && p.program === appt.program &&
+            p.session_birth_year === appt.session_birth_year
+          );
+          if (idx === -1) return prev;
+          return [...prev.slice(0, idx), ...prev.slice(idx + 1)];
         });
-        if (tokenData) setActiveTokens(prev => [...prev, tokenData as CancellationToken]);
       }
+    }
 
-      const { data: profileData } = await ProfileService.fetchById(user.id);
+    const newToken = result?.token as CancellationToken | undefined;
+    if (newToken && !skipToken) setActiveTokens(prev => [...prev, newToken]);
+
+    if (appt && user) {
       EmailService.sendCancellation({
         email: user.email ?? '',
-        name: profileData?.full_name ?? '',
-        date: appt.date,
-        time: appt.time,
-        program: appt.program,
+        name: profile?.full_name ?? '',
+        date: appt.date, time: appt.time, program: appt.program,
       });
     }
-    return { error };
+
+    return { error: null };
   };
 
-  return { appointments, myAppointments, activeTokens, loading, addAppointment, cancelAppointment, userId };
+  return { slotCounts, slotPlayers, myAppointments, activeTokens, loading, addAppointment, cancelAppointment, userId, refreshSlotData };
 }

@@ -36,4 +36,8 @@ export const AppointmentService = {
       .eq('user_id', userId)
       .eq('date', date)
       .eq('status', 'confirmed'),
+
+  fetchSlotCounts: () => supabase.rpc('get_slot_counts'),
+
+  fetchSlotPlayers: () => supabase.rpc('get_slot_players'),
 };

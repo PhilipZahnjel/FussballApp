@@ -72,3 +72,19 @@ export type AppNotification = {
   created_at: string;
   is_global: boolean;
 };
+
+export type SlotCount = {
+  date: string;
+  time: string;
+  program: string;
+  booked: number;
+};
+
+export type SlotPlayer = {
+  date: string;
+  time: string;
+  program: string;
+  session_birth_year: number;
+  session_level: string | null;
+  created_at: string;
+};

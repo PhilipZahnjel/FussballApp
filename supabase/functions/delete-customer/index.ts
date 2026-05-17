@@ -46,19 +46,6 @@ Deno.serve(async (req) => {
     const { customerId } = await req.json();
     if (!customerId) return json({ error: 'customerId fehlt' }, 400);
 
-    const today = new Date().toISOString().split('T')[0];
-    await serviceClient
-      .from('appointments')
-      .update({ status: 'cancelled' })
-      .eq('user_id', customerId)
-      .eq('status', 'confirmed')
-      .gte('date', today);
-
-    await serviceClient
-      .from('profiles')
-      .update({ is_active: false })
-      .eq('id', customerId);
-
     // Remove all user data before auth delete to satisfy FK constraints
     await serviceClient.from('cancellation_tokens').delete().eq('user_id', customerId);
     await serviceClient.from('appointments').delete().eq('user_id', customerId);

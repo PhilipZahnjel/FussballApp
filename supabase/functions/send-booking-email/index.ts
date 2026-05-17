@@ -1,3 +1,4 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import nodemailer from 'npm:nodemailer';
 
 function corsHeaders() {
@@ -22,8 +23,21 @@ const transporter = nodemailer.createTransport({
 
 Deno.serve(async (req) => {
   const cors = corsHeaders();
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: cors });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
+
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return new Response(JSON.stringify({ error: 'Nicht autorisiert' }), { status: 401, headers: { ...cors, 'Content-Type': 'application/json' } });
+  }
+
+  const callerClient = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_ANON_KEY')!,
+    { global: { headers: { Authorization: authHeader } } },
+  );
+  const { data: { user } } = await callerClient.auth.getUser();
+  if (!user) {
+    return new Response(JSON.stringify({ error: 'Nicht autorisiert' }), { status: 401, headers: { ...cors, 'Content-Type': 'application/json' } });
   }
 
   const { email, name, date, time, program } = await req.json();
@@ -36,7 +50,7 @@ Deno.serve(async (req) => {
   await transporter.sendMail({
     from: `"PK Fußballschule" <${Deno.env.get('GMAIL_USER')}>`,
     to: email,
-    subject: `✅ Buchungsbestätigung – ${programName}`,
+    subject: `Buchungsbestätigung – ${programName}`,
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:auto">
         <h2 style="color:#3a7a52">Hallo ${safeName},</h2>

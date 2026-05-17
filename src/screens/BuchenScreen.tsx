@@ -10,7 +10,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { Card } from '../components/Card';
 import { GlassCard } from '../components/GlassCard';
 import { Btn } from '../components/Btn';
-import { Appointment, CancellationToken, Tab, TrainerSchedule } from '../types';
+import { Appointment, SlotCount, SlotPlayer, CancellationToken, Tab, TrainerSchedule } from '../types';
 import { todayStr, fmtDate, fmtShort, DE_MONTHS, DE_DAYS_SHORT } from '../constants/i18n';
 import { SLOTS } from '../constants/slots';
 import { PROGRAMS, PROGRAM_CATEGORY, CATEGORY_COLORS, ProgramId } from '../constants/programs';
@@ -19,7 +19,8 @@ import { Profile } from '../hooks/useProfile';
 import { germanHolidays, canJoinGroupSlot, reconstructGroups } from '../utils/bookingRules';
 
 interface Props {
-  appointments: Appointment[];
+  slotCounts: SlotCount[];
+  slotPlayers: SlotPlayer[];
   myAppointments: Appointment[];
   profile: Profile | null;
   activeTokens: CancellationToken[];
@@ -27,6 +28,7 @@ interface Props {
   setTab: (t: Tab) => void;
   trainerSchedules?: TrainerSchedule[];
   trainers?: Array<{ id: string; trainer_specialty?: string | null }>;
+  refreshSlotData?: () => Promise<void>;
 }
 
 type Step = 'category' | 'program' | 'date' | 'time' | 'confirm' | 'done';
@@ -45,19 +47,25 @@ function FadeUp({ children }: { children: React.ReactNode }) {
 }
 
 function BackBtn({ onPress }: { onPress: () => void }) {
+  const { C } = useTheme();
   return (
-    <TouchableOpacity onPress={onPress} style={styles.backBtn} activeOpacity={0.7}>
-      <Text style={styles.backArrow}>‹</Text>
-      <Text style={styles.backLabel}>Zurück</Text>
+    <TouchableOpacity
+      onPress={onPress}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 20, alignSelf: 'flex-start' }}
+      activeOpacity={0.7}
+    >
+      <Text style={{ fontSize: 20, color: C.accent, fontWeight: '600' }}>‹</Text>
+      <Text style={{ fontSize: 15, fontWeight: '600', color: C.accent }}>Zurück</Text>
     </TouchableOpacity>
   );
 }
 
 function SectionTitle({ t, sub }: { t: string; sub?: string }) {
+  const { C } = useTheme();
   return (
     <View style={{ marginBottom: 20 }}>
-      <Text style={styles.sectionTitle}>{t}</Text>
-      {sub && <Text style={styles.sectionSub}>{sub}</Text>}
+      <Text style={{ fontSize: 22, fontWeight: '800', color: C.text, letterSpacing: -0.3 }}>{t}</Text>
+      {sub && <Text style={{ fontSize: 15, color: C.textFaint, marginTop: 4 }}>{sub}</Text>}
     </View>
   );
 }
@@ -80,7 +88,7 @@ function isProgramAllowed(profile: Profile, programId: string): boolean {
   return true;
 }
 
-export function BuchenScreen({ appointments, myAppointments, profile, activeTokens, addAppointment, setTab, trainerSchedules = [], trainers = [] }: Props) {
+export function BuchenScreen({ slotCounts, slotPlayers, myAppointments, profile, activeTokens, addAppointment, setTab, trainerSchedules = [], trainers = [], refreshSlotData }: Props) {
   const insets = useSafeAreaInsets();
   const { C } = useTheme();
   const styles = React.useMemo(() => getStyles(C), [C]);
@@ -115,6 +123,12 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
   React.useEffect(() => {
     if (step !== 'confirm') setBookingError(null);
   }, [step]);
+
+  React.useEffect(() => {
+    if (step === 'time' && selDate && refreshSlotData) {
+      refreshSlotData();
+    }
+  }, [step, selDate]);
 
   const ts = todayStr();
   const stepIdx = STEPS.indexOf(step);
@@ -371,16 +385,16 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
         <View style={styles.slotGrid}>
           {slots.map(t => {
             const totalCapacity = getSlotCapacity(t);
-            const slotAppts = appointments.filter(a => a.date === selDate && a.time === t && a.program === selProgram && a.status === 'confirmed');
-            const booked = slotAppts.length;
+            const booked = slotCounts.find(s => s.date === selDate && s.time === t && s.program === selProgram)?.booked ?? 0;
+            const slotPlayerList = slotPlayers.filter(p => p.date === selDate && p.time === t && p.program === selProgram);
             const userBooked = myAppointments.some(a => a.date === selDate && a.time === t && a.status === 'confirmed');
             const isPast = isToday && t <= nowStr;
 
             let freeInGroup = GROUP_SIZE;
             if (isGroup && !isPast && !userBooked && playerBirthYear && playerLevel) {
-              const existingPlayers = slotAppts
-                .filter(a => a.session_birth_year != null && a.session_level)
-                .map(a => ({ birthYear: a.session_birth_year!, level: a.session_level as any, created_at: a.created_at }));
+              const existingPlayers = slotPlayerList
+                .filter(p => p.session_birth_year != null && p.session_level)
+                .map(p => ({ birthYear: p.session_birth_year!, level: p.session_level as any, created_at: p.created_at }));
               const groups = reconstructGroups(existingPlayers, GROUP_SIZE, sessionYear);
               const trainerCount = relevantIds.length || 1;
 
@@ -454,7 +468,7 @@ export function BuchenScreen({ appointments, myAppointments, profile, activeToke
   // ── ConfirmStep ───────────────────────────────────────────────
   function ConfirmStep() {
     const capacity = currentProgram?.capacity ?? 1;
-    const booked = appointments.filter(a => a.date === selDate && a.time === selTime && a.program === selProgram && a.status === 'confirmed').length;
+    const booked = slotCounts.find(s => s.date === selDate && s.time === selTime && s.program === selProgram)?.booked ?? 0;
     const doBook = async () => {
       setBookingError(null);
       const { error } = await addAppointment(selDate!, selTime!, selProgram!);

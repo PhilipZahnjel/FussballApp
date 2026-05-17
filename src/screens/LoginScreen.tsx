@@ -6,7 +6,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/colors';
 import { useTheme } from '../contexts/ThemeContext';
-import { supabase } from '../lib/supabase';
+import { supabase, setRememberMe } from '../lib/supabase';
 
 interface Props {
   onLogin: () => void;
@@ -106,6 +106,43 @@ function getStyles(C: Colors) {
       fontWeight: '600',
       marginBottom: 16,
     },
+    successText: {
+      fontSize: 13,
+      color: C.accent,
+      fontWeight: '600',
+      marginBottom: 16,
+      lineHeight: 20,
+    },
+    rememberRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginBottom: 24,
+    },
+    checkbox: {
+      width: 22,
+      height: 22,
+      borderRadius: 6,
+      borderWidth: 1.5,
+      borderColor: C.cardBorder,
+      backgroundColor: C.accentBg,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    checkboxActive: {
+      backgroundColor: C.accent,
+      borderColor: C.accent,
+    },
+    checkmark: {
+      color: '#fff',
+      fontSize: 13,
+      fontWeight: '800',
+    },
+    rememberLabel: {
+      fontSize: 14,
+      color: C.textMid,
+      fontWeight: '500',
+    },
     loginBtn: {
       height: 56,
       borderRadius: 16,
@@ -133,17 +170,72 @@ function getStyles(C: Colors) {
     forgotBtn: {
       alignItems: 'center',
       paddingVertical: 10,
-      marginBottom: 32,
+      marginBottom: 16,
     },
     forgotLabel: {
       fontSize: 14,
       color: C.textFaint,
       fontWeight: '500',
     },
+    backBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 20,
+    },
+    backLabel: {
+      fontSize: 14,
+      color: C.accent,
+      fontWeight: '600',
+    },
+    // PWA Install Button (Android / Desktop Chrome)
+    installBtn: {
+      height: 52,
+      borderRadius: 16,
+      borderWidth: 1.5,
+      borderColor: C.accent,
+      backgroundColor: C.accentBg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'row',
+      gap: 8,
+      marginBottom: 16,
+    },
+    installBtnLabel: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: C.accent,
+      letterSpacing: 0.1,
+    },
+    installBtnIcon: {
+      fontSize: 16,
+      color: C.accent,
+    },
+    // iOS Hint Card
+    iosHintCard: {
+      backgroundColor: C.accentBg,
+      borderRadius: 16,
+      borderWidth: 1.5,
+      borderColor: C.cardBorder,
+      padding: 16,
+      marginBottom: 16,
+      gap: 4,
+    },
+    iosHintTitle: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: C.textMid,
+    },
+    iosHintText: {
+      fontSize: 13,
+      color: C.textFaint,
+      lineHeight: 18,
+    },
     decorRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 12,
+      marginBottom: 16,
     },
     decorLine: {
       flex: 1,
@@ -163,10 +255,23 @@ export function LoginScreen({ onLogin }: Props) {
   const { C } = useTheme();
   const styles = React.useMemo(() => getStyles(C), [C]);
   const insets = useSafeAreaInsets();
+
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMeState] = useState(false);
+
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSent, setForgotSent] = useState(false);
+  const [forgotErr, setForgotErr] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+
+  // PWA install state (web only)
+  const installPromptRef = useRef<any>(null);
+  const [installPromptReady, setInstallPromptReady] = useState(false);
+  const [showIosHint, setShowIosHint] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(24)).current;
@@ -178,11 +283,42 @@ export function LoginScreen({ onLogin }: Props) {
     ]).start();
   }, []);
 
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+
+    // Prompt wurde möglicherweise bereits vor React-Mount gefangen (web/index.html)
+    if ((window as any)._pwaInstallPrompt) {
+      installPromptRef.current = (window as any)._pwaInstallPrompt;
+      setInstallPromptReady(true);
+    }
+
+    const onPrompt = (e: Event) => {
+      e.preventDefault();
+      installPromptRef.current = e;
+      setInstallPromptReady(true);
+    };
+    const onInstalled = () => setInstallPromptReady(false);
+
+    window.addEventListener('beforeinstallprompt', onPrompt);
+    window.addEventListener('appinstalled', onInstalled);
+
+    // iOS: Hinweis wenn Safari und noch nicht als App installiert
+    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isStandalone = (window.navigator as any).standalone === true;
+    if (isIos && !isStandalone) setShowIosHint(true);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onPrompt);
+      window.removeEventListener('appinstalled', onInstalled);
+    };
+  }, []);
+
   const doLogin = async () => {
     if (!email.includes('@')) { setErr('Bitte eine gültige E-Mail-Adresse eingeben.'); return; }
     if (pw.length < 4) { setErr('Passwort zu kurz.'); return; }
     setErr('');
     setLoading(true);
+    setRememberMe(rememberMe);
     const { error } = await supabase.auth.signInWithPassword({ email, password: pw });
     setLoading(false);
     if (error) {
@@ -190,6 +326,30 @@ export function LoginScreen({ onLogin }: Props) {
     } else {
       onLogin();
     }
+  };
+
+  const doForgotPassword = async () => {
+    if (!forgotEmail.includes('@')) { setForgotErr('Bitte eine gültige E-Mail-Adresse eingeben.'); return; }
+    setForgotErr('');
+    setForgotLoading(true);
+    const redirectTo = Platform.OS === 'web' && typeof window !== 'undefined'
+      ? window.location.origin
+      : undefined;
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, { redirectTo });
+    setForgotLoading(false);
+    if (error) {
+      setForgotErr('Fehler beim Senden. Bitte versuche es erneut.');
+    } else {
+      setForgotSent(true);
+    }
+  };
+
+  const doInstall = async () => {
+    if (!installPromptRef.current) return;
+    installPromptRef.current.prompt();
+    await installPromptRef.current.userChoice;
+    installPromptRef.current = null;
+    setInstallPromptReady(false);
   };
 
   const emailErr = !!err && !email.includes('@');
@@ -212,61 +372,135 @@ export function LoginScreen({ onLogin }: Props) {
             <View style={styles.logoBadge}>
               <Text style={styles.badgeMonogram}>PK</Text>
             </View>
-            <Text style={styles.studioName}>PK-Fußballschule</Text>
+            <Text style={styles.studioName}>PK-Fussballschule</Text>
             <Text style={styles.studioCity}>Hattersheim am Main</Text>
           </View>
 
           {/* Form Card */}
           <View style={styles.formCard}>
-            <Text style={styles.formTitle}>Willkommen zurück</Text>
-            <Text style={styles.formSub}>Melde dich an, um deine Termine zu verwalten.</Text>
+            {forgotMode ? (
+              <>
+                <TouchableOpacity style={styles.backBtn} onPress={() => { setForgotMode(false); setForgotSent(false); setForgotErr(''); setForgotEmail(''); }}>
+                  <Text style={styles.backLabel}>← Zurück</Text>
+                </TouchableOpacity>
+                <Text style={styles.formTitle}>Passwort zurücksetzen</Text>
+                <Text style={styles.formSub}>Gib deine E-Mail-Adresse ein. Du bekommst einen Link zum Zurücksetzen.</Text>
 
-            <View style={styles.fieldWrap}>
-              <Text style={styles.fieldLabel}>E-Mail-Adresse</Text>
-              <TextInput
-                style={[styles.input, emailErr && styles.inputErr]}
-                value={email}
-                onChangeText={v => { setEmail(v); setErr(''); }}
-                placeholder="anna@beispiel.de"
-                placeholderTextColor={C.textFaint}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
+                {!forgotSent ? (
+                  <>
+                    <View style={styles.fieldWrap}>
+                      <Text style={styles.fieldLabel}>E-Mail-Adresse</Text>
+                      <TextInput
+                        style={[styles.input, !!forgotErr && styles.inputErr]}
+                        value={forgotEmail}
+                        onChangeText={v => { setForgotEmail(v); setForgotErr(''); }}
+                        placeholder="anna@beispiel.de"
+                        placeholderTextColor={C.textFaint}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                      />
+                    </View>
+                    {!!forgotErr && <Text style={styles.errText}>{forgotErr}</Text>}
+                    <TouchableOpacity
+                      onPress={doForgotPassword}
+                      disabled={forgotLoading}
+                      activeOpacity={0.88}
+                      style={[styles.loginBtn, forgotLoading && { opacity: 0.7 }]}
+                    >
+                      <Text style={styles.loginBtnLabel}>
+                        {forgotLoading ? 'Wird gesendet…' : 'Reset-Link senden'}
+                      </Text>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <Text style={styles.successText}>
+                    E-Mail gesendet! Prüfe dein Postfach und klicke auf den Link, um ein neues Passwort festzulegen.
+                  </Text>
+                )}
+              </>
+            ) : (
+              <>
+                <Text style={styles.formTitle}>Willkommen zurück</Text>
+                <Text style={styles.formSub}>Melde dich an, um deine Termine zu verwalten.</Text>
 
-            <View style={[styles.fieldWrap, { marginBottom: err ? 8 : 28 }]}>
-              <Text style={styles.fieldLabel}>Passwort</Text>
-              <TextInput
-                style={[styles.input, pwErr && styles.inputErr]}
-                value={pw}
-                onChangeText={v => { setPw(v); setErr(''); }}
-                placeholder="••••••••"
-                placeholderTextColor={C.textFaint}
-                secureTextEntry
-              />
-            </View>
+                <View style={styles.fieldWrap}>
+                  <Text style={styles.fieldLabel}>E-Mail-Adresse</Text>
+                  <TextInput
+                    style={[styles.input, emailErr && styles.inputErr]}
+                    value={email}
+                    onChangeText={v => { setEmail(v); setErr(''); }}
+                    placeholder="anna@beispiel.de"
+                    placeholderTextColor={C.textFaint}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                </View>
 
-            {!!err && <Text style={styles.errText}>{err}</Text>}
+                <View style={[styles.fieldWrap, { marginBottom: 18 }]}>
+                  <Text style={styles.fieldLabel}>Passwort</Text>
+                  <TextInput
+                    style={[styles.input, pwErr && styles.inputErr]}
+                    value={pw}
+                    onChangeText={v => { setPw(v); setErr(''); }}
+                    placeholder="••••••••"
+                    placeholderTextColor={C.textFaint}
+                    secureTextEntry
+                  />
+                </View>
 
-            <TouchableOpacity
-              onPress={doLogin}
-              disabled={loading}
-              activeOpacity={0.88}
-              style={[styles.loginBtn, loading && { opacity: 0.7 }]}
-            >
-              <Text style={styles.loginBtnLabel}>
-                {loading ? 'Wird angemeldet…' : 'Anmelden'}
-              </Text>
-              {!loading && <Text style={styles.loginBtnArrow}>→</Text>}
-            </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.rememberRow}
+                  onPress={() => setRememberMeState(v => !v)}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.checkbox, rememberMe && styles.checkboxActive]}>
+                    {rememberMe && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
+                  <Text style={styles.rememberLabel}>Angemeldet bleiben (30 Tage)</Text>
+                </TouchableOpacity>
+
+                {!!err && <Text style={styles.errText}>{err}</Text>}
+
+                <TouchableOpacity
+                  onPress={doLogin}
+                  disabled={loading}
+                  activeOpacity={0.88}
+                  style={[styles.loginBtn, loading && { opacity: 0.7 }]}
+                >
+                  <Text style={styles.loginBtnLabel}>
+                    {loading ? 'Wird angemeldet…' : 'Anmelden'}
+                  </Text>
+                  {!loading && <Text style={styles.loginBtnArrow}>→</Text>}
+                </TouchableOpacity>
+              </>
+            )}
           </View>
 
-          <TouchableOpacity style={styles.forgotBtn} activeOpacity={0.7}>
-            <Text style={styles.forgotLabel}>Passwort vergessen?</Text>
-          </TouchableOpacity>
+          {!forgotMode && (
+            <TouchableOpacity style={styles.forgotBtn} onPress={() => setForgotMode(true)} activeOpacity={0.7}>
+              <Text style={styles.forgotLabel}>Passwort vergessen?</Text>
+            </TouchableOpacity>
+          )}
 
-          {/* Decorative elements */}
+          {/* PWA Install Button — Android / Desktop Chrome */}
+          {installPromptReady && (
+            <TouchableOpacity style={styles.installBtn} onPress={doInstall} activeOpacity={0.85}>
+              <Text style={styles.installBtnIcon}>↓</Text>
+              <Text style={styles.installBtnLabel}>App installieren</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* PWA iOS Hint */}
+          {showIosHint && (
+            <View style={styles.iosHintCard}>
+              <Text style={styles.iosHintTitle}>App zum Home-Bildschirm hinzufügen</Text>
+              <Text style={styles.iosHintText}>Tippe auf Teilen ↑ und dann auf „Zum Home-Bildschirm"</Text>
+            </View>
+          )}
+
+          {/* Decorative footer */}
           <View style={styles.decorRow}>
             <View style={styles.decorLine} />
             <Text style={styles.decorText}>PK Fußballschule · Buchungs-App</Text>

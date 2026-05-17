@@ -328,6 +328,18 @@ function getStyles(C: Colors) {
       borderWidth: 1, borderColor: 'rgba(255,255,255,0.20)',
     },
     chipText: { fontSize: 12, color: 'rgba(255,255,255,0.90)', fontWeight: '600' },
+    infoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingVertical: 15,
+    },
+    infoRowBorder: {
+      borderBottomWidth: 1,
+      borderBottomColor: C.cardBorder,
+    },
+    infoKey: { fontSize: 15, color: C.textMid, flex: 1 },
     editContactRow: { paddingHorizontal: 20, paddingVertical: 12 },
     editContactForm: { paddingHorizontal: 20, paddingBottom: 16, paddingTop: 12 },
     editLabel: { fontSize: 12, fontWeight: '700', color: C.textFaint, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 },

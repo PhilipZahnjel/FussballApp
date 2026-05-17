@@ -13,6 +13,7 @@ import { useAppointments } from './src/hooks/useAppointments';
 import { useProfile } from './src/hooks/useProfile';
 import { useTrainerSchedules } from './src/hooks/useTrainerSchedules';
 import { LoginScreen } from './src/screens/LoginScreen';
+import { ResetPasswordScreen } from './src/screens/ResetPasswordScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { TermineScreen } from './src/screens/TermineScreen';
 import { BuchenScreen } from './src/screens/BuchenScreen';
@@ -73,9 +74,10 @@ function AppInner() {
 
   const [loggedIn, setLoggedIn] = useState(false);
   const [role, setRole] = useState<'admin' | 'customer' | 'trainer' | null>(null);
+  const [passwordRecovery, setPasswordRecovery] = useState(false);
   const [tab, setTab] = useState<Tab>('home');
   const { profile } = useProfile();
-  const { appointments, myAppointments, activeTokens, addAppointment, cancelAppointment } = useAppointments(profile);
+  const { slotCounts, slotPlayers, myAppointments, activeTokens, addAppointment, cancelAppointment, refreshSlotData } = useAppointments(profile);
   const { trainerSchedules, trainers: trainerProfiles } = useTrainerSchedules();
 
   useEffect(() => {
@@ -83,10 +85,16 @@ function AppInner() {
       setLoggedIn(!!session);
       if (session) fetchRole(session.user.id);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setPasswordRecovery(true);
+        setLoggedIn(true);
+        if (session) fetchRole(session.user.id);
+        return;
+      }
       setLoggedIn(!!session);
       if (session) fetchRole(session.user.id);
-      else setRole(null);
+      else { setRole(null); setPasswordRecovery(false); }
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -100,6 +108,24 @@ function AppInner() {
     await supabase.auth.signOut();
     setTab('home');
   }, []);
+
+  if (passwordRecovery) {
+    const recoveryContent = (
+      <LinearGradient colors={[C.bgTop, C.bgBot]} style={styles.gradient} start={{ x: 0.15, y: 0 }} end={{ x: 0.85, y: 1 }}>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
+        <ResetPasswordScreen onDone={() => setPasswordRecovery(false)} />
+      </LinearGradient>
+    );
+    return (
+      <SafeAreaProvider>
+        {isWeb ? (
+          <View style={styles.webOuter}><View style={styles.webInner}>{recoveryContent}</View></View>
+        ) : (
+          <View style={styles.nativeRoot}>{recoveryContent}</View>
+        )}
+      </SafeAreaProvider>
+    );
+  }
 
   if (loggedIn && role === 'admin') {
     return (
@@ -158,7 +184,8 @@ function AppInner() {
             {tab === 'buchen' && (
               <BuchenScreen
                 key="buchen"
-                appointments={appointments}
+                slotCounts={slotCounts}
+                slotPlayers={slotPlayers}
                 myAppointments={myAppointments}
                 activeTokens={activeTokens}
                 profile={profile}
@@ -166,6 +193,7 @@ function AppInner() {
                 setTab={setTab}
                 trainerSchedules={trainerSchedules}
                 trainers={trainerProfiles}
+                refreshSlotData={refreshSlotData}
               />
             )}
             {tab === 'infos' && (

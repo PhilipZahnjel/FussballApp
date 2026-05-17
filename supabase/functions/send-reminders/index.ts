@@ -14,7 +14,15 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  const cronSecret = Deno.env.get('CRON_SECRET');
+  if (cronSecret && req.headers.get('x-cron-secret') !== cronSecret) {
+    return new Response(JSON.stringify({ error: 'Nicht autorisiert' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowStr = tomorrow.toISOString().split('T')[0];

@@ -10,10 +10,10 @@
       http-equiv="Content-Security-Policy"
       content="
         default-src 'self';
-        script-src 'self' 'unsafe-inline' 'unsafe-eval';
+        script-src 'self' 'unsafe-inline';
         style-src 'self' 'unsafe-inline';
         img-src 'self' data: https: blob:;
-        connect-src 'self' https://*.supabase.co wss://*.supabase.co https://gajwglshmkcoznhqvvpg.supabase.co;
+        connect-src 'self' https://*.supabase.co wss://*.supabase.co https://mgdrbgtsaqhgrdsnpasv.supabase.co;
         font-src 'self' data:;
         frame-src 'none';
         object-src 'none';
@@ -44,88 +44,22 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="PK-Fußball" />
 
-    <!-- PWA Install UI -->
-    <style>
-      #pwa-install-btn {
-        display: none;
-        position: fixed;
-        bottom: 24px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 9999;
-        background: #5A8C6A;
-        color: #fff;
-        border: none;
-        border-radius: 14px;
-        padding: 14px 28px;
-        font-size: 15px;
-        font-weight: 700;
-        font-family: -apple-system, sans-serif;
-        cursor: pointer;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.25);
-      }
-      #pwa-ios-hint {
-        display: none;
-        position: fixed;
-        bottom: 24px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 9999;
-        background: #1e3a2f;
-        color: #fff;
-        border-radius: 14px;
-        padding: 14px 20px;
-        font-size: 13px;
-        font-family: -apple-system, sans-serif;
-        text-align: center;
-        white-space: nowrap;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-      }
-    </style>
-
     <%- htmlWebpackPlugin?.options?.headTags ?? '' %>
   </head>
   <body>
     <noscript>Diese App benötigt JavaScript.</noscript>
     <div id="root"></div>
 
-    <!-- Install-Button (Android / Desktop Chrome) -->
-    <button id="pwa-install-btn">⚽ App installieren</button>
-
-    <!-- iOS-Hinweis -->
-    <div id="pwa-ios-hint">Tippe auf Teilen ↑ → „Zum Home-Bildschirm"</div>
-
     <script>
       // Service Worker registrieren
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js');
-        });
+        window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
       }
-
-      // Android/Desktop: Install-Button
-      let deferredPrompt;
-      const installBtn = document.getElementById('pwa-install-btn');
+      // beforeinstallprompt früh abfangen, bevor React gemountet ist
       window.addEventListener('beforeinstallprompt', e => {
         e.preventDefault();
-        deferredPrompt = e;
-        installBtn.style.display = 'block';
+        window._pwaInstallPrompt = e;
       });
-      installBtn.addEventListener('click', () => {
-        installBtn.style.display = 'none';
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
-      });
-      window.addEventListener('appinstalled', () => {
-        installBtn.style.display = 'none';
-      });
-
-      // iOS: Hinweis nur wenn nicht bereits als App geöffnet
-      const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
-      const isStandalone = window.navigator.standalone === true;
-      if (isIos && !isStandalone) {
-        document.getElementById('pwa-ios-hint').style.display = 'block';
-      }
     </script>
 
     <%- htmlWebpackPlugin?.options?.bodyTags ?? '' %>

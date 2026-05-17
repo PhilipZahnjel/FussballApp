@@ -13,6 +13,8 @@ export function useTrainerSchedules() {
   const [trainers, setTrainers] = useState<TrainerWithSpecialty[]>([]);
 
   useEffect(() => {
+    let isMounted = true;
+
     const load = () => Promise.all([
       supabase.from('trainer_schedules').select('*'),
       supabase
@@ -21,6 +23,7 @@ export function useTrainerSchedules() {
         .eq('role', 'trainer')
         .order('full_name'),
     ]).then(([s, t]) => {
+      if (!isMounted) return;
       if (s.data) setTrainerSchedules(s.data as TrainerSchedule[]);
       if (t.data) setTrainers(t.data as TrainerWithSpecialty[]);
     });
@@ -28,11 +31,14 @@ export function useTrainerSchedules() {
     load();
 
     const channel = supabase
-      .channel('trainer-schedules-live')
+      .channel(`trainer-schedules-live-${Date.now()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'trainer_schedules' }, load)
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      isMounted = false;
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   return { trainerSchedules, trainers };

@@ -45,9 +45,7 @@ export function useProfile() {
       .channel(`profile-changes-${Date.now()}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
         if (currentUserId && payload.new.id === currentUserId) {
-          supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session?.user) loadForUser(session.user.id, session.user.email ?? null);
-          });
+          setProfile(prev => prev ? { ...prev, ...(payload.new as Partial<Profile>) } : prev);
         }
       })
       .subscribe();

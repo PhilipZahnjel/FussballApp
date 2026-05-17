@@ -91,21 +91,15 @@ export function useAdminData() {
   };
 
   const cancelAppointment = async (id: string) => {
+    const { data, error } = await supabase.rpc('cancel_and_issue_token', { p_appointment_id: id });
+    if (error) return { error };
+    const result = data as { error?: string } | null;
+    if (result?.error) return { error: { message: result.error } };
+
     const appt = allAppointments.find(a => a.id === id);
-    const { error } = await AppointmentService.updateStatus(id, 'cancelled');
-    if (!error && appt) {
+    if (appt) {
       const category = PROGRAM_CATEGORY[appt.program as ProgramId] ?? 'individual';
-      const expiresAt = new Date();
-      expiresAt.setMonth(expiresAt.getMonth() + 1);
-      await TokenService.insert({
-        user_id: appt.user_id,
-        category,
-        expires_at: expiresAt.toISOString(),
-        source_appointment_id: id,
-      });
-      setAllAppointments(prev => prev.map(a =>
-        a.id === id ? { ...a, status: 'cancelled' as const } : a,
-      ));
+      setAllAppointments(prev => prev.map(a => a.id === id ? { ...a, status: 'cancelled' as const } : a));
       setActiveTokensByCustomer(prev => ({
         ...prev,
         [appt.user_id]: {
@@ -114,7 +108,7 @@ export function useAdminData() {
         },
       }));
     }
-    return { error };
+    return { error: null };
   };
 
   const addAppointmentForCustomer = async (
@@ -129,14 +123,9 @@ export function useAdminData() {
       return { error: { message: 'Der Kunde hat an diesem Tag zur gleichen Uhrzeit bereits einen Termin.' } };
     }
 
-    // Programm-Berechtigung des Kunden prüfen
-    const { data: custProfile } = await supabase
-      .from('profiles')
-      .select('can_book_individual, can_book_gruppe, can_book_athletik, can_book_torhueter_individual, can_book_torhueter_gruppe')
-      .eq('id', userId)
-      .single();
+    const custProfile = customers.find(c => c.id === userId);
     if (custProfile) {
-      const permCheck = checkProgramPermission(custProfile as any, program as ProgramId);
+      const permCheck = checkProgramPermission(custProfile, program as ProgramId);
       if (!permCheck.allowed) {
         return { error: { message: permCheck.reason ?? 'Kunde hat keine Berechtigung für dieses Programm.' } };
       }
