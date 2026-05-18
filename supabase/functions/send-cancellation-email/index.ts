@@ -40,7 +40,11 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: 'Nicht autorisiert' }), { status: 401, headers: { ...cors, 'Content-Type': 'application/json' } });
   }
 
-  const { email, name, date, time, program } = await req.json();
+  const { name, date, time, program } = await req.json();
+  const email = user.email;
+  if (!email) {
+    return new Response(JSON.stringify({ error: 'Keine E-Mail-Adresse hinterlegt' }), { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } });
+  }
   const programName = PROGRAM_NAMES[program] ?? 'Training';
 
   const safeName = (name ?? '').replace(/[<>]/g, '').slice(0, 100);

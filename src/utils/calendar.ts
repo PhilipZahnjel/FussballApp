@@ -7,7 +7,7 @@ import { Appointment } from '../types';
 export async function exportToCalendar(appt: Appointment) {
   const program = PROGRAMS.find(p => p.id === appt.program);
   const duration = program?.duration ?? 20;
-  const summary = program?.name ?? 'EMS Training';
+  const summary = program?.name ?? 'Training';
 
   const [h, m] = appt.time.split(':').map(Number);
   const endTotal = h * 60 + m + duration;
@@ -23,15 +23,15 @@ export async function exportToCalendar(appt: Appointment) {
   const ics = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//EMS Studio//App//DE',
+    'PRODID:-//PK Fußballschule//App//DE',
     'BEGIN:VEVENT',
-    `UID:${appt.id}@ems-studio`,
+    `UID:${appt.id}@pk-fussballschule`,
     `DTSTAMP:${now}`,
     `DTSTART:${dateStr}T${startStr}`,
     `DTEND:${dateStr}T${endStr}`,
-    `SUMMARY:${summary} – EMS Studio`,
-    'DESCRIPTION:EMS Studio Training – Groß-Gerau',
-    'LOCATION:EMS Studio Groß-Gerau',
+    `SUMMARY:${summary} – PK Fußballschule`,
+    'DESCRIPTION:PK Fußballschule Training – Hattersheim am Main',
+    'LOCATION:PK Fußballschule – Hattersheim am Main',
     'END:VEVENT',
     'END:VCALENDAR',
   ].join('\r\n');
@@ -44,12 +44,12 @@ export async function exportToCalendar(appt: Appointment) {
     // @ts-ignore
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'ems-termin.ics';
+    a.download = 'pk-termin.ics';
     a.click();
     // @ts-ignore
     URL.revokeObjectURL(url);
   } else {
-    const fileUri = `${FileSystem.cacheDirectory}ems-termin.ics`;
+    const fileUri = `${FileSystem.cacheDirectory}pk-termin.ics`;
     await FileSystem.writeAsStringAsync(fileUri, ics, {
       encoding: FileSystem.EncodingType.UTF8,
     });

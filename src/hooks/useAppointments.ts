@@ -206,7 +206,6 @@ export function useAppointments(profile: Profile | null) {
     setActiveTokens(prev => prev.filter(t => t.id !== activeToken.id));
 
     EmailService.sendBooking({
-      email: user.email ?? '',
       name: profile?.full_name ?? '',
       date, time, program,
     });
@@ -249,7 +248,6 @@ export function useAppointments(profile: Profile | null) {
 
     if (appt && user) {
       EmailService.sendCancellation({
-        email: user.email ?? '',
         name: profile?.full_name ?? '',
         date: appt.date, time: appt.time, program: appt.program,
       });
